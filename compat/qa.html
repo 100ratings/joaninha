@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Joaninha LAB | Teste de tamanhos</title>
+<style>
+:root{color-scheme:dark;font:14px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+*{box-sizing:border-box}
+body{background:#101114;color:#f4f4f6;margin:0;padding:18px;line-height:1.45}
+main{max-width:1040px;margin:auto}
+h1{font-size:22px;margin:0 0 5px}
+p{color:#b8bac1}
+small{color:#989aa3}
+a{color:#9bb9ff}
+button,select{background:#292c36;color:white;border:1px solid #505564;border-radius:9px;padding:10px;font:inherit;max-width:100%}
+button{cursor:pointer}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:18px 0}
+.columns{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(250px,0.95fr);gap:16px}
+.stage{background:#181a21;border:1px solid #353945;border-radius:14px;padding:12px;overflow:hidden;min-height:350px}
+.simulator{width:100%;position:relative;overflow:hidden}
+.phone{position:absolute;left:50%;top:0;transform-origin:top center;border:5px solid #4a4b54;border-radius:22px;background:black;overflow:hidden}
+iframe{display:block;border:0;background:#000}
+.card{background:#191b22;border:1px solid #383b46;border-radius:14px;padding:14px;margin-bottom:12px}
+.card h2{font-size:16px;margin:0 0 10px}
+pre{font-size:11px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.5}
+.checks{display:grid;gap:9px}
+.checks label{display:flex;gap:8px;align-items:flex-start;color:#dedee6}
+.note{font-size:12px;color:#a7adb9}
+.result-ok{color:#91e3aa}.result-bad{color:#ffa2a9}
+@media(max-width:760px){.columns{grid-template-columns:1fr}}
+</style>
+</head>
+<body><main>
+<h1>Joaninha LAB <span style="font-size:12px;color:#c3c5d2">Compatibilidade V1</span></h1>
+<p>Prévia visual da versão de testes, separada da Joaninha V90 principal</p>
+<p class="note">A simulação abaixo reproduz <strong>dimensões de tela em CSS</strong>, não o teclado, a área de segurança ou os gestos físicos de um aparelho real</p>
+<div class="controls">
+ <label for="device">Tamanho</label>
+ <select id="device">
+  <option value="320x568">Compacto, 320 × 568</option>
+  <option value="375x667">iPhone SE, 375 × 667</option>
+  <option value="390x844" selected>Intermediário, 390 × 844</option>
+  <option value="428x926">iPhone 12 Pro Max, 428 × 926</option>
+  <option value="430x932">Tela grande, 430 × 932</option>
+  <option value="360x780">Android compacto, 360 × 780</option>
+  <option value="412x915">Android grande, 412 × 915</option>
+ </select>
+ <button id="scan" type="button">Conferir geometria</button>
+ <button id="copy" type="button">Copiar relatório</button>
+ <a href="./index.html?diagnostico=1">Diagnóstico no próprio celular</a>
+</div>
+<div class="columns">
+ <section class="stage"><div id="simulator" class="simulator"><div id="phone" class="phone"><iframe id="app" title="Prévia da Joaninha" src="./index.html?lab-preview=1"></iframe></div></div>
+ <p class="note">A prévia é interativa, mas a seleção por toque prolongado deve ser conferida em um celular real</p></section>
+ <section>
+  <div class="card"><h2>Relatório de geometria</h2><div id="summary" class="note">Carregando prévia…</div><pre id="report"></pre></div>
+  <div class="card"><h2>Verificação manual no aparelho real</h2>
+   <div class="checks">
+    <label><input type="checkbox"> Tela inicial sem elementos sobrepostos</label>
+    <label><input type="checkbox"> Teclado abre, digita e fecha corretamente</label>
+    <label><input type="checkbox"> Força secreta nas posições 1, 10 e 100</label>
+    <label><input type="checkbox"> Work, pressionar 1 s e arrastar para selecionar</label>
+    <label><input type="checkbox"> Chat, pressionar 1 s e abrir Gerenciador</label>
+    <label><input type="checkbox"> Importar TXT, colar lista e exportar JSON</label>
+    <label><input type="checkbox"> Peek e ações secretas em tela pequena</label>
+    <label><input type="checkbox"> Fechar, reabrir e testar modo offline instalado</label>
+   </div>
+  </div>
+ </section>
+</div>
+</main>
+<script>
+(function(){
+ 'use strict';
+ const $=id=>document.getElementById(id);
+ const frame=$('app'),device=$('device'),phone=$('phone'),sim=$('simulator');
+ let last=null;
+ function dims(){return device.value.split('x').map(Number);}
+ function fit(){
+  const [w,h]=dims(),available=Math.max(200,sim.clientWidth-12);
+  const scale=Math.min(1,available/(w+10));
+  sim.style.height=Math.ceil((h+10)*scale)+'px';
+  phone.style.width=(w+10)+'px';phone.style.height=(h+10)+'px';
+  phone.style.transform='translateX(-50%) scale('+scale+')';
+  frame.style.width=w+'px';frame.style.height=h+'px';
+ }
+ function rect(element){
+  if(!element)return null;
+  const r=element.getBoundingClientRect(),cs=element.ownerDocument.defaultView.getComputedStyle(element);
+  return {left:Math.round(r.left),top:Math.round(r.top),right:Math.round(r.right),bottom:Math.round(r.bottom),
+   width:Math.round(r.width),height:Math.round(r.height),visible:cs.display!=='none'&&cs.visibility!=='hidden'};
+ }
+ function scan(){
+  const [w,h]=dims(),result={lab:'isolated',version:901,simulatedViewport:{width:w,height:h},checks:[],elements:{}};
+  try{
+   const doc=frame.contentDocument;
+   if(!doc||!doc.getElementById('app'))throw Error('Aplicativo ainda não carregou');
+   const ids=['app','header','top-menu','home-tabs','tabChat','tabWork','composer','text-field','add','mic','sendVoice'];
+   ids.forEach(id=>result.elements[id]=rect(doc.getElementById(id)));
+   for(const id of ids){
+    const r=result.elements[id];if(!r||!r.visible)continue;
+    if(r.left < -2 || r.right > w+2)
+     result.checks.push({level:'warn',message:id+' excede a largura da tela'});
+    if(r.top < -2 || r.bottom > h+2)
+     result.checks.push({level:'warn',message:id+' excede a altura da tela'});
+   }
+   const top=result.elements['home-tabs'],left=result.elements['top-menu'];
+   if(top&&left&&top.left<left.right-2)
+    result.checks.push({level:'warn',message:'Botão de menu e abas podem se sobrepor'});
+   if(!result.checks.length)result.checks.push({level:'ok',message:'Nenhum transbordamento geométrico básico encontrado'});
+   $('summary').textContent=result.checks.map(x=>x.message).join(' | ');
+   $('summary').className=result.checks.some(x=>x.level==='warn')?'result-bad':'result-ok';
+  }catch(error){
+   result.checks.push({level:'info',message:String(error.message||error)});
+   $('summary').textContent='Prévia indisponível, tente novamente';
+  }
+  last=result;$('report').textContent=JSON.stringify(result,null,2);
+ }
+ device.addEventListener('change',()=>{fit();setTimeout(scan,350)});
+ window.addEventListener('resize',()=>{fit();scan()});
+ frame.addEventListener('load',()=>setTimeout(scan,400));
+ $('scan').addEventListener('click',scan);
+ $('copy').addEventListener('click',async()=>{
+  scan();
+  try{await navigator.clipboard.writeText(JSON.stringify(last,null,2));$('summary').textContent='Relatório copiado'}
+  catch(error){$('summary').textContent='Navegador bloqueou a cópia'}
+ });
+ fit();
+ setTimeout(scan,1000);
+})();
+</script>
+</body></html>

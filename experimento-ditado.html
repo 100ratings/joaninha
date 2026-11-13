@@ -1,0 +1,3524 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ChatGPT">
+<link rel="manifest" href="./manifest.webmanifest?v=49">
+<link rel="apple-touch-icon" href="./icon-192.png?v=48">
+<title>ChatGPT</title>
+<script>
+/* Restore the chosen appearance before the first paint. */
+(function(){
+ var choice='dark';
+ try{
+  var stored=localStorage.getItem('joaninha-appearance-v1');
+  if(stored==='dark'||stored==='light'||stored==='system')choice=stored;
+ }catch(error){}
+ var light=choice==='light'||(choice==='system'&&window.matchMedia('(prefers-color-scheme: light)').matches);
+ document.documentElement.setAttribute('data-theme',light?'light':'dark');
+ document.documentElement.setAttribute('data-theme-choice',choice);
+ var color=document.querySelector('meta[name="theme-color"]');
+ if(color)color.setAttribute('content',light?'#ffffff':'#000000');
+ var status=document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]');
+ if(status)status.setAttribute('content',light?'default':'black-translucent');
+})();
+</script>
+<style>
+:root {
+ color-scheme:dark;
+ --bg:#000;
+ --ink:#f6f6f7;
+ --muted:#a9a9ac;
+ --subtle:#838387;
+ --glass:rgba(33,33,35,.75);
+ --hairline:rgba(255,255,255,.125);
+ --blue:#3468f2;
+ --bubble:#08076b;
+ --app-h:100dvh;
+ --safe-top:max(41px,env(safe-area-inset-top,0px));
+ --safe-bottom:max(30px,env(safe-area-inset-bottom,0px));
+ --composer-bottom:var(--safe-bottom);
+ --kbd-h:318px;
+ --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{width:100%;height:var(--app-h,100%);padding:0;margin:0;background:#000;overflow:hidden;overscroll-behavior:none}
+html{font-family:var(--font);-webkit-text-size-adjust:100%;-webkit-tap-highlight-color:transparent;touch-action:pan-x pan-y}
+body{position:relative;color:var(--ink);-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+button{font:inherit;color:inherit;cursor:pointer;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+button:focus-visible{outline:2px solid #87a7ff;outline-offset:3px}
+svg{display:block}
+#app{position:absolute;top:0;left:0;right:0;height:var(--app-h,100%);overflow:hidden;background:var(--bg)}
+#app.browser-mode::before{content:"";position:absolute;z-index:90;left:0;top:0;width:100%;height:34px;background:transparent;pointer-events:none}
+#fake-status{display:none;position:absolute;z-index:100;top:13px;left:33px;right:32px;align-items:center;justify-content:space-between;font-size:15px;font-weight:700;pointer-events:none;letter-spacing:.1px}
+.desktop-preview #fake-status{display:flex}
+.fake-status-right{display:flex;gap:7px;align-items:center}
+.fake-status-right svg{width:20px;height:16px}
+.fake-battery{background:#fff;color:#000;font-size:10px;border-radius:5px;padding:0 5px;line-height:15px}
+#drawer{position:absolute;inset:0;z-index:2;background:#000;visibility:hidden;opacity:0;transition:opacity .22s ease,visibility .22s ease;overflow:hidden}
+#app.drawer-open #drawer{visibility:visible;opacity:1}
+/* Replicate the v10 conversation fades, full viewport height at both ends */
+#drawer::before,#drawer::after{content:"";position:absolute;left:0;right:0;pointer-events:none;z-index:4}
+#drawer::before{top:0;height:161px;background:linear-gradient(to bottom,rgba(0,0,0,.24) 0%,rgba(0,0,0,.18) 20%,rgba(0,0,0,.115) 43%,rgba(0,0,0,.05) 68%,transparent 100%)}
+#drawer::after{bottom:0;height:166px;background:linear-gradient(to bottom,transparent 0%,rgba(0,0,0,.05) 24%,rgba(0,0,0,.12) 47%,rgba(0,0,0,.22) 71%,rgba(0,0,0,.34) 88%,rgba(0,0,0,.44) 100%)}
+.drawer-inner{position:absolute;inset:0;width:calc(100% - 85px);padding:calc(var(--safe-top) + 64px) 0 calc(var(--safe-bottom) + 118px);overflow-y:auto;overflow-x:hidden;overscroll-behavior-y:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none;
+ -webkit-mask-image:linear-gradient(to bottom,rgba(0,0,0,.185) 0px,rgba(0,0,0,.355) 49px,rgba(0,0,0,.635) 99px,rgba(0,0,0,.905) 155px,#000 182px,#000 calc(100% - 188px),rgba(0,0,0,.965) calc(100% - 144px),rgba(0,0,0,.77) calc(100% - 99px),rgba(0,0,0,.515) calc(100% - 59px),rgba(0,0,0,.39) calc(100% - 37px),rgba(0,0,0,.225) 100%);
+ mask-image:linear-gradient(to bottom,rgba(0,0,0,.185) 0px,rgba(0,0,0,.355) 49px,rgba(0,0,0,.635) 99px,rgba(0,0,0,.905) 155px,#000 182px,#000 calc(100% - 188px),rgba(0,0,0,.965) calc(100% - 144px),rgba(0,0,0,.77) calc(100% - 99px),rgba(0,0,0,.515) calc(100% - 59px),rgba(0,0,0,.39) calc(100% - 37px),rgba(0,0,0,.225) 100%)}
+.drawer-inner::-webkit-scrollbar{display:none}
+.drawer-title-row{position:absolute;z-index:5;top:calc(var(--safe-top) + 8px);left:0;
+ width:calc(100% - 85px);display:flex;align-items:center;justify-content:space-between;
+ padding:0 18px 14px 31px;background:transparent;pointer-events:none}
+.drawer-title-row>*{pointer-events:auto}
+@media(max-width:370px){.drawer-title-row{width:calc(100% - 65px)}}
+.drawer-title{font-size:22px;font-weight:720;letter-spacing:-.55px}
+.drawer-search{display:grid;place-items:center;width:42px;height:42px;border:1px solid var(--hairline);border-radius:50%;background:#19191b}
+.drawer-search svg{width:25px;height:25px}
+.drawer-link{width:100%;border:0;background:transparent;text-align:left;display:flex;align-items:center;gap:14px;height:47px;padding:0 16px 0 30px;font-size:17px;font-weight:500;letter-spacing:-.2px}
+.drawer-link svg{width:22px;height:22px;stroke-width:1.9;flex:none}
+.drawer-link:active,.drawer-recent:active{background:#1a1a1c}
+.drawer-group{padding:30px 30px 8px;font-weight:660;font-size:17px;letter-spacing:-.2px}
+.drawer-project{display:flex;align-items:center;gap:14px;padding:0 30px;height:46px;font-size:16.5px}
+.drawer-project svg{width:21px;height:21px;flex:none}
+.drawer-recent{height:42px;display:block;width:100%;text-align:left;padding:0 30px;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border:0;background:transparent}
+#drawerViewAll{color:#88888e;display:flex;align-items:center;user-select:none;-webkit-user-select:none}
+.drawer-actions{position:absolute;z-index:5;bottom:calc(var(--safe-bottom) + 10px);left:0;width:calc(100% - 85px);display:flex;align-items:center;justify-content:space-between;padding:12px 19px 6px 30px;pointer-events:none;background:transparent}
+.drawer-actions>*{pointer-events:auto}
+@media(max-width:370px){.drawer-actions{width:calc(100% - 65px)}}
+.newchat-blue{display:flex;align-items:center;gap:12px;padding:11px 17px;border:1px solid rgba(255,255,255,.2);border-radius:26px;background:var(--blue);font-size:17px;font-weight:680;box-shadow:inset 0 1px rgba(255,255,255,.12)}
+.drawer-avatar{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:#8d51b2;border:7px solid #1b1b1c;font-size:12px;box-sizing:content-box}
+#page{position:absolute;inset:0;background:#000;overflow:hidden;z-index:3;transform:none;transform-origin:left center;transition:transform .38s cubic-bezier(.22,.78,.22,1),border-radius .38s;will-change:transform}
+#app.drawer-open #page{transform:translateX(calc(100% - 95px)) scale(.982);border:1px solid #3f3f43;border-radius:40px;box-shadow:-15px 0 35px rgba(0,0,0,.5)}
+#app.drawer-open #page::after{content:"";inset:0;position:absolute;z-index:80;background:rgba(0,0,0,.48)}
+#header{position:absolute;z-index:24;top:var(--safe-top);left:16px;right:16px;height:44px;display:flex;align-items:center;justify-content:space-between;pointer-events:none}
+#header>*{pointer-events:auto}
+.glass{
+ background:var(--glass);
+ border:1px solid var(--hairline);
+ -webkit-backdrop-filter:blur(21px) saturate(160%);
+ backdrop-filter:blur(21px) saturate(160%);
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.055);
+}
+.glass-circle{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;padding:0}
+.glass-circle svg{width:25px;height:25px}
+#top-menu{position:relative}
+
+/* V75: segmented bubble based on MIT-licensed TemporaryChatGlyph by bryanrg22.
+   A check is shown for a temporary chat OR a pending version update.
+   An offline-cache issue alone does not imply that an update is available. */
+#top-home-right .temp-check{display:none}
+#app.temporary-chat #top-home-right .temp-bubble,
+#app.update-attention #top-home-right .temp-bubble{display:none}
+#app.temporary-chat #top-home-right .temp-check,
+#app.update-attention #top-home-right .temp-check{display:block}
+#app.temporary-chat #home-tabs{display:none}
+#temporaryInfo{display:none;position:absolute;z-index:14;top:28%;left:12px;right:12px;text-align:center;pointer-events:none}
+#app.temporary-chat.scene-home #temporaryInfo{display:block}
+#temporaryInfo .temp-title{font-size:19px;line-height:26px;font-weight:600;letter-spacing:-.25px}
+#temporaryInfo .temp-subtitle{font-size:14px;line-height:20px;color:#a4a4aa;margin-top:7px}
+#temporaryInfo .temp-more{text-decoration:underline dotted;text-underline-offset:3px;color:#c6c6cc}
+#temporaryInfo .temp-personalized{display:flex;gap:7px;align-items:center;justify-content:center;margin-top:23px;font-size:15px;color:#a4a4aa}
+#temporaryInfo .temp-personalized svg{width:17px;height:17px}
+#app.temporary-chat #secretHotspot{display:none!important}
+#app.temporary-chat.scene-home #sendVoice{background:#79797b!important}
+#app.temporary-chat.scene-home #voicePath{display:none}
+#app.temporary-chat.scene-home #sendPath{display:block}
+#home-tabs{position:absolute;top:0;left:50%;transform:translateX(-50%);height:44px;border-radius:24px;display:flex;align-items:center;padding:3px;width:158px}
+#home-tabs button{height:38px;width:50%;border:0;background:transparent;border-radius:23px;font-weight:400;font-size:16px;letter-spacing:-.25px}
+#home-tabs button.active{background:rgba(105,105,109,.36)}
+/* Work hold 1s: fixed 10x3 selector with no scrolling */
+#tabWork{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+#workForcePicker{display:none;position:absolute;z-index:45;top:calc(var(--safe-top) + 51px);left:50%;
+transform:translateX(-50%);width:min(540px,calc(100% - 12px));padding:7px;
+background:#242427;border:1px solid #4c4c52;border-radius:19px;
+box-shadow:0 14px 40px rgba(0,0,0,.62);pointer-events:none}
+#workForcePicker.visible{display:block}
+#workForcePicker .work-force-columns{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:3px}
+#workForcePicker .work-force-column{min-width:0}
+#workForcePicker .work-force-heading{height:27px;padding:3px 2px 5px;color:#b9b9bd;font-size:11.5px;font-weight:650;text-align:center}
+#workForcePicker .work-force-choices{display:grid;gap:1px}
+#workForcePicker .work-force-choice{height:34px;border-radius:9px;padding:0 3px;
+display:flex;align-items:center;justify-content:space-between;min-width:0;
+color:#e7e7ea;font-size:11.2px;letter-spacing:-.24px;font-weight:480;
+white-space:nowrap;overflow:hidden}
+#workForcePicker .work-force-label{display:block;min-width:0;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#workForcePicker .work-force-choice.music-choice{font-size:10.7px;letter-spacing:-.25px}
+#workForcePicker .work-force-choice.saved{background:rgba(122,122,129,.16)}
+#workForcePicker .work-force-choice.saved::after{content:"✓";margin-left:3px;flex:none;font-size:11px;color:#a9baff}
+#workForcePicker .work-force-choice.highlighted{background:#3d69e5;color:#fff;font-weight:650}
+#workForcePicker .work-force-choice.highlighted::after{color:#fff}
+#workForcePicker .work-force-loading{font-size:12px;color:#a0a0a5;padding:12px 4px;text-align:center}
+/* Offline state remains invisible in normal online use */
+#offlineHint{display:none;position:absolute;top:calc(var(--safe-top) + 50px);right:17px;z-index:42;
+pointer-events:none;padding:4px 8px;border:1px solid rgba(255,255,255,.12);
+border-radius:10px;background:rgba(29,29,32,.84);color:#a9a9af;font-size:10.5px}
+#offlineHint.shown{display:block}
+#top-home-right{margin-left:auto}
+#thread-actions{height:44px;width:109px;border-radius:24px;display:none;align-items:center;justify-content:space-evenly;padding:0 5px 0 6px}
+#thread-actions button{display:grid;place-items:center;background:transparent;border:0;min-width:42px;height:40px;padding:5px}
+#thread-actions svg{width:25px;height:25px}
+#app:not(.scene-home) #home-tabs,#app:not(.scene-home) #top-home-right{display:none}
+#app:not(.scene-home) #thread-actions{display:flex}
+#app.scene-home #thread-actions{display:none}
+#threadScroll{position:absolute;inset:0;z-index:5;overflow-x:hidden;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;scrollbar-width:none;touch-action:pan-y;overflow-anchor:none;
+ -webkit-mask-image:linear-gradient(to bottom,rgba(0,0,0,.22) 0px,rgba(0,0,0,.44) 44px,rgba(0,0,0,.76) 92px,#000 152px,#000 calc(100% - 160px),rgba(0,0,0,.97) calc(100% - 118px),rgba(0,0,0,.78) calc(100% - 73px),rgba(0,0,0,.54) calc(100% - 35px),rgba(0,0,0,.32) 100%);
+ mask-image:linear-gradient(to bottom,rgba(0,0,0,.22) 0px,rgba(0,0,0,.44) 44px,rgba(0,0,0,.76) 92px,#000 152px,#000 calc(100% - 160px),rgba(0,0,0,.97) calc(100% - 118px),rgba(0,0,0,.78) calc(100% - 73px),rgba(0,0,0,.54) calc(100% - 35px),rgba(0,0,0,.32) 100%);
+}
+#app.scene-home #threadScroll{display:none}
+#thread-inner{padding:106px 16px calc(var(--composer-bottom) + 105px);min-height:100%}
+#bubble-row,.archived-bubble-row{display:flex;justify-content:flex-end;margin:0 -1px 30px 0}
+.bubble{background:var(--bubble);color:#e5e6ff;display:inline-flex;align-items:flex-start;padding:14px 16px 12px;min-height:51px;border-radius:23px;font-size:var(--question-font,16.5px);line-height:1.35;max-width:83%;white-space:pre-wrap}
+#thinking{margin:0 0 0 0;color:#a3a3a7;font-size:17px;line-height:24px;display:none}
+#answerIntro,.archived-intro{display:none;font-size:var(--answer-font,17.2px);line-height:calc(var(--answer-font,17.2px) * 1.34);color:#ededf0;margin:0 0 14px}
+.archived-intro{display:block}
+#app.scene-list #answerIntro,#app.scene-end #answerIntro{display:block}
+#list,.archived-list{list-style:none;padding:0;margin:0}
+#list .row,.archived-list .row{font-size:var(--answer-font,17.2px);line-height:calc(var(--answer-font,17.2px) * 1.233);letter-spacing:-.17px;display:grid;grid-template-columns:calc(22px + var(--answer-number-extra,0px)) 1fr;column-gap:8px;margin:0;min-height:calc(var(--answer-font,17.2px) * 1.24)}
+/* Space only between successive items, never above the first item. */
+#list .row + .row,.archived-list .row + .row{margin-top:var(--list-item-spacing,0px)}
+#list .number,.archived-list .number{width:calc(42px + var(--answer-number-extra,0px));margin-left:-20px;text-align:right;font-variant-numeric:tabular-nums;font-feature-settings:"tnum";white-space:nowrap}
+#list .word,.archived-list .word{min-width:0}
+#actions,.archived-actions{display:none;align-items:center;gap:13px;margin-top:12px;padding-bottom:8px}
+.archived-actions{display:flex;pointer-events:none}
+.archived-turn{padding-bottom:28px}
+#actions button,.archived-actions button{height:29px;min-width:18px;display:grid;place-items:center;padding:0;background:transparent;border:0;color:#d4d4d7}
+#actions svg,.archived-actions svg{width:19px;height:19px}
+/* Independent first-dot timing cue and middle-dot completion confirmation */
+#more.reveal-cue-hidden svg circle:first-child{visibility:hidden}
+#more.reveal-confirm-hidden svg circle:nth-child(2){visibility:hidden}
+/* The reserved emoji disappears without affecting the item's text or spacing */
+#list .force-emoji,.archived-list .force-emoji{opacity:1}
+#list .force-emoji.hidden,.archived-list .force-emoji.hidden{opacity:0;visibility:hidden}
+#actions #feedback,.archived-actions .archived-feedback{gap:1px;display:flex}
+#actions #feedback svg,.archived-actions .archived-feedback svg{width:15px;height:19px}
+#app.scene-thinking #thinking{display:block}
+#app.scene-thinking #list,#app.scene-thinking #actions{display:none}
+#app.scene-end #actions{display:flex}
+#app.scene-list #actions{display:none}
+#app.scene-thinking #thread-inner{padding-top:106px}
+#app.scene-list #thread-inner,#app.scene-end #thread-inner{padding-top:106px}
+#app.keyboard-on #thread-inner{padding-bottom:calc(var(--kbd-h) + 125px)}
+#top-fade{position:absolute;z-index:12;top:0;left:0;right:0;height:132px;pointer-events:none;background:linear-gradient(to bottom,rgba(0,0,0,.18) 0%,rgba(0,0,0,.12) 18%,rgba(0,0,0,.07) 40%,rgba(0,0,0,.025) 64%,transparent 100%);display:none}
+#bottom-fade{position:absolute;z-index:12;left:0;right:0;bottom:0;height:138px;pointer-events:none;background:linear-gradient(to bottom,transparent 0%,rgba(0,0,0,.025) 24%,rgba(0,0,0,.07) 45%,rgba(0,0,0,.14) 69%,rgba(0,0,0,.25) 88%,rgba(0,0,0,.35) 100%);display:none}
+#app:not(.scene-home) #top-fade,#app:not(.scene-home) #bottom-fade{display:block}
+#app.keyboard-on #bottom-fade{bottom:var(--kbd-h);height:96px}
+#jump{position:absolute;z-index:22;bottom:calc(var(--composer-bottom) + 64px);left:50%;transform:translateX(-50%);width:33px;height:33px;border-radius:50%;display:none;align-items:center;justify-content:center;padding:0;color:#fff}
+#jump svg{width:20px;height:20px}
+#jump.visible{display:flex}
+#app.keyboard-on #jump{bottom:calc(var(--kbd-h) + 119px)}
+#composer{position:absolute;z-index:23;left:32px;right:32px;bottom:var(--composer-bottom);height:49px;border-radius:27px;display:flex;align-items:center;padding:0 7px 0 9px;gap:8px;background:rgba(27,27,29,.93);border:1px solid rgba(255,255,255,.13);box-shadow:inset 0 1px 0 rgba(255,255,255,.03);-webkit-backdrop-filter:blur(25px) saturate(160%);backdrop-filter:blur(25px) saturate(160%);transition:bottom .2s ease,left .2s ease,right .2s ease,height .2s ease}
+#composer>button{background:transparent;border:0;padding:0;display:grid;place-items:center;flex:none}
+#add{width:33px;height:40px;touch-action:none;position:relative;-webkit-touch-callout:none}
+#add svg{width:26px;height:26px}
+#text-field{flex:1;min-width:0;color:#8b8b90;font-size:16.7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:38px;display:flex;align-items:center}
+#text-field.has-text{color:#f2f2f4}
+#text-field{touch-action:none;-webkit-touch-callout:none}
+#text-field .field-value{white-space:pre;overflow:hidden;text-overflow:ellipsis;min-width:0}
+#text-field .blue-caret{display:none;flex:none;background:#4681fa;width:2px;height:22px;margin-left:2px;opacity:1;animation:cursorBlinkV4 1.06s linear infinite;-webkit-animation:cursorBlinkV4 1.06s linear infinite}
+#app.keyboard-on #text-field .blue-caret{display:inline-block}
+#secretHotspot{position:absolute;right:79px;bottom:3px;width:70px;height:calc(100% - 6px);
+ z-index:4;opacity:0;border:0!important;border-radius:0;padding:0;background:transparent!important;
+ touch-action:manipulation;pointer-events:none;-webkit-tap-highlight-color:transparent}
+/* When open, the entire blank upper row itself is the activation area */
+#app.keyboard-on #secretHotspot{display:none}
+/* Stable left edge keeps the first digit anchored as the code grows */
+#secretPeek{display:none;position:absolute;z-index:28;left:calc(50% - 24px + var(--peek-x,0px));top:calc(50% - 2px - var(--peek-y,0px));width:55px;text-align:left;white-space:nowrap;pointer-events:none;
+ color:#c9c9d0;font-size:var(--peek-font,12px);opacity:var(--peek-opacity,1);font-weight:550;line-height:1.1;letter-spacing:-.1px;font-variant-numeric:tabular-nums;text-shadow:0 1px 2px #000}
+#secretPeek.visible{display:block}
+/* Centre the three-digit 100 on the same axis as two-digit peek codes. */
+#secretPeek.peek-three-digits{transform:translateX(-.5ch)}
+#mic{width:31px;height:40px;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+#mic svg{width:25px;height:25px}
+#sendVoice{position:relative;border-radius:50%!important;width:34px;height:34px;background:var(--blue)!important;color:#fff}
+#sendVoice svg{width:22px;height:22px}
+#stopPath,#sendPath{display:none}
+#app.scene-thinking #stopPath,#app.scene-list #stopPath{display:block}
+#app.scene-thinking #voicePath,#app.scene-list #voicePath{display:none}
+#composer.has-draft #sendPath{display:block}
+#composer.has-draft #voicePath{display:none}
+#app.keyboard-on #composer{left:12px;right:12px;bottom:calc(var(--kbd-h) + 12px);height:91px;border-radius:24px;display:grid;grid-template-columns:auto 1fr auto auto auto;grid-template-rows:42px 38px;gap:0 8px;padding:7px 8px 5px 11px}
+#app.keyboard-on #text-field{grid-column:1/6;grid-row:1;align-items:center;padding-left:3px;font-size:16.7px}
+/* Cursor now follows typed text */
+@keyframes cursorBlinkV4{0%,49.9%{opacity:1}50%,100%{opacity:0}}
+@-webkit-keyframes cursorBlinkV4{0%,49.9%{opacity:1}50%,100%{opacity:0}}
+#app.keyboard-on #add{grid-column:1;grid-row:2;justify-self:start;width:33px}
+#app.keyboard-on #typingMeter{display:block;grid-column:3;grid-row:2}
+#typingMeter{display:none;width:24px;height:24px;border-radius:50%;border:2px solid #68707c;border-left-color:#3369f4;border-bottom-color:#3369f4;position:relative;align-self:center;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+#typingMeter:after{content:"";position:absolute;inset:7px;background:#fff;border-radius:50%}
+#app.keyboard-on #mic{grid-column:4;grid-row:2;width:30px}
+#app.keyboard-on #sendVoice{grid-column:5;grid-row:2;align-self:center}
+#keyboard{position:absolute;z-index:22;left:0;right:0;bottom:0;height:var(--kbd-h);background:#1b1b1e;border-top:1px solid #343437;border-radius:30px 30px 0 0;display:none;padding:20px 6px 0;box-shadow:0 -2px 0 rgba(255,255,255,.045)}
+#app.keyboard-on #keyboard{display:block}
+.kb-row{display:flex;justify-content:center;gap:5px;height:43px;margin:0 0 9px}
+.kb-row:nth-child(2){padding-left:18px;padding-right:18px}
+.kb-row:nth-child(3){margin-top:1px}
+.kb-key{background:#404043;border:0;border-radius:7px;flex:1;min-width:0;color:#f9f9fb;display:grid;place-items:center;font-size:20px;box-shadow:0 1px rgba(0,0,0,.35);line-height:1;padding:0;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+.kb-key:active,.kb-key.kb-pressed{background:#626269}
+.kb-shift{background:#343439!important}
+.kb-shift .shift-arrow{width:27px;height:27px;pointer-events:none}
+.kb-shift .shift-arrow path:first-child{stroke:#f4f4f6;stroke-width:1.55;stroke-linejoin:round;fill:none}
+.kb-shift.kb-shift-on .shift-arrow path:first-child{fill:#f4f4f6}
+.kb-shift .caps-line{display:none;stroke:#f4f4f6;stroke-width:1.8;fill:none}
+.kb-shift.kb-caps-lock .caps-line{display:block}
+.kb-key.kb-letter{position:relative}
+.kb-key.kb-letter.kb-lowercase{font-size:23px}
+/* Keep pressed-key highlighting only, never show a character popup above the key */
+#text-field .input-line{display:block;white-space:pre-wrap;overflow-wrap:anywhere;max-width:100%;line-height:23px}
+#text-field .input-before,#text-field .input-after{white-space:pre-wrap;overflow-wrap:anywhere}
+#text-field .input-line .blue-caret{display:none;vertical-align:-4px;margin:0 1px}
+#app.keyboard-on #text-field .input-line .blue-caret{display:inline-block}
+#text-field .input-placeholder{color:#8b8b90;white-space:nowrap}
+#app.keyboard-on #composer{height:calc(91px + var(--input-extra,0px));grid-template-rows:calc(42px + var(--input-extra,0px)) 38px}
+#app.keyboard-on #text-field{min-height:38px;max-height:calc(42px + var(--input-extra,0px));overflow-y:auto;scrollbar-width:none}
+#app.keyboard-on #text-field::-webkit-scrollbar{display:none}
+#keyboard.kb-trackpad .kb-letter{color:transparent}
+#accentChoices{position:absolute;z-index:39;display:none;max-width:calc(100% - 12px);
+ background:#e4e4e7;border-radius:14px;box-shadow:0 5px 26px #0009;padding:5px;gap:3px;
+ align-items:center;transform:translateX(-50%);touch-action:none}
+#accentChoices.visible{display:flex}
+#accentChoices button{background:transparent;border:0;border-radius:8px;padding:0 5px;
+ min-width:33px;height:47px;color:#121215;font-size:22px;touch-action:none}
+#accentChoices button:active{background:#b4b4bc}
+.bubble{white-space:pre-wrap}
+.kb-wide{flex:1.42;background:#343439}
+.kb-wide svg{width:24px;height:24px}
+.kb-row:nth-child(4){height:42px;margin-top:2px}
+.kb-row:nth-child(4) .kb-key{font-size:16px}
+.kb-123{flex:1.05}.kb-emoji{flex:1.04}.kb-space{flex:5.5}.kb-return{flex:1.5}
+.kb-bottom{position:absolute;bottom:0;left:0;right:0;height:72px;display:flex;align-items:flex-start;justify-content:space-between;padding:20px 30px 0;color:#fff}
+.kb-bottom svg{width:30px;height:30px}
+.kb-indicator{position:absolute;width:35%;height:5px;border-radius:4px;background:#fff;bottom:10px;left:50%;transform:translateX(-50%)}
+#peekShade{display:none;position:absolute;z-index:100;inset:0;background:rgba(0,0,0,.10)}
+#peekPanel{display:none;position:absolute;z-index:104;top:calc(var(--safe-top) + 48px);left:14px;right:14px;max-width:420px;margin:auto;max-height:calc(100% - var(--safe-top) - var(--safe-bottom) - 140px);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;
+ background:rgba(29,29,33,.68);-webkit-backdrop-filter:none;backdrop-filter:none;border:1px solid rgba(180,180,193,.35);border-radius:22px;padding:15px 17px 16px;box-shadow:0 16px 50px #000b}
+#app.peek-panel-on #peekPanel,#app.peek-panel-on #peekShade{display:block}
+#app.peek-panel-on #composer{z-index:102;pointer-events:none}
+#top-home-right{-webkit-touch-callout:none;touch-action:manipulation}
+.peek-head{display:flex;align-items:center;justify-content:space-between}
+.peek-head strong{font-size:17px}
+#peekClose{background:#393941;border:0;border-radius:50%;width:30px;height:30px;font-size:22px}
+.peek-hint{margin:8px 0 11px;font-size:12px;line-height:1.4;color:#bdbdc5}
+.peek-label{display:flex;justify-content:space-between;font-size:13px;font-weight:600;margin:12px 0 6px}
+.peek-label output{color:#c3c3cb;font-variant-numeric:tabular-nums}
+.peek-pad{display:grid;grid-template-columns:45px 90px 45px;grid-template-rows:35px 35px 35px;gap:4px;justify-content:center}
+.peek-pad button,.peek-adjust button{border:1px solid #62626c;background:#393941;border-radius:10px;min-width:0;padding:0;font-size:18px;font-weight:600}
+.peek-pad button:active,.peek-adjust button:active{background:#5b5b66}
+.peek-pad-center{background:#29292e;border:1px solid #45454d;border-radius:10px;display:grid;place-items:center;font-size:12px;color:#ccccd4}
+#peekStep{width:100%;margin-top:8px;height:30px;background:#303039;border:1px solid #52525b;border-radius:9px;font-size:12px}
+.peek-adjust{display:grid;grid-template-columns:32px 1fr 32px;gap:9px;align-items:center}
+.peek-adjust button{height:30px}
+.peek-adjust input{width:100%;min-width:0;accent-color:#477bf3}
+.peek-footer{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:13px}
+.peek-footer button{height:40px;border-radius:12px;border:1px solid #54545f;background:#3a3a41;font-size:13px;font-weight:600}
+#peekSave{background:#356af0;border-color:#356af0}
+#peekStorageStatus{margin-top:8px;min-height:13px;text-align:center;color:#b2ddb9;font-size:11px}
+
+.peek-tabs{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:4px;margin:11px 0 9px;border-radius:13px;background:rgba(24,24,28,.54)}
+.peek-tabs button{border:0;border-radius:9px;background:transparent;height:34px;font-size:13px;font-weight:650;color:#c8c8cf}
+.peek-tabs button.selected{background:rgba(92,92,104,.75);color:#fff}
+#peekTabPeek[hidden],#peekTabFonts[hidden]{display:none!important}
+#peekTabFonts .peek-hint{margin:9px 0 15px}
+.peek-font-legend{font-size:12px;color:#d3d3db;line-height:1.5;margin-top:12px}
+#peekPanel button:focus-visible,#peekPanel input:focus-visible{outline:2px solid #78a0ff;outline-offset:2px}
+#testTag{display:none}
+@media(max-width:370px){#composer{left:20px;right:20px}#header{left:13px;right:13px}#home-tabs{width:152px}.drawer-inner{width:calc(100% - 65px)}}
+@media(max-height:720px){:root{--safe-top:max(35px,env(safe-area-inset-top,0px))}#keyboard{padding-top:13px}.kb-row{height:38px;margin-bottom:6px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{transition:none!important;animation:none!important}
+ /* A typing insertion point remains visibly active, even with reduced motion enabled */
+ #app.keyboard-on #text-field .blue-caret{animation:cursorBlinkV4 1.06s linear infinite!important;-webkit-animation:cursorBlinkV4 1.06s linear infinite!important}}
+/* Native system keyboard: keep the existing ChatGPT composer appearance */
+#text-field{position:relative}
+#text-field .input-line{position:relative;z-index:1;pointer-events:none}
+#nativeInput{position:absolute;inset:0;width:100%;height:100%;margin:0;padding:0;border:0;outline:0;background:transparent;opacity:0;color:transparent;-webkit-text-fill-color:transparent;caret-color:transparent;font-size:16px;resize:none;overflow:hidden;pointer-events:none;-webkit-user-select:text;user-select:text}
+#keyboard,#app.keyboard-on #keyboard{display:none!important}
+/* v34: use the measured 0.219-inch iPhone accessory spacing
+   (approximately 34 CSS px at devicePixelRatio 3). Move the complete
+   composer assembly down without changing its layout or appearance. */
+#app.keyboard-on{
+ --ios-accessory-gap:34px;
+ --kbd-effective:max(0px,calc(var(--kbd-h) - var(--ios-accessory-gap)));
+ /* Valor definitivo escolhido no iPhone, exportado pelo diagnóstico v35 */
+ --composer-vertical-offset:22px;
+}
+#app.keyboard-on #thread-inner{padding-bottom:calc(var(--kbd-effective) + 125px + var(--composer-vertical-offset))}
+#app.keyboard-on #bottom-fade{bottom:var(--kbd-effective)}
+#app.keyboard-on #jump{bottom:calc(var(--kbd-effective) + 119px + var(--composer-vertical-offset))}
+#app.keyboard-on #composer{bottom:calc(var(--kbd-effective) + 12px + var(--composer-vertical-offset))}
+/* The real native textarea must receive touches rather than the fake field.
+   This prevents a tap in the composer from blurring its focused input. */
+#nativeInput{pointer-events:auto;z-index:2}
+
+/* === LAB TRANSICOES v2, deliberadamente perceptiveis ===
+  Aplicado em clone isolado: apenas aparencia, sem alterar foco, teclado ou magia
+  Nao animar #composer/#nativeInput/#text-field/#secretPeek
+*/
+@keyframes motion2Bubble{
+  0%{opacity:0;transform:translate3d(0,24px,0) scale(.94)}
+  75%{opacity:1;transform:translate3d(0,-2px,0) scale(1.005)}
+  100%{opacity:1;transform:translate3d(0,0,0) scale(1)}
+}
+@keyframes motion2Rise{
+  0%{opacity:0;transform:translate3d(0,25px,0)}
+  100%{opacity:1;transform:translate3d(0,0,0)}
+}
+@keyframes motion2Fade{0%{opacity:0}100%{opacity:1}}
+/* The initial page must render at full opacity, without a brightness fade.
+   iOS provides its own launch transition; keep in-app motion separate. */
+/* 1) Drawer: movimento com inercia e conteudo vindo do lado */
+#page{
+ transition:transform .62s cubic-bezier(.18,.83,.22,1),
+            border-radius .62s cubic-bezier(.18,.83,.22,1),
+            box-shadow .62s ease
+}
+#drawer{transition:opacity .40s ease,visibility .40s ease}
+#drawer::before,#drawer::after{transition:opacity .4s ease}
+#page::after{
+ content:"";position:absolute;inset:0;z-index:80;
+ background:rgba(0,0,0,.48);opacity:0;visibility:hidden;
+ pointer-events:none;transition:opacity .53s ease,visibility .53s ease
+}
+#app.drawer-open #page::after{opacity:1;visibility:visible}
+.drawer-inner,.drawer-title-row,.drawer-actions{
+ transition:opacity .51s ease,transform .62s cubic-bezier(.16,.89,.28,1)
+}
+#app:not(.drawer-open) .drawer-inner,
+#app:not(.drawer-open) .drawer-title-row,
+#app:not(.drawer-open) .drawer-actions{
+ opacity:0;transform:translate3d(-35px,0,0)
+}
+/* 2) Chat temporario: texto entra 24px abaixo; tabs somem em crossfade */
+#temporaryInfo{
+ display:block;
+ opacity:0;visibility:hidden;transform:translate3d(0,24px,0);
+ transition:opacity .43s ease,transform .48s cubic-bezier(.15,.85,.3,1),visibility .48s ease
+}
+#app.temporary-chat.scene-home #temporaryInfo{
+ opacity:1;visibility:visible;transform:translate3d(0,0,0)
+}
+#home-tabs{transition:opacity .43s ease,visibility .43s ease}
+#app.scene-home.temporary-chat #home-tabs{
+ display:flex;opacity:0;visibility:hidden;pointer-events:none
+}
+#top-home-right .temp-bubble,#top-home-right .temp-check{
+ animation:motion2Fade .34s ease both
+}
+#sendVoice{transition:background-color .3s ease}
+/* 3) Envio: a pergunta surge como mensagem, depois pensando */
+#app.scene-thinking #bubble-row{
+ animation:motion2Bubble .52s cubic-bezier(.2,.84,.2,1) both
+}
+#app.scene-thinking #thinking{
+ animation:motion2Rise .45s .13s cubic-bezier(.2,.8,.2,1) both
+}
+/* 4) Resposta: introducao e cada item da lista aparecem suavemente */
+#app.scene-list #answerIntro{
+ animation:motion2Rise .42s cubic-bezier(.17,.86,.24,1) both
+}
+#app.scene-list #list .row{
+ animation:motion2Rise .38s cubic-bezier(.19,.8,.2,1) both
+}
+#app.scene-end #actions{
+ animation:motion2Rise .42s cubic-bezier(.2,.8,.2,1) both
+}
+/* 5) Cabecalho da conversa chega com uma curta transicao */
+#app:not(.scene-home) #thread-actions{
+ animation:motion2Rise .38s cubic-bezier(.2,.8,.2,1) both
+}
+
+
+/* Experimento V3: confirmação discreta do botão Copiar */
+#actions button[data-answer-copy]{position:relative}
+#actions button[data-answer-copy].copy-ok svg{opacity:0}
+#actions button[data-answer-copy].copy-ok::before{
+ content:"✓";position:absolute;inset:0;display:grid;place-items:center;
+ color:#e4e4e8;font-size:21px;line-height:1
+}
+#actions button[data-answer-copy].copy-ok::after,
+#actions button[data-answer-copy].copy-failed::after{
+ position:absolute;z-index:30;bottom:calc(100% + 8px);left:-9px;
+ padding:5px 9px;border-radius:9px;background:#343436;
+ box-shadow:0 2px 12px rgba(0,0,0,.35);
+ color:#f5f5f7;font-size:12px;white-space:nowrap;pointer-events:none
+}
+#actions button[data-answer-copy].copy-ok::after{content:"Copiado"}
+#actions button[data-answer-copy].copy-failed::after{content:"Não foi possível copiar"}
+
+
+/* Ações reais da resposta, apenas na cópia experimental V4 */
+#actions{position:relative}
+#actions #feedback{display:inline-flex;align-items:center;gap:2px;flex:none}
+#actions #feedback .vote-btn{width:18px;min-width:18px;height:29px;display:grid;place-items:center;border:0;padding:0;background:transparent;color:#d4d4d7}
+#actions #feedback .vote-btn svg{width:15px;height:19px}
+#actions #feedback .vote-btn[aria-pressed="true"]{color:#78a7ff}
+#actions [data-answer-speak][aria-pressed="true"]{color:#78a7ff}
+#actions [data-answer-speak][aria-pressed="true"] svg{filter:drop-shadow(0 0 2px rgba(75,125,255,.4))}
+#answerOptions[hidden],#answerActionNotice[hidden]{display:none!important}
+#answerOptions{
+ position:absolute;z-index:32;right:0;bottom:calc(100% + 10px);
+ width:206px;padding:6px;border-radius:15px;
+ background:#29292d;border:1px solid rgba(255,255,255,.17);
+ box-shadow:0 10px 30px rgba(0,0,0,.65);
+ display:flex;flex-direction:column;gap:2px;
+}
+#actions #answerOptions>button{
+ display:flex;align-items:center;justify-content:flex-start;
+ width:100%;height:41px;min-height:41px;min-width:0;
+ padding:0 11px;border-radius:9px;background:transparent;
+ color:#f1f1f3;font-size:14px;font-weight:500;white-space:nowrap
+}
+#actions #answerOptions>button:active{background:#45454a}
+#answerActionNotice{
+ position:absolute;z-index:31;right:0;bottom:calc(100% + 9px);
+ padding:7px 11px;border-radius:10px;white-space:nowrap;
+ font-size:12px;font-weight:500;color:#f3f3f5;
+ background:#303035;box-shadow:0 4px 18px rgba(0,0,0,.4);
+ pointer-events:none
+}
+
+/* V72: appearance-only overrides. The original dark theme is untouched. */
+html[data-theme="light"]{
+ color-scheme:light;--bg:#fcfcfc;--ink:#0d0d0d;--muted:#6c6c6e;--subtle:#838388;
+ --glass:#fff;--hairline:rgba(25,30,36,.055);
+ --bubble:#edf3ff;--blue:#3064ec
+}
+html[data-theme="light"],html[data-theme="light"] body{background:#fcfcfc}
+html[data-theme="light"] #page,html[data-theme="light"] #drawer{background:#fcfcfc}
+html[data-theme="light"] #fake-status{color:#202124}
+html[data-theme="light"] .fake-battery{background:#202124;color:#fff}
+html[data-theme="light"] #drawer::before{background:linear-gradient(to bottom,rgba(255,255,255,.5),rgba(255,255,255,.2) 45%,transparent)}
+html[data-theme="light"] #drawer::after{background:linear-gradient(to top,rgba(255,255,255,.75),rgba(255,255,255,.35) 45%,transparent)}
+html[data-theme="light"] .drawer-search{background:#eff0f3}
+html[data-theme="light"] .drawer-link:active,html[data-theme="light"] .drawer-recent:active{background:#f0f1f3}
+html[data-theme="light"] #drawerViewAll{color:#74777d}
+html[data-theme="light"] .drawer-avatar{border-color:#f5f5f6}
+html[data-theme="light"] .newchat-blue{color:#fff;border-color:rgba(0,0,0,.06)}
+html[data-theme="light"] #app.drawer-open #page{border-color:#d2d4da;box-shadow:-15px 0 35px rgba(0,0,0,.12)}
+html[data-theme="light"] #page::after{background:rgba(32,35,40,.1)}
+html[data-theme="light"] #top-menu svg,
+html[data-theme="light"] #top-home-right svg,
+html[data-theme="light"] #newChat svg,
+html[data-theme="light"] #searchChats svg,
+html[data-theme="light"] #add svg,
+html[data-theme="light"] #mic svg{stroke:#303239}
+html[data-theme="light"] .drawer-project svg[stroke="#fff"]{stroke:#3c3f45}
+/* V75: no tinted temporary-chat icon or background in light mode. */
+html[data-theme="light"] #home-tabs button.active{background:rgba(42,46,55,.1)}
+html[data-theme="light"] #workForcePicker{background:#f9f9fb;border-color:#d7d9de;box-shadow:0 12px 28px rgba(0,0,0,.15)}
+html[data-theme="light"] #workForcePicker .work-force-heading{color:#62666d}
+html[data-theme="light"] #workForcePicker .work-force-choice{color:#303239}
+html[data-theme="light"] #workForcePicker .work-force-choice.saved{background:rgba(47,95,205,.09)}
+html[data-theme="light"] #workForcePicker .work-force-choice.saved::after{color:#2f60d4}
+html[data-theme="light"] #workForcePicker .work-force-choice.highlighted{background:#3d69e5;color:#fff}
+html[data-theme="light"] #workForcePicker .work-force-choice.highlighted::after{color:#fff}
+html[data-theme="light"] #workForcePicker .work-force-loading{color:#696d74}
+html[data-theme="light"] #offlineHint{background:rgba(250,250,252,.92);border-color:rgba(0,0,0,.12);color:#65696e}
+html[data-theme="light"] .bubble{color:#2459e8}
+html[data-theme="light"] #thinking{color:#717175}
+html[data-theme="light"] #answerIntro,html[data-theme="light"] .archived-intro{color:#0d0d0d}
+html[data-theme="light"] #actions button,html[data-theme="light"] .archived-actions button{color:#575c65}
+html[data-theme="light"] #actions #feedback .vote-btn{color:#575c65}
+html[data-theme="light"] #actions #feedback .vote-btn[aria-pressed="true"],
+html[data-theme="light"] #actions [data-answer-speak][aria-pressed="true"]{color:#3064ec}
+html[data-theme="light"] #top-fade{background:linear-gradient(to bottom,rgba(252,252,252,.42),rgba(252,252,252,.18) 38%,transparent)}
+html[data-theme="light"] #bottom-fade{background:linear-gradient(to top,rgba(252,252,252,.78),rgba(252,252,252,.27) 54%,transparent)}
+html[data-theme="light"] #composer{background:#fff;border-color:transparent;box-shadow:0 8px 35px rgba(0,0,0,.045)}
+html[data-theme="light"] #text-field{color:#787b82}
+html[data-theme="light"] #text-field.has-text{color:#0d0d0d}
+html[data-theme="light"] #text-field .input-placeholder{color:#787b82}
+html[data-theme="light"] #typingMeter{border-color:#b4b9c2;border-left-color:#3169ef;border-bottom-color:#3169ef}
+html[data-theme="light"] #typingMeter::after{background:#f7f8fa}
+html[data-theme="light"] #jump{color:#0d0d0d;background:#fff;border-color:transparent;box-shadow:0 8px 30px rgba(0,0,0,.045)}
+html[data-theme="light"] #jump svg{stroke:#0d0d0d}
+html[data-theme="light"] #peekPanel{background:rgba(250,251,253,.96);border-color:rgba(42,47,58,.20);box-shadow:0 14px 36px rgba(0,0,0,.18)}
+html[data-theme="light"] #peekClose{background:#e6e8ec}
+html[data-theme="light"] .peek-hint{color:#636870}
+html[data-theme="light"] .peek-label output{color:#575d66}
+html[data-theme="light"] .peek-pad button,html[data-theme="light"] .peek-adjust button{background:#eef0f3;border-color:#cbd0d8}
+html[data-theme="light"] .peek-pad button:active,html[data-theme="light"] .peek-adjust button:active{background:#dfe3e9}
+html[data-theme="light"] .peek-pad-center{background:#f1f3f7;border-color:#d2d5dc;color:#50545e}
+html[data-theme="light"] #peekStep{background:#eef0f4;border-color:#d0d4dc}
+html[data-theme="light"] .peek-footer button{background:#ebedf2;border-color:#d1d5dd}
+html[data-theme="light"] #peekSave{background:#3064ec;border-color:#3064ec;color:#fff}
+html[data-theme="light"] #peekStorageStatus{color:#267340}
+html[data-theme="light"] .peek-tabs{background:rgba(42,47,55,.07)}
+html[data-theme="light"] .peek-tabs button{color:#595d66}
+html[data-theme="light"] .peek-tabs button.selected{background:#dfe3ec;color:#20242b}
+html[data-theme="light"] .peek-font-legend{color:#5f646d}
+html[data-theme="light"] #actions button[data-answer-copy].copy-ok::before{color:#3d424b}
+html[data-theme="light"] #actions button[data-answer-copy].copy-ok::after,
+html[data-theme="light"] #actions button[data-answer-copy].copy-failed::after{background:#eaecf0;color:#26292f;box-shadow:0 2px 12px rgba(0,0,0,.13)}
+html[data-theme="light"] #answerOptions{background:#fbfbfc;border-color:#d9dbe0;box-shadow:0 10px 30px rgba(0,0,0,.15)}
+html[data-theme="light"] #actions #answerOptions>button{color:#292d35}
+html[data-theme="light"] #actions #answerOptions>button:active{background:#edf0f5}
+html[data-theme="light"] #answerActionNotice{background:#f0f2f5;color:#31353d;box-shadow:0 4px 14px rgba(0,0,0,.13)}
+
+/* Floating iOS-style controls on the reference white appearance. */
+html[data-theme="light"] #header .glass{
+ background:#fff;border-color:transparent;box-shadow:0 8px 32px rgba(0,0,0,.035)}
+html[data-theme="light"] #top-menu svg,
+html[data-theme="light"] #top-home-right svg,
+html[data-theme="light"] #newChat svg,
+html[data-theme="light"] #searchChats svg,
+html[data-theme="light"] #add svg,
+html[data-theme="light"] #mic svg{stroke:#0d0d0d}
+/* Small, non-modal popup under the top-left menu; the button's normal tap stays intact. */
+#top-menu{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+#themePicker[hidden]{display:none!important}
+#themePicker{position:absolute;z-index:65;top:calc(var(--safe-top) + 52px);left:16px;
+ width:205px;padding:9px;border-radius:18px;border:1px solid var(--hairline);
+ background:#26262b;color:#f6f6f7;box-shadow:0 12px 35px rgba(0,0,0,.38);
+ -webkit-backdrop-filter:blur(22px);backdrop-filter:blur(22px)}
+#themePicker .theme-picker-title{font-size:12px;font-weight:650;padding:5px 11px 8px;color:#bfc0c7}
+#themePicker .theme-picker-options{display:flex;flex-direction:column;gap:2px}
+#themePicker .theme-option{display:flex;align-items:center;justify-content:space-between;border:0;border-radius:11px;
+ width:100%;height:42px;padding:0 12px;background:transparent;color:inherit;
+ font-size:15px;font-weight:500;text-align:left}
+#themePicker .theme-option:active,#themePicker .theme-option[aria-checked="true"]{background:rgba(126,140,171,.18)}
+#themePicker .theme-option[aria-checked="true"]::after{content:"✓";color:#94b2ff;font-size:17px}
+html[data-theme="light"] #themePicker{background:rgba(255,255,255,.98);color:#202329;box-shadow:0 12px 30px rgba(0,0,0,.16)}
+html[data-theme="light"] #themePicker .theme-picker-title{color:#61666f}
+html[data-theme="light"] #themePicker .theme-option:active,
+html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]{background:rgba(48,100,236,.09)}
+html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{color:#3263d7}
+
+
+/* V85: somente o ícone de volume usa 20px no padrão de fontes de 109%.
+   Os demais SVGs, espaços, botões e áreas de toque ficam como na V84. */
+#actions > button > svg,.archived-actions > button > svg{
+ width:var(--answer-icon-main,19px);
+ height:var(--answer-icon-main,19px);
+ stroke-linecap:round;stroke-linejoin:round;
+}
+#actions #feedback .vote-btn svg,.archived-actions .archived-feedback .vote-btn svg{
+ width:var(--answer-icon-vote,17px);
+ height:var(--answer-icon-vote,17px);
+ stroke-linecap:round;stroke-linejoin:round;
+}
+#actions button[data-answer-more] svg,.archived-actions button[data-answer-more] svg{
+ width:var(--answer-icon-more,20px);
+ height:var(--answer-icon-more,20px);
+}
+#actions button[data-answer-speak] svg,.archived-actions button[data-answer-speak] svg{
+ width:var(--answer-icon-speak,20px);
+ height:var(--answer-icon-speak,20px);
+}
+
+
+/* ISOLATED VOICE-DICTATION PROTOTYPE: original V85 behavior is kept intact.
+   The actual iOS textarea stays mounted and focused beneath the recording bar. */
+#dictationBar[hidden],#dictationProcessing[hidden],#dictationNotice[hidden],#dictationWave[hidden],#dictationStop[hidden]{display:none!important}
+#app.dictation-active #composer{
+ display:block!important;
+ height:48px!important;
+ min-height:48px!important;
+ grid-template-columns:none!important;
+ grid-template-rows:none!important;
+ padding:0 6px!important;
+ border-radius:26px!important;
+}
+#app.dictation-active #composer > :not(#dictationBar):not(#text-field){
+ visibility:hidden!important;pointer-events:none!important;
+}
+#app.dictation-active #composer #text-field{
+ position:absolute!important;inset:0!important;width:100%!important;
+ height:100%!important;min-height:0!important;max-height:none!important;
+ opacity:0!important;pointer-events:none!important;overflow:hidden!important;
+}
+#app.dictation-active #composer #nativeInput{pointer-events:none!important}
+#dictationBar{position:absolute;z-index:35;inset:0;display:flex;align-items:center;
+ gap:8px;padding:0 6px;min-width:0;color:var(--ink)}
+#dictationBar button{display:grid;place-items:center;border:0;padding:0;
+ border-radius:50%;flex:none;color:var(--ink);touch-action:manipulation}
+#dictationCancel{width:28px;height:28px;background:rgba(126,126,133,.22)}
+#dictationCancel svg{width:14px;height:14px;stroke-width:2.1}
+#dictationStop{width:28px;height:28px;background:rgba(126,126,133,.24)}
+#dictationStop svg{width:13px;height:13px;fill:currentColor}
+#dictationSend{width:32px;height:32px;background:var(--blue)!important;color:#fff!important}
+#dictationSend svg{width:20px;height:20px;stroke-width:2.2}
+#dictationWave{display:flex;flex:1;min-width:12px;gap:4px;align-items:center;
+ height:26px;overflow:hidden}
+.dictation-dots{flex:1;min-width:2px;height:3px;
+ background:radial-gradient(circle,rgba(156,156,164,.77) .78px,transparent 1px) 0 center/4px 3px repeat-x}
+#dictationBars{height:25px;display:flex;gap:2.1px;align-items:center;flex:none}
+#dictationBars span{display:block;width:2px;flex:none;height:var(--wave-h,7px);
+ max-height:25px;background:rgba(183,183,190,.88);border-radius:3px;
+ animation:dictation-wave .56s ease-in-out infinite alternate;
+ animation-delay:var(--wave-delay,0ms)}
+@keyframes dictation-wave{from{height:3px;opacity:.48}to{height:var(--wave-h,13px);opacity:1}}
+#dictationProcessing{min-width:0;flex:1;display:flex;align-items:center;
+ justify-content:center;gap:9px;color:var(--muted);font-size:13px}
+.dictation-spinner{width:16px;height:16px;border-radius:50%;border:2px solid rgba(145,145,151,.24);
+ border-top-color:#9595a2;animation:dictation-spin .75s linear infinite}
+@keyframes dictation-spin{to{transform:rotate(360deg)}}
+#dictationNotice{position:absolute;z-index:41;left:18px;right:18px;
+ bottom:calc(var(--composer-bottom) + 76px);margin:auto;max-width:480px;
+ padding:9px 13px;border-radius:12px;background:rgba(43,43,48,.95);
+ border:1px solid rgba(175,175,185,.22);color:#f8f8fb;font-size:13px;
+ text-align:center;pointer-events:none;box-shadow:0 5px 20px #0007}
+#app.keyboard-on #dictationNotice{
+ bottom:calc(var(--kbd-effective, var(--kbd-h)) + 129px + var(--composer-vertical-offset,0px))
+}
+html[data-theme="light"] #dictationCancel,html[data-theme="light"] #dictationStop{
+ background:rgba(25,25,30,.10)
+}
+@media(prefers-reduced-motion:reduce){
+ #dictationBars span{animation:none!important}
+ .dictation-spinner{animation:none!important;border-top-color:#777}
+}
+</style>
+</head>
+<body>
+<div id="app" class="scene-home">
+ <div id="fake-status" aria-hidden="true"><span>09:19</span><div class="fake-status-right"><svg viewBox="0 0 22 16" fill="#fff"><rect x="1" y="10" width="3" height="6" rx="1"/><rect x="6" y="7" width="3" height="9" rx="1"/><rect x="11" y="4" width="3" height="12" rx="1"/><rect x="16" y="0" width="3" height="16" rx="1"/></svg><svg viewBox="0 0 22 16" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"><path d="M2 6Q11 -1 20 6M6 10Q11 6 16 10M10.5 14h1"/></svg><span class="fake-battery">90</span></div></div>
+ <aside id="drawer" aria-label="Menu lateral">
+  <div class="drawer-inner">
+   <button class="drawer-link" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="5" width="5" height="15" rx="2"/><rect x="10" y="4" width="5" height="16" rx="2"/><rect x="17" y="6" width="4" height="14" rx="2"/></svg>Biblioteca</button>
+   <button class="drawer-link" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 6a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 11h18"/></svg>Projetos</button>
+   <button class="drawer-link" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M8 12a4 4 0 0 1 4-4m4 4a4 4 0 0 1-4 4M11 4l2 3m-1 10 2 3"/></svg>Plugins</button>
+   <button class="drawer-link" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M12 6v7l-4 3"/></svg>Agendado</button>
+   <button class="drawer-link" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 3c1.2-1.4 4.8-1.4 6 0 3 0 4.8 2.6 4.6 5.4 2.3 2 2.3 5.5 0 7.3.1 3-2 5-5 5.1-2 1.5-5.6.8-6.7-1.5-2.9.1-5.2-2.3-5.1-5.2-2-2.1-1.8-5.3 0-7.3-.1-2.8 1.8-5.2 4.2-5.4z"/><path d="M8 13h8m-4-4v8"/></svg>Codex</button>
+   <button class="drawer-link" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="8" height="7" rx="2"/><path d="m17 14 4 4-4 4-4-4z"/></svg>Explorar</button>
+   <div class="drawer-group">Fixado</div>
+   <div class="drawer-project"><svg viewBox="0 0 24 24" fill="none" stroke="#f6504b" stroke-width="2.5"><path d="m6 16-1 5 5-1 11-11a4 4 0 0 0-6-6z"/></svg>REX</div>
+   <div class="drawer-project"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M3 6a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 11h18"/></svg>Tradução</div>
+   <div class="drawer-project"><svg viewBox="0 0 24 24" fill="none" stroke="#ed752f" stroke-width="1.8"><path d="M3 6a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 11h18"/></svg>Robert Greene</div>
+   <div class="drawer-project"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.8"><path d="M3 6a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 11h18"/></svg>Chez Nous</div>
+   <div class="drawer-group">Recentes</div>
+   <button class="drawer-recent" id="recentAnimals">Lista de animais</button>
+   <button class="drawer-recent">Chess Rating Conversion</button>
+   <button class="drawer-recent">Psycho Calc Meaning</button>
+   <button class="drawer-recent">Tradução para inglês</button>
+   <button class="drawer-recent">Privacidade grátis no Instagram</button>
+   <button class="drawer-recent" type="button" id="drawerViewAll">Ver tudo...</button>
+  </div>
+   <div class="drawer-title-row"><span class="drawer-title">ChatGPT</span><button class="drawer-search" id="searchChats" aria-label="Buscar conversa"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2"><circle cx="10.5" cy="10.5" r="7.5"/><path d="m16 16 5 5"/></svg></button></div>
+  <div class="drawer-actions"><button class="newchat-blue" id="drawerNew"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.9" stroke-linejoin="round"><path d="M12 4H5a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h13a2 2 0 0 0 2-2v-8M12 13l8-9m0 0h-6m6 0v6"/></svg>Chat</button><span class="drawer-avatar">DM</span></div>
+ </aside>
+ <main id="page">
+  <header id="header">
+   <button class="glass glass-circle" id="top-menu" aria-label="Abrir menu, segure por 3 segundos para alterar a aparência">
+    <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M3 8.5h18M3 15.5h11"/></svg>
+   </button>
+   <div id="home-tabs" class="glass" role="group" aria-label="Chat e Work">
+    <button class="active" id="tabChat" type="button">Chat</button><button id="tabWork" type="button">Work</button>
+   </div>
+   <button class="glass glass-circle" id="top-home-right" aria-label="Ativar chat temporário" aria-pressed="false">
+    <svg class="temp-bubble" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.212 7.436 A10.8 10.8 0 0 1 10.871 1.259 M14.245 1.436 A10.8 10.8 0 0 1 22.479 9.387 M22.774 12.753 A10.8 10.8 0 0 1 16.220 21.941 M12.941 22.759 A10.8 10.8 0 0 1 4.773 20.026 M2.293 16.734 A10.8 10.8 0 0 1 1.259 10.871 M3.6 17.28 L2.4 23.28 L7.68 21.12"/></svg>
+    <svg class="temp-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.212 7.436 A10.8 10.8 0 0 1 10.871 1.259 M14.245 1.436 A10.8 10.8 0 0 1 22.479 9.387 M22.774 12.753 A10.8 10.8 0 0 1 16.220 21.941 M12.941 22.759 A10.8 10.8 0 0 1 4.773 20.026 M2.293 16.734 A10.8 10.8 0 0 1 1.259 10.871 M3.6 17.28 L2.4 23.28 L7.68 21.12"/><path d="m8.4 12.2 2.5 2.5 5-5"/></svg>
+   </button>
+   <div id="thread-actions" class="glass">
+    <button id="newChat" aria-label="Nova conversa">
+     <svg viewBox="0 0 26 26" fill="none" stroke="#f8f8fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4H6a3 3 0 0 0-3 3v13a3 3 0 0 0 3 3h13a3 3 0 0 0 3-3v-8"/><path d="m12 15 10-10a2 2 0 0 0-3-3L9 12l-1 5z"/></svg>
+    </button>
+    <button id="more" aria-label="Mais opções">
+     <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="4" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="20" cy="12" r="1.8"/></svg>
+    </button>
+   </div>
+  </header>
+  <section id="themePicker" role="dialog" aria-label="Aparência" hidden>
+   <div class="theme-picker-title">Aparência</div>
+   <div class="theme-picker-options" role="radiogroup" aria-label="Escolher aparência">
+    <button type="button" class="theme-option" role="radio" aria-checked="true" data-theme-option="dark">Dark mode</button>
+    <button type="button" class="theme-option" role="radio" aria-checked="false" data-theme-option="light">White mode</button>
+    <button type="button" class="theme-option" role="radio" aria-checked="false" data-theme-option="system">Sistema</button>
+   </div>
+  </section>
+  <div id="offlineHint" aria-label="Sem conexão à internet">Offline</div>
+  <div id="workForcePicker" aria-hidden="true">
+   <div class="work-force-columns">
+    <section class="work-force-column"><div class="work-force-heading">Músicas</div><div id="workMusicChoices" class="work-force-choices"></div></section>
+    <section class="work-force-column"><div class="work-force-heading">Celebridades</div><div id="workCelebChoices" class="work-force-choices"></div></section>
+    <section class="work-force-column"><div class="work-force-heading">Animais</div><div id="workAnimalChoices" class="work-force-choices"></div></section>
+   </div>
+  </div>
+  <div id="temporaryInfo" aria-hidden="true">
+   <div class="temp-title">Chat temporário</div>
+   <div class="temp-subtitle">Este chat não aparecerá no histórico. <span class="temp-more">Saiba mais</span></div>
+   <div class="temp-personalized">Personalizado <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 7 5 5 5-5"/></svg></div>
+  </div>
+  <div id="threadScroll" role="region" aria-label="Conversa, rolagem independente">
+   <div id="thread-inner">
+    <div id="turnHistory"></div>
+    <div id="bubble-row"><div class="bubble">Liste 100 animais</div></div>
+    <div id="thinking">Pensando</div>
+    <p id="answerIntro"></p>
+    <div id="list"></div>
+    <div id="actions">
+     <button aria-label="Copiar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="8.7" y="2.8" width="12.5" height="13" rx="2.5"/><rect x="2.8" y="8.5" width="12.5" height="12.7" rx="2.5" fill="var(--bg,#000)"/></svg></button>
+     <span id="feedback" role="group" aria-label="Avaliar resposta"><button type="button" class="vote-btn" data-vote="up" aria-label="Gostei" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2.4" y="10.3" width="4.1" height="10.8" rx="1.05"/><path d="M8.3 10.3 12.2 3.6c1.14-1.94 3.61-1.15 3.22 1.15l-.72 4.18h3.65c2.27 0 3.3 1.4 2.8 3.48l-1.68 6.72c-.32 1.3-1.22 1.98-2.53 1.98H8.3z"/></svg></button><button type="button" class="vote-btn" data-vote="down" aria-label="Não gostei" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g transform="translate(0 24) scale(1 -1)"><rect x="2.4" y="10.3" width="4.1" height="10.8" rx="1.05"/><path d="M8.3 10.3 12.2 3.6c1.14-1.94 3.61-1.15 3.22 1.15l-.72 4.18h3.65c2.27 0 3.3 1.4 2.8 3.48l-1.68 6.72c-.32 1.3-1.22 1.98-2.53 1.98H8.3z"/></g></svg></button></span>
+     <button type="button" data-answer-speak aria-label="Ouvir resposta" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4.25 9.2h2.98l4.63-3.96c.78-.66 1.91-.18 1.91.95v11.62c0 1.13-1.13 1.61-1.91.95l-4.63-3.96H4.25c-.99 0-1.52-.58-1.52-1.52v-2.56c0-.94.53-1.52 1.52-1.52Z"/><path d="M16.4 8.25c1.62 1.82 1.62 5.68 0 7.5M19.05 5.5c3.14 3.43 3.14 9.57 0 13.0" stroke-width="1.8"/></svg></button>
+     <button type="button" data-answer-share aria-label="Compartilhar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 15.2V2.8m-4.2 4.3L12 2.9l4.2 4.2"/><path d="M6.8 11H5.35c-1.55 0-2.35.86-2.35 2.36v6.05c0 1.54.84 2.44 2.38 2.44h13.24c1.54 0 2.38-.9 2.38-2.44v-6.05c0-1.5-.8-2.36-2.35-2.36H17.2"/></svg></button>
+     <button type="button" data-answer-more aria-label="Mais opções da resposta" aria-expanded="false" aria-controls="answerOptions"><svg viewBox="0 0 24 24" fill="currentColor" stroke="none" aria-hidden="true"><circle cx="4.5" cy="12" r="1.65"/><circle cx="12" cy="12" r="1.65"/><circle cx="19.5" cy="12" r="1.65"/></svg></button>
+     <div id="answerOptions" role="menu" aria-label="Opções da resposta" hidden>
+      <button type="button" role="menuitem" data-answer-option="copy">Copiar resposta</button>
+      <button type="button" role="menuitem" data-answer-option="speak">Ouvir resposta</button>
+      <button type="button" role="menuitem" data-answer-option="share">Compartilhar resposta</button>
+     </div>
+     <span id="answerActionNotice" role="status" aria-live="polite" hidden></span>
+    </div>
+   </div>
+  </div>
+  <div id="top-fade" aria-hidden="true"></div><div id="bottom-fade" aria-hidden="true"></div>
+  <button id="jump" class="glass" aria-label="Ir para o final da resposta"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v15m0 0-7-7m7 7 7-7"/></svg></button>
+  <div id="composer" aria-label="Campo de mensagem de demonstração">
+   <button id="add" aria-label="Adicionar"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M12 2v20M2 12h20"/></svg></button>
+   <div id="text-field" role="button" tabindex="0" aria-label="Toque para usar o teclado do iPhone">Perguntar ao ChatGPT</div>
+   <span id="typingMeter" aria-hidden="true"></span>
+   <button id="secretHotspot" type="button" tabindex="-1" aria-hidden="true"></button>
+   <button id="mic" aria-label="Ditar mensagem"><svg viewBox="0 0 24 24" fill="none" stroke="#f8f8fa" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v4m-4 0h8"/></svg></button>
+   <button id="sendVoice" aria-label="Enviar ou voz"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+    <g id="voicePath"><path d="M3 10v4m4-7v10m5-14v18m5-14v10m4-7v4"/></g>
+    <g id="stopPath"><rect x="6.5" y="6.5" width="11" height="11" rx="1.4" fill="#fff" stroke="none"/></g>
+    <g id="sendPath"><path d="M12 19V5m0 0-6 6m6-6 6 6"/></g>
+   </svg><span id="secretPeek" aria-hidden="true"></span></button>
+   <div id="dictationBar" role="group" aria-label="Ditado por voz" hidden>
+    <button id="dictationCancel" type="button" aria-label="Cancelar gravação"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round"><path d="M5 5 19 19M19 5 5 19"/></svg></button>
+    <div id="dictationWave" role="status" aria-label="Gravando áudio"><span class="dictation-dots"></span><span id="dictationBars" aria-hidden="true"></span><span class="dictation-dots"></span></div>
+    <div id="dictationProcessing" role="status" aria-live="polite" hidden><span class="dictation-spinner"></span><span>Transcrevendo</span></div>
+    <button id="dictationStop" type="button" aria-label="Parar e transcrever"><svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.8"/></svg></button>
+    <button id="dictationSend" type="button" aria-label="Concluir e enviar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5m0 0-6 6m6-6 6 6"/></svg></button>
+   </div>
+  </div>
+  <div id="dictationNotice" role="status" aria-live="polite" hidden></div>
+  <div id="peekShade" aria-hidden="true"></div>
+  <section id="peekPanel" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="peekTitle">
+   <div class="peek-head"><strong id="peekTitle">Ajustes da Joaninha</strong><button id="peekClose" type="button" aria-label="Fechar ajustes">×</button></div>
+   <div class="peek-tabs" role="tablist" aria-label="Tipo de ajuste">
+    <button id="peekTabPeekButton" type="button" class="selected" role="tab" aria-controls="peekTabPeek" aria-selected="true">Peek</button>
+    <button id="peekTabFontsButton" type="button" role="tab" aria-controls="peekTabFonts" aria-selected="false">Fontes</button>
+   </div>
+   <div id="peekTabPeek" role="tabpanel" aria-labelledby="peekTabPeekButton">
+   <p class="peek-hint">Prévia 23 no campo de mensagem, ajustes salvos automaticamente</p>
+   <div class="peek-label">Posição <output id="peekCoords">X 17 · Y -13</output></div>
+   <div class="peek-pad">
+    <span></span><button type="button" data-peek-y="1" aria-label="Mover para cima">↑</button><span></span>
+    <button type="button" data-peek-x="-1" aria-label="Mover para esquerda">←</button>
+    <div class="peek-pad-center" id="peekStepLabel">1 px</div>
+    <button type="button" data-peek-x="1" aria-label="Mover para direita">→</button>
+    <span></span><button type="button" data-peek-y="-1" aria-label="Mover para baixo">↓</button><span></span>
+   </div>
+   <button type="button" id="peekStep">Passo de 1 px</button>
+   <div class="peek-label">Tamanho da fonte <output id="peekFontLabel">9 px</output></div>
+   <div class="peek-adjust"><button type="button" data-peek-font="-1">−</button><input id="peekFont" type="range" min="8" max="30" step="1" value="9" aria-label="Tamanho do peek"><button type="button" data-peek-font="1">+</button></div>
+   <div class="peek-label">Opacidade <output id="peekOpacityLabel">100%</output></div>
+   <div class="peek-adjust"><button type="button" data-peek-opacity="-5">−</button><input id="peekOpacity" type="range" min="0" max="100" step="5" value="100" aria-label="Opacidade do peek"><button type="button" data-peek-opacity="5">+</button></div>
+   </div>
+   <div id="peekTabFonts" role="tabpanel" aria-labelledby="peekTabFontsButton" hidden>
+    <p class="peek-hint">Acompanhe as mudanças nas mensagens visíveis atrás deste painel</p>
+    <div class="peek-label">Tamanho dos textos <output id="fontScaleLabel">109%</output></div>
+    <div class="peek-adjust"><button type="button" data-font-scale-delta="-3" aria-label="Diminuir os textos proporcionalmente">−</button><input id="fontScaleRange" type="range" min="75" max="150" step="1" value="109" aria-label="Tamanho proporcional da pergunta e da resposta"><button type="button" data-font-scale-delta="3" aria-label="Aumentar os textos proporcionalmente">+</button></div>
+    <p class="peek-font-legend" id="fontScaleDetails">Pergunta: 18,0 px · Resposta: 18,7 px</p>
+    <p class="peek-font-legend">Os dois textos aumentam ou diminuem juntos, mantendo a proporção original</p>
+    <div class="peek-label">Espaçamento <output id="listSpacingLabel">0 px</output></div>
+    <div class="peek-adjust"><button type="button" data-list-spacing-delta="-1" aria-label="Diminuir espaçamento entre itens">−</button><input id="listSpacingRange" type="range" min="-6" max="24" step="1" value="0" aria-label="Espaçamento vertical entre itens da lista"><button type="button" data-list-spacing-delta="1" aria-label="Aumentar espaçamento entre itens">+</button></div>
+   </div>
+   <div class="peek-footer"><button id="peekReset" type="button">Restaurar peek</button><button id="peekSave" type="button">Salvar e fechar</button></div>
+   <div id="peekStorageStatus" role="status">Salvo automaticamente neste aparelho</div>
+  </section>
+  <section id="keyboard" aria-label="Teclado visual do iOS 26, não é o teclado real">
+   <div class="kb-row" id="kbTop"></div>
+   <div class="kb-row" id="kbMiddle"></div>
+   <div class="kb-row" id="kbBottom"></div>
+   <div class="kb-row" id="kbControls"></div>
+   <div class="kb-bottom">
+    <svg viewBox="0 0 30 30" fill="none" stroke="#fafafa" stroke-width="1.65" stroke-linecap="round"><circle cx="15" cy="15" r="12"/><path d="M3 15h24M15 3v24M7.2 6c5.3 5.9 5.3 12.1 0 18M22.8 6c-5.3 5.9-5.3 12.1 0 18"/></svg>
+    <svg viewBox="0 0 30 30" fill="none" stroke="#fafafa" stroke-width="1.7" stroke-linecap="round"><rect x="11" y="2" width="8" height="18" rx="4"/><path d="M7 14a8 8 0 0 0 16 0M15 22v6m-5 0h10"/></svg>
+   </div>
+   <span class="kb-indicator" aria-hidden="true"></span>
+  </section>
+ </main>
+</div>
+<script src="./chat-test-gpt-2-diag.js?v=9"></script>
+<script>
+(function(){
+ 'use strict';
+ const app=document.getElementById('app'),page=document.getElementById('page');
+ const scroller=document.getElementById('threadScroll'),list=document.getElementById('list');
+ const composer=document.getElementById('composer'),field=document.getElementById('text-field');
+ const sendVoice=document.getElementById('sendVoice'),jump=document.getElementById('jump');
+ const $=id=>document.getElementById(id);
+ // Source-of-truth category and list logic copied from Joaninha v48
+ function normalise(value){
+  return value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+ }
+ // v26: semantic-lite catalog matching. Intent is required, keywords alone are not.
+ // All matching ignores accent/case and respects word boundaries.
+ const SPECIAL_LENGTHS={aura:31,familiareszoologicos:31,contatoespiritual:18};
+ const LIST_CATEGORIES=[
+  {file:'animais',label:'animais',terms:['animal','animais','bicho','bichos','fauna','especies de animais']},
+  {file:'celebridades',label:'celebridades',terms:['celebridade','celebridades','famoso','famosos','famosa','famosas','pessoas famosas','pessoa famosa','personalidades','ator','atores','atriz','atrizes','artista','artistas','estrelas de hollywood']},
+  {file:'filmes',label:'filmes',terms:['filme','filmes','cinema','longa metragem','longas metragens','classicos do cinema']},
+  {file:'musicas',label:'músicas',terms:['musica','musicas','cancao','cancoes','hits','sucessos musicais','faixas']},
+  {file:'aleatorias',label:'músicas aleatórias',terms:['aleatoria','aleatorias']},
+  {file:'insetos',label:'insetos',terms:['inseto','insetos']},
+  {file:'cervejas',label:'cervejas',terms:['cerveja','cervejas','marcas de cerveja']},
+  {file:'hobbies',label:'hobbies',terms:['hobby','hobbies','passatempo','passatempos','atividades de lazer','tempo livre']},
+  {file:'perguntas',label:'perguntas',terms:['pergunta','perguntas','questao','questoes']},
+  {file:'pontosturisticos',label:'pontos turísticos',terms:['ponto turistico','pontos turisticos','atracoes turisticas','atracao turistica','monumento','monumentos','lugares famosos','lugares para visitar']},
+  {file:'aura',label:'auras',terms:['aura','auras','cores da aura','cores das auras']},
+  {file:'familiareszoologicos',label:'familiares zoológicos',terms:['familiar','familiares','familiares zoologicos','animais espirituais','animal espiritual','animal de poder','animais de poder']},
+  {file:'contatoespiritual',label:'perguntas para contato espiritual',terms:['espirito','espiritos','espiritual','espirituais','espiritualidade','contato espiritual','comunicacao espiritual']}
+ ];
+ const LIST_REQUEST_INTENT=/\b(?:liste|listar|lista|listas|cite|citar|enumere|enumerar|mostre|mostrar|me de|me diga|me fale|diga|quero|gostaria|preciso|poderia|pode|quais|quantas|quantos|nomes|exemplos|sugira|sugestoes|relacione|faca uma lista)\b/;
+ // “Por que os insetos voam?” is informational, not a list request.
+ const EXPLANATORY_QUESTION=/^(?:por que|porque|como funciona|o que significa|o que e|qual e a causa|explique|me explique|quando|onde|quem e)\b/;
+ function hasListIntent(plain){
+  if(EXPLANATORY_QUESTION.test(plain))return false;
+  return LIST_REQUEST_INTENT.test(plain);
+ }
+ function termIndex(plain,term){
+  const escaped=term.replace(/\s+/g,'\\s+');
+  const found=new RegExp('(?:^|[^a-z0-9])'+escaped+'(?=$|[^a-z0-9])').exec(plain);
+  return found?found.index:-1;
+ }
+ function matchCategory(plain){
+  const matched=[];
+  for(const category of LIST_CATEGORIES){
+   let index=Infinity;
+   let matchLen=0;
+   for(const raw of category.terms){
+    const term=normalise(raw);
+    const at=termIndex(plain,term);
+    if(at>=0&&(at<index||(at===index&&term.length>matchLen))){index=at;matchLen=term.length;}
+   }
+   if(index!==Infinity)matched.push({...category,index,matchLen});
+  }
+  if(!matched.length)return null;
+  // A specific spiritual request wins over the generic "perguntas" keyword.
+  const spiritual=matched.find(c=>c.file==='contatoespiritual');
+  const family=matched.find(c=>c.file==='familiareszoologicos');
+  const aura=matched.find(c=>c.file==='aura');
+  // "animal espiritual" is about zoo familiars, not contact with spirits.
+  if(family&&/\b(?:animal|animais)\s+(?:espiritual|espirituais|de poder)\b/.test(plain))return family;
+  if(spiritual)return spiritual;
+  if(family)return family;
+  if(aura)return aura;
+  // The word "contato" on its own is ambiguous; tie it to a question context.
+  if(/\bcontatos?\b/.test(plain)&&/\b(?:pergunta|perguntas|questoes|questao|comunicacao)\b/.test(plain)){
+   return LIST_CATEGORIES.find(c=>c.file==='contatoespiritual');
+  }
+  // Music requests qualified by 'aleatória' or 'aleatórias' use the dedicated list.
+  // The qualifier alone also identifies this list, but must not hijack other categories.
+  const randomMusic=matched.find(c=>c.file==='aleatorias');
+  if(randomMusic){
+   if(matched.some(c=>c.file==='musicas')||matched.length===1)return randomMusic;
+   matched.splice(matched.indexOf(randomMusic),1);
+  }
+  matched.sort((a,b)=>a.index-b.index||b.matchLen-a.matchLen);
+  return matched[0];
+ }
+ function parseRequest(question){
+  const plain=normalise(question).trim();
+  if(!plain||!hasListIntent(plain))return null;
+  const category=matchCategory(plain);
+  if(!category)return null;
+  const countMatch=plain.match(/\b\d{1,5}\b/);
+  const explicitQuantity=countMatch?Number(countMatch[0]):null;
+  return {quantity:explicitQuantity,candidates:[{file:category.file,label:category.label}],plain};
+ }
+ async function fetchListFile(category){
+  if(!category||!/^[a-z0-9]+$/.test(category))throw Error('categoria invalida');
+  const offlineHint=navigator.onLine===false?'&offline=1':'';
+  const response=await fetch('chat-test-gpt-2-listas/'+encodeURIComponent(category)+'.txt?v=48&ts='+Date.now()+offlineHint,{cache:'no-store'});
+  if(!response.ok)throw Error('lista nao disponivel');
+  const raw=await response.text();
+  return raw.replace(/^\uFEFF/,'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
+ }
+ // Save selected force names locally, without editing the source TXT files.
+ const MUSIC_FORCE_KEY='joaninha-music-force-name-v1';
+ const CELEBRITY_FORCE_KEY='joaninha-celebrity-force-name-v1';
+ const ANIMAL_FORCE_KEY='joaninha-animal-force-name-v1';
+ let selectedMusicName=null,selectedCelebrityName=null,selectedAnimalName=null;
+ try{
+  const music=localStorage.getItem(MUSIC_FORCE_KEY);
+  if(music&&music.length<=200)selectedMusicName=music;
+  const saved=localStorage.getItem(CELEBRITY_FORCE_KEY);
+  if(saved&&saved.length<=140)selectedCelebrityName=saved;
+  const animal=localStorage.getItem(ANIMAL_FORCE_KEY);
+  if(animal&&animal.length<=140)selectedAnimalName=animal;
+ }catch(error){}
+ function withSelectedForceFirst(items,category){
+  const selectedName=category==='musicas'?selectedMusicName:
+   category==='celebridades'?selectedCelebrityName:
+    category==='animais'?selectedAnimalName:null;
+  if(!selectedName)return items;
+  const index=items.indexOf(selectedName);
+  if(index<=0||index>=10)return items;
+  const reordered=items.slice();
+  reordered.splice(index,1);
+  reordered.unshift(selectedName);
+  return reordered;
+ }
+ async function resolveList(request){
+  if(!request)throw Error('pedido invalido');
+  const candidate=request.candidates[0];
+  const items=withSelectedForceFirst(await fetchListFile(candidate.file),candidate.file);
+  const special=SPECIAL_LENGTHS[candidate.file];
+  if(special!==undefined&&items.length!==special)throw Error('lista especial inconsistente');
+  const quantity=special??(request.quantity??items.length);
+  if(!Number.isInteger(quantity)||quantity<1||quantity>items.length)throw Error('quantidade indisponivel');
+  return {...candidate,items,quantity};
+ }
+ // A natural answer header, using the meaning of the recognized request.
+ function introForRequest(request,resolved){
+  const q=resolved.quantity,plain=request.plain;
+  if(resolved.file==='contatoespiritual'){
+   if(/\b(?:falar|conversar|comunicar|dialogar)\b.*\b(?:espirito|espiritos)\b/.test(plain))
+    return 'Aqui estão as '+q+' perguntas para falar com '+(plain.includes('espiritos')?'espíritos':'espírito')+':';
+   return 'Aqui estão as '+q+' perguntas para contato espiritual:';
+  }
+  if(resolved.file==='aura')return 'Aqui estão as '+q+' cores das auras e seus significados:';
+  if(resolved.file==='familiareszoologicos')return 'Aqui estão os '+q+' familiares zoológicos:';
+  return 'Aqui estão '+q+' '+resolved.label+':';
+ }
+ function arrange(items,position,quantity,category){
+  if(!Number.isInteger(position)||position<1||position>quantity)throw Error('codigo fora da lista');
+  if(category==='animais'){
+   // Circular triple: Formiga immediately before the force, Elefante after it.
+   // 1 -> Formiga at 100; 100 -> Elefante at 1 (when quantity is 100).
+   const formiga=items.indexOf('Formiga 🐜'),elefante=items.indexOf('Elefante 🐘');
+   if(formiga<0||elefante<0||formiga===0||elefante===0||formiga===elefante)
+    throw Error('animais incompletos');
+   const out=Array(quantity);
+   out[position-1]=items[0];
+   if(quantity>=2)out[(position-2+quantity)%quantity]=items[formiga];
+   if(quantity>=3)out[position%quantity]=items[elefante];
+   const remaining=items.filter((_,i)=>i!==0&&i!==formiga&&i!==elefante);
+   let cursor=0;
+   for(let i=0;i<quantity;i++)if(out[i]===undefined)out[i]=remaining[cursor++];
+   if(out.some(item=>item===undefined))throw Error('lista de animais incompleta');
+   return out;
+  }
+  if(category==='familiareszoologicos'){
+   // Reserve Panda at the chosen position and Raposa at 20, except when
+   // Panda is at 20: Raposa immediately follows at 21.
+   if(quantity!==31||items.length!==31)throw Error('familiares exige 31 itens');
+   const out=Array(31);
+   out[position-1]=items[0];
+   out[(position===20?21:20)-1]=items[1];
+   let next=2;
+   for(let i=0;i<out.length;i++)if(out[i]===undefined)out[i]=items[next++];
+   if(next!==items.length)throw Error('lista incompleta');
+   return out;
+  }
+  const ordered=items.slice(1,quantity);
+  ordered.splice(position-1,0,items[0]);
+  return ordered;
+ }
+ // Keep the latest visible position of the reserved TXT item per category.
+ const LAST_RESERVED_POSITIONS_KEY='joaninha-last-reserved-position-by-category-v1';
+ const lastReservedPositions=Object.create(null);
+ try{
+  const stored=JSON.parse(localStorage.getItem(LAST_RESERVED_POSITIONS_KEY)||'{}');
+  for(const category of LIST_CATEGORIES){
+   const pos=stored?.[category.file];
+   if(Number.isInteger(pos)&&pos>=1&&pos<=100)
+    lastReservedPositions[category.file]=pos;
+  }
+ }catch(error){}
+ function rememberReservedPosition(category,position){
+  if(!Number.isInteger(position)||position<1||position>100)return;
+  lastReservedPositions[category]=position;
+  // Temporary chats can affect this session, but never write their data.
+  if(temporaryChat)return;
+  try{localStorage.setItem(LAST_RESERVED_POSITIONS_KEY,
+   JSON.stringify(lastReservedPositions));}catch(error){}
+ }
+ // Fisher-Yates using original indices, even when text appears twice.
+ // Normal replies cannot show the reserved item in the first slot or its
+ // previous slot in the same category, whether previous was secret or normal.
+ function shuffleNormalList(items,quantity,category){
+  const previous=lastReservedPositions[category]??null;
+  const safeSlots=Array.from({length:quantity},(_,i)=>i).filter(i=>
+   i!==0&&i+1!==previous);
+  let indices=Array.from({length:quantity},(_,i)=>i);
+  if(!safeSlots.length){
+   // Lists of 1 item or 2 with both slots barred: show other entries instead.
+   indices=Array.from({length:quantity},(_,i)=>i+1);
+   if(indices[indices.length-1]>=items.length)throw Error('lista curta indisponivel');
+  }
+  for(let i=indices.length-1;i>0;i--){
+   const j=Math.floor(Math.random()*(i+1));
+   [indices[i],indices[j]]=[indices[j],indices[i]];
+  }
+  const reservedIndex=indices.indexOf(0);
+  if(reservedIndex>=0&&(reservedIndex===0||reservedIndex+1===previous)){
+   const target=safeSlots[Math.floor(Math.random()*safeSlots.length)];
+   [indices[reservedIndex],indices[target]]=[indices[target],indices[reservedIndex]];
+  }
+  const finalIndex=indices.indexOf(0);
+  return {ordered:indices.map(i=>items[i]),
+   reservedPosition:finalIndex<0?null:finalIndex+1};
+ }
+ const GPT_TEST_VERSION=85;
+ let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
+ // Experimental cold-start keyboard restore, independent of any magic state.
+ // A normal user opening the keyboard opts in for subsequent launches.
+ const KEYBOARD_RESTORE_KEY='joaninha-keyboard-start-open-v1';
+ let restoreKeyboardOnLaunch=false,probingStartupKeyboard=false;
+ try{restoreKeyboardOnLaunch=localStorage.getItem(KEYBOARD_RESTORE_KEY)==='1';}catch(error){}
+ function rememberKeyboardOpening(shouldOpen){
+  restoreKeyboardOnLaunch=shouldOpen;
+  try{localStorage.setItem(KEYBOARD_RESTORE_KEY,shouldOpen?'1':'0');}catch(error){}
+ }
+ let temporaryChat=false;
+ let keyboardMode='letters',shiftNext=true,capsLocked=false,caretPos=0;
+ // Exact letter-to-digit secret map from Joaninha main v48
+ const SECRET_KEY_VALUES=Object.freeze({i:1,o:2,p:3,j:4,k:5,l:6,b:7,n:8,m:9});
+ let secretMode=false,secretDigits=[],secretPeekTimer=null,lastSecretPosition=null;
+ let lastSecretPeekCode=null,quickPeekPointer=null;
+ // Retain the last COMPLETE secret code across ordinary chats, navigation,
+ // reopening the PWA and temporary peek visibility changes.
+ const LAST_SECRET_PEEK_KEY='joaninha-last-secret-peek-v1';
+ function rememberLastSecretPeek(code){
+  const value=String(code);
+  if(!/^(?:\d{2}|100)$/.test(value))return false;
+  lastSecretPeekCode=value;
+  lastSecretPosition=value==='100'?100:Number(value);
+  try{localStorage.setItem(LAST_SECRET_PEEK_KEY,value);}catch(error){}
+  return true;
+ }
+ try{
+  const stored=localStorage.getItem(LAST_SECRET_PEEK_KEY);
+  if(stored!==null)rememberLastSecretPeek(stored);
+ }catch(error){}
+ const isIOS=/iPhone|iPad|iPod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+ const standalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone===true;
+ const diag=window.JoaninhaDiagnostic({app,version:GPT_TEST_VERSION,
+  getState:()=>({scene,keyboard,keyboardMode,drawer,hub:false,
+   draftLength:draft.length,caretPos,shiftNext,capsLocked,secretMode,secretCount:secretDigits.length,temporaryChat,standalone,generating})
+ });
+ if(!isIOS)app.classList.add('desktop-preview');
+ // Preserve the original screen geometry when iOS shrinks visualViewport.
+ let baseAppHeight=0;
+ function applyViewport(){
+  const fullScreen=isIOS&&standalone&&screen.height>screen.width;
+  const inner=window.innerHeight||document.documentElement.clientHeight;
+  const proposed=fullScreen?Math.max(screen.height,inner):inner;
+  if(!keyboard||!baseAppHeight)baseAppHeight=Math.max(baseAppHeight,Math.max(380,Math.round(proposed)));
+  document.documentElement.style.setProperty('--app-h',baseAppHeight+'px');
+  const vv=window.visualViewport;
+  const visibleBottom=vv?vv.offsetTop+vv.height:inner;
+  const covered=Math.max(0,Math.round(baseAppHeight-visibleBottom));
+  // iOS can focus a field without showing the software keyboard.
+  // Never reserve a phantom keyboard height when visualViewport is fully open.
+  const observedKeyboardHeight=vv?(covered>130?covered:0):
+   (keyboard&&isIOS?Math.max(264,Math.min(345,Math.round(baseAppHeight*.344))):0);
+  document.documentElement.style.setProperty('--kbd-h',(keyboard?observedKeyboardHeight:0)+'px');
+ }
+ applyViewport();
+ window.addEventListener('resize',()=>{applyViewport();refreshJump();},{passive:true});
+ window.visualViewport?.addEventListener('resize',()=>{applyViewport();refreshJump();},{passive:true});
+ window.visualViewport?.addEventListener('scroll',applyViewport,{passive:true});
+ window.addEventListener('orientationchange',()=>{baseAppHeight=0;setTimeout(applyViewport,250);},{passive:true});
+ function stopAuto(){if(timer!==null){clearTimeout(timer);timer=null;}generating=false;}
+ function setDrawer(open){
+  // WebKit exposes no control to slide the native keyboard with the drawer.
+  // Dismiss it on menu opening so it cannot cover the navigation sidebar.
+  if(open&&keyboard)setKeyboard(false,'drawer-open');
+  drawer=!!open;
+  app.classList.toggle('drawer-open',drawer);
+ }
+ function setKeyboard(open,reason='unspecified'){
+  const next=!!open;
+  // A real user gesture wins over a still-pending cold-start probe.
+  // Otherwise the probe timeout could blur a keyboard opened by that user.
+  if(next&&probingStartupKeyboard&&reason!=='startup-restore')
+   probingStartupKeyboard=false;
+  if(!next&&keyboard&&!['prompt-swipe-down','conversation-tap','drawer-open','peek-panel','native-blur'].includes(reason)){
+   diag.event('keyboard-close-prevented',{reason});
+   return false;
+  }
+  if(next===keyboard){
+   if(next&&document.activeElement!==nativeInput)nativeInput.focus({preventScroll:true});
+   return true;
+  }
+  diag.snapshot('keyboard-before-change',true);
+  diag.event('keyboard-change',{from:keyboard,to:next,reason});
+  keyboard=next;
+  // Remember genuine opening; only explicit dismissal gestures clear the preference.
+  // Sending a message or opening a settings panel must not revoke the preference.
+  if(next&&reason!=='startup-restore')rememberKeyboardOpening(true);
+  else if(!next&&['prompt-swipe-down','conversation-tap','drawer-open'].includes(reason))
+   rememberKeyboardOpening(false);
+  app.classList.toggle('keyboard-on',keyboard);
+  if(keyboard){
+   scroller.scrollTop=Math.max(0,scroller.scrollTop);
+   if(document.activeElement!==nativeInput)nativeInput.focus({preventScroll:true});
+  }else if(document.activeElement===nativeInput)nativeInput.blur();
+  applyViewport();
+  updateComposer();
+  setTimeout(refreshJump,40);
+  requestAnimationFrame(()=>diag.snapshot('keyboard-after-change',true));
+  return true;
+ }
+ // The first dot is the private timing cue and the middle dot confirms completion
+ // 0s: first hides, 5s: first restores, 6s: fade begins, 7s: emoji hidden
+ // 7s: middle hides only after emoji fully hidden, 8s: middle restores
+ let revealTimer=null,revealFadeTimer=null,revealFadeAnimation=null,revealFrame=null,revealConfirmTimer=null;
+ let revealPending=false,revealEmojiTarget=null,forceEmojiSpan=null;
+ function cancelLadybugReveal(){
+  if(revealTimer!==null)clearTimeout(revealTimer);
+  if(revealFadeTimer!==null)clearTimeout(revealFadeTimer);
+  if(revealConfirmTimer!==null)clearTimeout(revealConfirmTimer);
+  if(revealFrame!==null)cancelAnimationFrame(revealFrame);
+  if(revealFadeAnimation){revealFadeAnimation.cancel();revealFadeAnimation=null;}
+  revealTimer=null;revealFadeTimer=null;revealFadeAnimation=null;revealFrame=null;revealConfirmTimer=null;
+  $('more').classList.remove('reveal-cue-hidden');
+  $('more').classList.remove('reveal-confirm-hidden');
+  if(revealEmojiTarget&&!revealEmojiTarget.classList.contains('hidden')){
+   revealEmojiTarget.style.opacity='';revealEmojiTarget.style.transition='';
+  }
+  revealEmojiTarget=null;revealPending=false;forceEmojiSpan=null;
+ }
+ function splitForceEmoji(text){
+ const match=/\p{Extended_Pictographic}(?:\uFE0F|\u200D|\p{Emoji_Modifier}|\p{Extended_Pictographic})*/u.exec(text);
+ if(!match)return null;
+ return {before:text.slice(0,match.index),emoji:match[0],after:text.slice(match.index+match[0].length)};
+}
+ function armLadybugReveal(){
+  if(scene!=='end'||generating||!forceEmojiSpan||!forceEmojiSpan.isConnected)return false;
+  if(revealPending||forceEmojiSpan.classList.contains('hidden'))return true;
+  const emoji=forceEmojiSpan;
+  const row=emoji.closest('.row');
+  if(!row||!row.isConnected)return false;
+  revealPending=true;revealEmojiTarget=emoji;
+  $('more').classList.add('reveal-cue-hidden');
+  diag.event('ladybug-reveal-armed',{cueMs:5000,pauseMs:1000,fadeMs:1000});
+  revealTimer=setTimeout(()=>{
+   revealTimer=null;
+   // The first dot must be visually restored before the full pause starts
+   $('more').classList.remove('reveal-cue-hidden');
+   if(!emoji.isConnected||!row.isConnected){cancelLadybugReveal();return;}
+   diag.event('ladybug-reveal-cue-restored');
+   // Two paint frames ensure iOS Safari actually draws the restored dot
+   // before beginning the spectator-visible one-second pause
+   revealFrame=requestAnimationFrame(()=>{
+    revealFrame=requestAnimationFrame(()=>{
+     revealFrame=null;
+     if(!revealPending||!emoji.isConnected||!row.isConnected){cancelLadybugReveal();return;}
+     diag.event('ladybug-reveal-pause-start',{pauseMs:1000});
+     revealTimer=setTimeout(()=>{
+      revealTimer=null;
+      if(!revealPending||!emoji.isConnected||!row.isConnected){cancelLadybugReveal();return;}
+      diag.event('ladybug-reveal-fade-start');
+      if(typeof emoji.animate==='function'){
+       revealFadeAnimation=emoji.animate([{opacity:1},{opacity:0}],{
+        duration:1000,easing:'linear',fill:'forwards'
+       });
+      }else{
+       emoji.style.transition='opacity 1000ms linear';
+       void emoji.offsetWidth;
+       emoji.style.opacity='0';
+      }
+      revealFadeTimer=setTimeout(()=>{
+       revealFadeTimer=null;
+       emoji.classList.add('hidden');
+       if(revealFadeAnimation){revealFadeAnimation.cancel();revealFadeAnimation=null;}
+       emoji.style.opacity='';emoji.style.transition='';
+       revealFadeAnimation=null;revealPending=false;revealEmojiTarget=null;
+       // The confirmation starts only after the emoji is completely hidden
+       $('more').classList.add('reveal-confirm-hidden');
+       diag.event('ladybug-reveal-complete');
+       revealConfirmTimer=setTimeout(()=>{
+        revealConfirmTimer=null;
+        $('more').classList.remove('reveal-confirm-hidden');
+        diag.event('ladybug-confirm-cue-restored');
+       },1000);
+       rememberCompletedConversation();
+      },1000);
+     },1000);
+    });
+   });
+  },5000);
+  return true;
+ }
+ // Completed turns stay in the same scrollable conversation
+ const historyHost=$('turnHistory');
+ function archiveCurrentTurn(){
+  if(scene!=='end')return;
+  const section=document.createElement('section');
+  section.className='archived-turn';
+  const nodes=[
+   [$('bubble-row'),'archived-bubble-row'],
+   [$('answerIntro'),'archived-intro'],
+   [$('list'),'archived-list'],
+   [$('actions'),'archived-actions']
+  ];
+  for(const [original,cssClass] of nodes){
+   const copy=original.cloneNode(true);
+   copy.removeAttribute('id');
+   copy.classList.add(cssClass);
+   for(const child of copy.querySelectorAll('[id]')){
+    if(child.id==='feedback')child.classList.add('archived-feedback');
+    child.removeAttribute('id');
+   }
+   section.appendChild(copy);
+  }
+  historyHost.appendChild(section);
+  diag.event('conversation-turn-archived',{count:historyHost.children.length});
+ }
+ function focusActiveTurn(){
+  const target=$('bubble-row');
+  const scrollRect=scroller.getBoundingClientRect();
+  const targetRect=target.getBoundingClientRect();
+  scroller.scrollTop=Math.max(0,scroller.scrollTop+targetRect.top-scrollRect.top-106);
+ }
+ // Cancel only superseded requests, never alter an active keyboard
+ let replyToken=0;
+ function cancelReply(){
+  replyToken++;
+  stopAuto();
+  cancelLadybugReveal();
+ }
+ function appendReplyRow(item,index,forcedPosition,target=list){
+  const row=document.createElement('div');row.className='row';
+  const number=document.createElement('span');number.className='number';
+  number.textContent=String(index+1)+'.';
+  const word=document.createElement('span');word.className='word';
+  word.textContent=item;
+  row.append(number,word);
+  if(forcedPosition!==null&&index===forcedPosition-1){
+   row.dataset.forceIndex=String(forcedPosition);
+   const split=splitForceEmoji(item);
+   if(split){
+    const emoji=document.createElement('span');
+    emoji.className='force-emoji';emoji.textContent=split.emoji;
+    word.replaceChildren(document.createTextNode(split.before),emoji);
+    if(split.after)word.appendChild(document.createTextNode(split.after));
+    if(target===list)forceEmojiSpan=emoji;
+   }
+  }
+  target.appendChild(row);
+  return row;
+ }
+ async function startReply(message,forcedPosition=null,options=null){
+  const token=++replyToken;
+  stopAuto();
+  cancelLadybugReveal();
+  closeAnswerOptions();
+  archiveCurrentTurn();
+  resetAnswerInteractions();
+  draft='';caretPos=0;capsLocked=false;shiftNext=true;
+  setSecretMode(false);refreshLetterLabels();updateComposer();
+  // Sending a message no longer dismisses an already-open native keyboard.
+  $('bubble-row').querySelector('.bubble').textContent=message;
+  const intro=$('answerIntro');
+  intro.textContent='';
+  list.replaceChildren();
+  showScene('thinking',options);
+  generating=true;updateComposer();
+  const thinkingFinished=new Promise(resolve=>setTimeout(resolve,2500));
+  try{
+   const request=parseRequest(message);
+   const resolved=await resolveList(request);
+   await thinkingFinished;
+   if(token!==replyToken)return;
+   if(forcedPosition!==null&&(!Number.isInteger(forcedPosition)||forcedPosition<1||forcedPosition>resolved.quantity)){
+    throw new Error('Posição secreta fora dos limites da lista');
+   }
+   const normal=forcedPosition===null?
+    shuffleNormalList(resolved.items,resolved.quantity,resolved.file):null;
+   const ordered=normal?normal.ordered:
+    arrange(resolved.items,forcedPosition,resolved.quantity,resolved.file);
+   rememberReservedPosition(resolved.file,
+    forcedPosition===null?normal.reservedPosition:forcedPosition);
+   intro.textContent=introForRequest(request,resolved);
+   showScene('list');
+   generating=true;updateComposer();
+   let count=0;
+   const emit=()=>{
+    if(token!==replyToken)return;
+    if(count>=ordered.length){
+     timer=null;showScene('end');generating=false;updateComposer();refreshJump();
+     rememberCompletedConversation();
+     return;
+    }
+    appendReplyRow(ordered[count],count,forcedPosition);
+    count++;refreshJump();
+    if(count<ordered.length)timer=setTimeout(emit,76+(count%7===0?90:0));
+    else{timer=null;showScene('end');generating=false;updateComposer();refreshJump();rememberCompletedConversation();}
+   };
+   timer=setTimeout(emit,250);
+  }catch(error){
+   await thinkingFinished;
+   if(token!==replyToken)return;
+   intro.textContent='Desculpe, estou com dificuldade para responder no momento. Tente novamente mais tarde.';
+   list.replaceChildren();
+   timer=null;showScene('end');generating=false;updateComposer();refreshJump();
+   diag.event('list-request-error',{type:error?.message==='Posição secreta fora dos limites da lista'?'position':'request'});
+  }
+ }
+ function refreshJump(){
+  if(scene!=='list'&&scene!=='thinking'&&scene!=='end'){jump.classList.remove('visible');return;}
+  const delta=scroller.scrollHeight-scroller.scrollTop-scroller.clientHeight;
+  jump.classList.toggle('visible',delta>88 && scene!=='thinking');
+ }
+ // Persistent text DOM, allows a real insertion point inside the fake field
+ const inputLine=document.createElement('span');inputLine.className='input-line';
+ const beforeSpan=document.createElement('span');beforeSpan.className='input-before';
+ const afterSpan=document.createElement('span');afterSpan.className='input-after';
+ const cursor=document.createElement('span');cursor.className='blue-caret';
+ cursor.setAttribute('aria-hidden','true');
+ const placeholder=document.createElement('span');placeholder.className='input-placeholder';
+ placeholder.textContent='Perguntar ao ChatGPT';
+ inputLine.append(beforeSpan,cursor,afterSpan,placeholder);
+ // Transparent native textarea: the existing display remains the public-facing field.
+ const nativeInput=document.createElement('textarea');
+ nativeInput.id='nativeInput';
+ nativeInput.rows=1;
+ nativeInput.setAttribute('aria-label','Mensagem');
+ nativeInput.setAttribute('autocapitalize','sentences');
+ nativeInput.setAttribute('autocomplete','on');
+ nativeInput.setAttribute('autocorrect','on');
+ nativeInput.setAttribute('enterkeyhint','enter');
+ nativeInput.spellcheck=true;
+ field.replaceChildren(inputLine,nativeInput);
+ function syncNativeInput(){
+  if(nativeInput.value!==draft)nativeInput.value=draft;
+  if(document.activeElement===nativeInput&&
+     (nativeInput.selectionStart!==caretPos||nativeInput.selectionEnd!==caretPos)){
+   nativeInput.setSelectionRange(caretPos,caretPos);
+  }
+ }
+ function updateComposer(){
+  const ongoing=scene==='thinking'||scene==='list';
+  const hasDraft=!!draft.trim()&&!ongoing&&(!secretMode||secretDigits.length===2);
+  composer.classList.toggle('has-draft',hasDraft);
+  field.classList.toggle('has-text',!!draft);
+  caretPos=Math.max(0,Math.min(draft.length,caretPos));
+  beforeSpan.textContent=draft.slice(0,caretPos);
+  afterSpan.textContent=draft.slice(caretPos);
+  placeholder.textContent=temporaryChat?(secretMode?'Chat temporário.':'Chat temporário'):(secretMode?'Perguntar ao ChatGPT.':'Perguntar ao ChatGPT');
+  placeholder.hidden=!!draft;
+  syncNativeInput();
+  const newLines=Math.min(4,Math.max(1,draft.split('\n').length));
+  composer.style.setProperty('--input-extra',String((newLines-1)*22)+'px');
+  sendVoice.setAttribute('aria-label',ongoing?'Parar resposta':hasDraft?'Enviar mensagem':'Conversar por voz');
+ }
+ // Secret input never exposes the original keystrokes in the visible message
+ const secretPeek=$('secretPeek');
+ const PEEK_KEY='joaninha-chat-test-gpt-2-peek-settings-v1';
+ const PEEK_DEFAULT={x:17,y:-13,font:9,opacity:100};
+ const bounded=(value,min,max,fallback)=>{const n=Number(value);return Number.isFinite(n)?Math.max(min,Math.min(max,Math.round(n))):fallback};
+ function cleanPeek(raw){
+  return {x:bounded(raw?.x,-160,160,PEEK_DEFAULT.x),y:bounded(raw?.y,-100,100,PEEK_DEFAULT.y),
+   font:bounded(raw?.font,8,30,PEEK_DEFAULT.font),opacity:bounded(raw?.opacity,0,100,PEEK_DEFAULT.opacity)};
+ }
+ let peekSettings={...PEEK_DEFAULT},peekStoreOK=true,peekPanelOpen=false;
+ let peekKeyboardBefore=false,peekVisibleBefore=false,peekStep=1;
+ try{const saved=localStorage.getItem(PEEK_KEY);if(saved)peekSettings=cleanPeek(JSON.parse(saved));}
+ catch(error){peekStoreOK=false;}
+ // Font scale has its own key so that V3/V4 preferences are not overwritten.
+ const FONT_SCALE_KEY='joaninha-chat-test-gpt-2-font-scale-v1';
+ const LIST_SPACING_KEY='joaninha-chat-test-gpt-2-list-spacing-v1';
+ const FONT_LEGACY_KEY='joaninha-chat-test-gpt-2-font-settings-v1';
+ const FONT_DEFAULT=Object.freeze({question:16.5,answer:17.2});
+ const cleanFontScale=value=>{
+  const n=Number(value);
+  return Number.isFinite(n)?Math.max(75,Math.min(150,Math.round(n))):109;
+ };
+ let fontScale=109,fontStoreOK=true,activeSettingsTab='peek';
+ const cleanListSpacing=value=>bounded(value,-6,24,0);
+ let listSpacing=0,listSpacingStoreOK=true;
+ try{
+  const storedSpacing=localStorage.getItem(LIST_SPACING_KEY);
+  if(storedSpacing!==null)listSpacing=cleanListSpacing(JSON.parse(storedSpacing)?.spacing);
+ }catch(error){listSpacingStoreOK=false;}
+ try{
+  const stored=localStorage.getItem(FONT_SCALE_KEY);
+  if(stored!==null)fontScale=cleanFontScale(JSON.parse(stored)?.scale);
+  else{
+   const legacy=localStorage.getItem(FONT_LEGACY_KEY);
+   if(legacy){
+    const old=JSON.parse(legacy);
+    const question=Number(old?.question),answer=Number(old?.answer);
+    const factors=[];
+    if(Number.isFinite(question))factors.push(question/FONT_DEFAULT.question);
+    if(Number.isFinite(answer))factors.push(answer/FONT_DEFAULT.answer);
+    if(factors.length)fontScale=cleanFontScale(
+     100*factors.reduce((sum,value)=>sum+value,0)/factors.length);
+   }
+  }
+ }catch(error){fontStoreOK=false;}
+ const fmtFont=value=>value.toFixed(1).replace('.',',')+' px';
+ function proportionalFonts(scale=fontScale){
+  const factor=scale/100;
+  return {question:Math.round(FONT_DEFAULT.question*factor*10)/10,
+   answer:Math.round(FONT_DEFAULT.answer*factor*10)/10};
+ }
+ function applyFonts(){
+  const fonts=proportionalFonts();
+  app.style.setProperty('--question-font',fonts.question+'px');
+  app.style.setProperty('--answer-font',fonts.answer+'px');
+  app.style.setProperty('--answer-number-extra',Math.max(0,Math.ceil((fonts.answer-17.2)*2.6))+'px');
+  // Keep the iOS-inspired SVG proportions in step with the response font scale.
+  app.style.setProperty('--answer-icon-main',(19*fontScale/109).toFixed(2)+'px');
+  app.style.setProperty('--answer-icon-vote',(17*fontScale/109).toFixed(2)+'px');
+  app.style.setProperty('--answer-icon-more',(20*fontScale/109).toFixed(2)+'px');
+  app.style.setProperty('--answer-icon-speak',(20*fontScale/109).toFixed(2)+'px');
+ }
+ function refreshFontControls(){
+  const fonts=proportionalFonts();
+  $('fontScaleLabel').textContent=fontScale+'%';
+  $('fontScaleDetails').textContent='Pergunta: '+fmtFont(fonts.question)+
+   ' · Resposta: '+fmtFont(fonts.answer);
+  $('fontScaleRange').value=String(fontScale);
+ }
+ function applyListSpacing(){
+  app.style.setProperty('--list-item-spacing',listSpacing+'px');
+ }
+ function refreshListSpacingControls(){
+  $('listSpacingLabel').textContent=listSpacing+' px';
+  $('listSpacingRange').value=String(listSpacing);
+ }
+ function persistListSpacing(){
+  try{localStorage.setItem(LIST_SPACING_KEY,JSON.stringify({spacing:listSpacing}));listSpacingStoreOK=true;}
+  catch(error){listSpacingStoreOK=false;}
+ }
+ function editListSpacing(value){
+  listSpacing=cleanListSpacing(value);
+  const beforeScroll=scroller.scrollTop;
+  applyListSpacing();persistListSpacing();refreshPeekPanel();
+  scroller.scrollTop=beforeScroll;refreshJump();
+  diag.event('list-spacing-adjust',{spacing:listSpacing});
+ }
+ function persistFonts(){
+  try{localStorage.setItem(FONT_SCALE_KEY,JSON.stringify({scale:fontScale}));fontStoreOK=true;}
+  catch(error){fontStoreOK=false;}
+ }
+ function editFontScale(value){
+  fontScale=cleanFontScale(value);
+  const beforeScroll=scroller.scrollTop;
+  applyFonts();persistFonts();refreshPeekPanel();
+  scroller.scrollTop=beforeScroll;refreshJump();
+  const fonts=proportionalFonts();
+  diag.event('font-adjust',{scale:fontScale,question:fonts.question,answer:fonts.answer});
+ }
+ function selectSettingsTab(value){
+  activeSettingsTab=value==='fonts'?'fonts':'peek';
+  const isPeek=activeSettingsTab==='peek';
+  $('peekTabPeek').hidden=!isPeek;
+  $('peekTabFonts').hidden=isPeek;
+  $('peekTabPeekButton').classList.toggle('selected',isPeek);
+  $('peekTabFontsButton').classList.toggle('selected',!isPeek);
+  $('peekTabPeekButton').setAttribute('aria-selected',String(isPeek));
+  $('peekTabFontsButton').setAttribute('aria-selected',String(!isPeek));
+  $('peekReset').textContent=isPeek?'Restaurar peek':'Restaurar ajustes';
+  if(peekPanelOpen){
+   clearSecretPeek();
+   if(isPeek){secretPeek.textContent='23';secretPeek.classList.add('visible');}
+  }
+  refreshPeekPanel();
+ }
+ function applyPeek(){
+  composer.style.setProperty('--peek-x',peekSettings.x+'px');
+  composer.style.setProperty('--peek-y',peekSettings.y+'px');
+  composer.style.setProperty('--peek-font',peekSettings.font+'px');
+  composer.style.setProperty('--peek-opacity',String(peekSettings.opacity/100));
+ }
+ function refreshPeekPanel(){
+  $('peekCoords').textContent='X '+peekSettings.x+' · Y '+peekSettings.y;
+  $('peekFontLabel').textContent=peekSettings.font+' px';
+  $('peekOpacityLabel').textContent=peekSettings.opacity+'%';
+  $('peekFont').value=String(peekSettings.font);
+  $('peekOpacity').value=String(peekSettings.opacity);
+  $('peekStepLabel').textContent=peekStep+' px';
+  $('peekStep').textContent='Passo de '+peekStep+' px';
+  refreshFontControls();
+  refreshListSpacingControls();
+  $('peekStorageStatus').textContent=peekStoreOK&&fontStoreOK&&listSpacingStoreOK?'Salvo automaticamente neste aparelho':'Falha ao salvar no navegador';
+ }
+ function persistPeek(){
+  try{localStorage.setItem(PEEK_KEY,JSON.stringify(peekSettings));peekStoreOK=true;}
+  catch(error){peekStoreOK=false;}
+ }
+ function editPeek(delta){
+  peekSettings=cleanPeek({...peekSettings,...delta});
+  applyPeek();persistPeek();refreshPeekPanel();
+  diag.event('peek-adjust',{x:peekSettings.x,y:peekSettings.y,font:peekSettings.font,opacity:peekSettings.opacity});
+ }
+ function openPeekPanel(){
+  if(peekPanelOpen)return;
+  peekPanelOpen=true;
+  peekKeyboardBefore=keyboard;
+  peekVisibleBefore=secretPeek.classList.contains('visible');
+  setKeyboard(false,'peek-panel');
+  clearSecretPeek();
+  app.classList.add('peek-panel-on');
+  $('peekPanel').setAttribute('aria-hidden','false');
+  selectSettingsTab(scene==='home'?'peek':'fonts');
+  diag.event('peek-panel-open');
+ }
+ function closePeekPanel(){
+  if(!peekPanelOpen)return;
+  peekPanelOpen=false;
+  app.classList.remove('peek-panel-on');
+  $('peekPanel').setAttribute('aria-hidden','true');
+  clearSecretPeek();
+  if(peekVisibleBefore&&secretMode&&secretDigits.length)showSecretPeek();
+  if(peekKeyboardBefore)setKeyboard(true,'peek-panel-close');
+  diag.event('peek-panel-close');
+ }
+ applyPeek();
+ applyFonts();
+ applyListSpacing();
+ $('peekTabPeekButton').addEventListener('click',()=>selectSettingsTab('peek'));
+ $('peekTabFontsButton').addEventListener('click',()=>selectSettingsTab('fonts'));
+ $('peekClose').addEventListener('click',closePeekPanel);
+ $('peekShade').addEventListener('click',closePeekPanel);
+ $('peekSave').addEventListener('click',()=>{persistPeek();persistFonts();persistListSpacing();refreshPeekPanel();closePeekPanel();});
+ $('peekReset').addEventListener('click',()=>{
+  if(activeSettingsTab==='peek')editPeek({...PEEK_DEFAULT});
+  else{editFontScale(109);editListSpacing(0);}
+ });
+ $('peekStep').addEventListener('click',()=>{peekStep=peekStep===1?5:1;refreshPeekPanel();});
+ $('peekPanel').addEventListener('click',e=>{
+  const button=e.target.closest('button');
+  if(!button)return;
+  const x=button.getAttribute('data-peek-x'),y=button.getAttribute('data-peek-y');
+  const font=button.getAttribute('data-peek-font'),opacity=button.getAttribute('data-peek-opacity');
+  const scaleDelta=button.getAttribute('data-font-scale-delta');
+  const spacingDelta=button.getAttribute('data-list-spacing-delta');
+  if(scaleDelta!==null){editFontScale(fontScale+Number(scaleDelta));return;}
+  if(spacingDelta!==null){editListSpacing(listSpacing+Number(spacingDelta));return;}
+  if(x!==null)editPeek({x:peekSettings.x+Number(x)*peekStep});
+  else if(y!==null)editPeek({y:peekSettings.y+Number(y)*peekStep});
+  else if(font!==null)editPeek({font:peekSettings.font+Number(font)});
+  else if(opacity!==null)editPeek({opacity:peekSettings.opacity+Number(opacity)});
+ });
+ $('peekFont').addEventListener('input',e=>editPeek({font:Number(e.target.value)}));
+ $('peekOpacity').addEventListener('input',e=>editPeek({opacity:Number(e.target.value)}));
+ $('fontScaleRange').addEventListener('input',e=>editFontScale(Number(e.target.value)));
+ $('listSpacingRange').addEventListener('input',e=>editListSpacing(Number(e.target.value)));
+
+ function secretDigit(key){
+  const letter=key.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  return SECRET_KEY_VALUES[letter]??0;
+ }
+ // Keep the iPhone's autocorrection, predictions and spellchecking enabled.
+ // Only a deliberate edit/deletion of the two visible prefix characters may
+ // change the two hidden digits. A suggestion or replacement cannot do so.
+ let lastNativeEdit=null;
+ const isNativeCorrection=type=>type==='insertReplacementText'||
+  type==='insertFromSpellCheck'||type==='insertFromSuggestion';
+ nativeInput.addEventListener('beforeinput',e=>{
+  lastNativeEdit={type:e.inputType||'',data:e.data,
+   start:nativeInput.selectionStart,end:nativeInput.selectionEnd};
+  // When just one code letter has been entered, do not let a suggestion
+  // supply the second secret key. Only an actual typed letter may do so.
+  if(secretMode&&secretDigits.length<2&&isNativeCorrection(e.inputType)){
+   if(e.cancelable)e.preventDefault();
+  }
+ });
+ // The first two real keystrokes become Li, while their 0-9 digits remain
+ // separate from the text that the iPhone is allowed to autocorrect.
+ nativeInput.addEventListener('input',e=>{
+  const incoming=nativeInput.value,old=draft;
+  const inputCaret=nativeInput.selectionStart;
+  const edit=lastNativeEdit;
+  lastNativeEdit=null;
+  const type=e.inputType||edit?.type||'';
+  if(!secretMode){
+   draft=incoming;caretPos=inputCaret;updateComposer();return;
+  }
+  const replacementEvent=isNativeCorrection(type)||
+   isNativeCorrection(edit?.type);
+  const suggestionReplacingWord=secretDigits.length===2&&edit&&
+   edit.start<2&&edit.end>edit.start&&
+   type==='insertText'&&typeof edit.data==='string'&&edit.data.length>1;
+  if(secretDigits.length<2&&replacementEvent){
+   // No prediction/autocorrection may invent or overwrite a code digit.
+   nativeInput.value=old;caretPos=Math.min(caretPos,old.length);
+   updateComposer();return;
+  }
+  if(secretDigits.length===2&&(replacementEvent||suggestionReplacingWord)){
+   // iOS may replace the entire first word, including the visible Li.
+   // Restore Li if needed, but NEVER recalculate the recorded digits.
+   // For the common Liate -> Liste change, no DOM rewrite is necessary.
+   if(incoming.length<2){
+    nativeInput.value=old;caretPos=Math.min(caretPos,old.length);
+   }else{
+    draft=incoming.startsWith('Li')?incoming:'Li'+incoming.slice(2);
+    caretPos=Math.max(0,Math.min(draft.length,inputCaret));
+   }
+   updateComposer();return;
+  }
+  let head=0;
+  while(head<old.length&&head<incoming.length&&old[head]===incoming[head])head++;
+  let tail=0;
+  while(tail<old.length-head&&tail<incoming.length-head&&
+        old[old.length-1-tail]===incoming[incoming.length-1-tail])tail++;
+  const removed=old.slice(head,old.length-tail);
+  const inserted=incoming.slice(head,incoming.length-tail);
+  const former=secretDigits.join(',');
+  const updated=secretDigits.slice();
+  if(head<2)updated.splice(head,Math.min(removed.length,2-head));
+  let replacement='',position=head;
+  for(const ch of Array.from(inserted)){
+   if(position<2){
+    if(!/^\p{L}$/u.test(ch))continue;
+    updated.splice(position,0,secretDigit(ch));
+    replacement+=position===0?'L':'i';
+    position++;
+   }else if(updated.length>=2){
+    replacement+=ch;position+=ch.length;
+   }
+  }
+  secretDigits=updated.slice(0,2);
+  draft=old.slice(0,head)+replacement+old.slice(old.length-tail);
+  caretPos=Math.max(0,Math.min(draft.length,head+replacement.length+
+   (inputCaret-(head+inserted.length))));
+  if(secretDigits.join(',')!==former){
+   if(secretDigits.length===2)rememberLastSecretPeek(
+    secretDigits[0]===0&&secretDigits[1]===0?'100':secretDigits.join(''));
+   if(secretDigits.length)showSecretPeek();else clearSecretPeek();
+   diag.event('secret-code-progress',{count:secretDigits.length,source:'native'});
+  }
+  updateComposer();
+ });
+ nativeInput.addEventListener('focus',()=>{
+  // Focus without a user gesture may not summon the iOS software keyboard.
+  // Wait for visualViewport confirmation during the startup experiment.
+  if(probingStartupKeyboard)return;
+  if(!keyboard)setKeyboard(true,'native-focus');
+ });
+ nativeInput.addEventListener('blur',()=>{
+  // Let a same-gesture composer click restore focus before closing UI.
+  // A held quick peek must never request a keyboard dismissal.
+  requestAnimationFrame(()=>{
+   if(quickPeekPointer!==null||app.classList.contains('dictation-active'))return;
+   if(keyboard&&document.activeElement!==nativeInput){
+    setKeyboard(false,'native-blur');
+   }
+  });
+ });
+ nativeInput.addEventListener('select',()=>{
+  if(document.activeElement!==nativeInput||nativeInput.value!==draft)return;
+  const position=nativeInput.selectionStart;
+  if(position!==caretPos){caretPos=position;updateComposer();}
+ });
+ function forcedSecretPosition(){
+  if(secretDigits.length!==2)return null;
+  return (secretDigits[0]*10+secretDigits[1])||100;
+ }
+ function clearSecretPeek(){
+  if(secretPeekTimer!==null){clearTimeout(secretPeekTimer);secretPeekTimer=null;}
+  secretPeek.classList.remove('visible','peek-three-digits');secretPeek.textContent='';
+ }
+ function showSecretPeek(){
+  clearSecretPeek();
+  if(!secretDigits.length)return;
+  // Show the first secret digit immediately, including 0. Preserve leading
+  // zeroes for corrections, while 00 still means position 100.
+  const displayed=secretDigits.length===2&&secretDigits[0]===0&&secretDigits[1]===0?
+   '100':secretDigits.join('');
+  secretPeek.textContent=displayed;
+  secretPeek.classList.toggle('peek-three-digits',displayed==='100');
+  secretPeek.classList.add('visible');
+  if(quickPeekPointer!==null)return;
+  diag.event('secret-peek-show',{durationMs:5000,digitCount:secretDigits.length});
+  secretPeekTimer=setTimeout(()=>{
+   secretPeek.classList.remove('visible');secretPeek.textContent='';
+   secretPeekTimer=null;diag.event('secret-peek-hide');
+  },5000);
+ }
+ function setSecretMode(enabled){
+  if(enabled&&draft.length)return false;
+  secretMode=!!enabled;secretDigits=[];clearSecretPeek();
+  updateComposer();diag.event(secretMode?'secret-armed':'secret-disarmed');
+  return true;
+ }
+ function activateSecretHotspot(){
+  if(draft)return;
+  setSecretMode(true);
+  setKeyboard(true,'secret-hotspot');
+ }
+ const secretHotspot=$('secretHotspot');
+ let lastHotspotDown=-Infinity;
+ secretHotspot.addEventListener('pointerdown',e=>{
+  if(e.pointerType!=='touch'&&e.pointerType!=='pen')return;
+  e.preventDefault();e.stopPropagation();
+  lastHotspotDown=performance.now();
+  activateSecretHotspot();
+ });
+ secretHotspot.addEventListener('click',e=>{
+  e.preventDefault();e.stopPropagation();
+  if(performance.now()-lastHotspotDown<750)return;
+  activateSecretHotspot();
+ });
+ function setTemporaryChat(active){
+  const next=Boolean(active);
+  if(temporaryChat===next)return;
+  temporaryChat=next;
+  app.classList.toggle('temporary-chat',temporaryChat);
+  $('top-home-right').setAttribute('aria-label',temporaryChat?'Desativar chat temporário':'Ativar chat temporário');
+  $('top-home-right').setAttribute('aria-pressed',String(temporaryChat));
+  setSecretMode(false);
+  draft='';caretPos=0;
+  updateComposer();
+  diag.event('temporary-chat-toggle',{active:temporaryChat});
+ }
+ function showScene(next,options){
+  if(!['home','thinking','list','end'].includes(next))return;
+  if(next==='home')cancelReply();
+  if(next==='home'&&temporaryChat)setTemporaryChat(false);
+  diag.event('scene-change',{from:scene,to:next});
+  stopAuto();scene=next;
+  app.classList.remove('scene-home','scene-thinking','scene-list','scene-end');
+  app.classList.add('scene-'+next);
+  // State transitions must never dismiss an already-open mock keyboard
+  if(next==='home'){
+   resetAnswerInteractions();
+   historyHost.replaceChildren();
+   $('answerIntro').textContent='';$('list').replaceChildren();
+   draft='';caretPos=0;capsLocked=false;shiftNext=true;setSecretMode(false);refreshLetterLabels();
+  }
+  updateComposer();
+  requestAnimationFrame(()=>{
+   // Bring only the newly sent message into view, never jump at completion
+   if(next==='home')scroller.scrollTop=0;
+   else if(next==='thinking')focusActiveTurn();
+   refreshJump();
+  });
+  if(options&&options.closeDrawer)setDrawer(false);
+  if(next==='home')setKeyboard(true,'new-chat');
+ }
+ function sendDraft(){
+  if(scene==='thinking'||scene==='list'){cancelReply();showScene('end');return;}
+  if(generating||(secretMode&&secretDigits.length!==2))return;
+  if(!draft.trim()){setKeyboard(true);return;}
+  const message=draft.trim();
+  const position=secretMode?forcedSecretPosition():null;
+  // A normal message must NEVER wipe the most recent secret peek.
+  if(position!==null)rememberLastSecretPeek(
+   secretDigits[0]===0&&secretDigits[1]===0?'100':secretDigits.join(''));
+  startReply(message,position);
+ }
+ // Appearance settings are independent of the keyboard and magic state.
+ const THEME_STORAGE_KEY='joaninha-appearance-v1';
+ const themePicker=$('themePicker'),themeButton=$('top-menu');
+ const systemTheme=window.matchMedia('(prefers-color-scheme: light)');
+ let themeChoice=document.documentElement.getAttribute('data-theme-choice')||'dark';
+ let themeHoldTimer=null,themeHoldPoint=null;
+ function applyTheme(){
+  const isLight=themeChoice==='light'||(themeChoice==='system'&&systemTheme.matches);
+  document.documentElement.setAttribute('data-theme',isLight?'light':'dark');
+  document.documentElement.setAttribute('data-theme-choice',themeChoice);
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content',isLight?'#ffffff':'#000000');
+  document.querySelector('meta[name="apple-mobile-web-app-status-bar-style"]')
+   ?.setAttribute('content',isLight?'default':'black-translucent');
+  themePicker.querySelectorAll('[data-theme-option]').forEach(button=>{
+   button.setAttribute('aria-checked',String(button.dataset.themeOption===themeChoice));
+  });
+ }
+ function hideThemePicker(){themePicker.hidden=true;}
+ function setThemeChoice(next){
+  if(!['dark','light','system'].includes(next))return;
+  themeChoice=next;
+  try{localStorage.setItem(THEME_STORAGE_KEY,next);}catch(error){}
+  applyTheme();hideThemePicker();
+  diag.event('appearance-changed',{appearance:next});
+ }
+ function showThemePicker(){
+  setDrawer(false);
+  applyTheme();
+  themePicker.hidden=false;
+  diag.event('appearance-chooser-open');
+ }
+ if(systemTheme.addEventListener)systemTheme.addEventListener('change',()=>{
+  if(themeChoice==='system')applyTheme();
+ });
+ else if(systemTheme.addListener)systemTheme.addListener(()=>{
+  if(themeChoice==='system')applyTheme();
+ });
+ themePicker.addEventListener('click',e=>{
+  const button=e.target.closest('[data-theme-option]');
+  if(!button)return;
+  e.preventDefault();e.stopPropagation();
+  setThemeChoice(button.dataset.themeOption);
+ });
+ document.addEventListener('pointerdown',e=>{
+  if(!themePicker.hidden&&!themePicker.contains(e.target)&&!themeButton.contains(e.target))
+   hideThemePicker();
+ });
+ window.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&!themePicker.hidden)hideThemePicker();
+ });
+ function cancelThemeHold(){
+  clearTimeout(longTimer);longTimer=null;
+  clearTimeout(themeHoldTimer);themeHoldTimer=null;themeHoldPoint=null;
+ }
+ themeButton.addEventListener('pointerdown',e=>{
+  if(!e.isPrimary||(e.pointerType==='mouse'&&e.button!==0))return;
+  cancelThemeHold();wasLong=false;
+  themeHoldPoint={id:e.pointerId,x:e.clientX,y:e.clientY};
+  longTimer=setTimeout(()=>{wasLong=true;},670);
+  themeHoldTimer=setTimeout(()=>{
+   themeHoldTimer=null;
+   if(!themeHoldPoint)return;
+   themeHoldPoint=null;wasLong=true;
+   showThemePicker();
+  },3000);
+ });
+ themeButton.addEventListener('pointermove',e=>{
+  if(!themeHoldPoint||themeHoldPoint.id!==e.pointerId)return;
+  if(Math.hypot(e.clientX-themeHoldPoint.x,e.clientY-themeHoldPoint.y)>14){
+   cancelThemeHold();wasLong=true;
+  }
+ });
+ for(const ev of ['pointerup','pointercancel','pointerleave'])
+  themeButton.addEventListener(ev,cancelThemeHold);
+ themeButton.addEventListener('contextmenu',e=>{e.preventDefault();wasLong=true;});
+ themeButton.addEventListener('click',e=>{
+  if(wasLong){wasLong=false;e.preventDefault();return;}
+  if(!themePicker.hidden){hideThemePicker();return;}
+  setDrawer(!drawer);
+ });
+ applyTheme();
+
+ const tempChatButton=$('top-home-right');
+ let peekHoldTimer=null,peekHoldPoint=null,peekHoldOpenedAt=-Infinity;
+ function cancelPeekHold(){clearTimeout(peekHoldTimer);peekHoldTimer=null;peekHoldPoint=null;}
+ tempChatButton.addEventListener('pointerdown',e=>{
+  if(!e.isPrimary||e.button!==0)return;
+  cancelPeekHold();
+  peekHoldPoint={id:e.pointerId,x:e.clientX,y:e.clientY};
+  peekHoldTimer=setTimeout(()=>{
+   peekHoldTimer=null;
+   if(!peekHoldPoint)return;
+   peekHoldPoint=null;
+   peekHoldOpenedAt=performance.now();
+   openPeekPanel();
+  },3000);
+ });
+ tempChatButton.addEventListener('pointermove',e=>{
+  if(peekHoldPoint&&peekHoldPoint.id===e.pointerId&&Math.hypot(e.clientX-peekHoldPoint.x,e.clientY-peekHoldPoint.y)>14)cancelPeekHold();
+ });
+ for(const ev of ['pointerup','pointercancel','pointerleave'])tempChatButton.addEventListener(ev,cancelPeekHold);
+ tempChatButton.addEventListener('contextmenu',e=>e.preventDefault());
+ // Hold new-chat for 3 seconds during a conversation to adjust visible fonts
+ const threadNewChat=$('newChat');
+ let threadHoldTimer=null,threadHoldPoint=null,threadHoldOpenedAt=-Infinity;
+ function cancelThreadHold(){clearTimeout(threadHoldTimer);threadHoldTimer=null;threadHoldPoint=null;}
+ threadNewChat.addEventListener('pointerdown',e=>{
+  if(!e.isPrimary||e.button!==0)return;
+  cancelThreadHold();
+  threadHoldPoint={id:e.pointerId,x:e.clientX,y:e.clientY};
+  threadHoldTimer=setTimeout(()=>{
+   threadHoldTimer=null;
+   if(!threadHoldPoint)return;
+   threadHoldPoint=null;
+   threadHoldOpenedAt=performance.now();
+   openPeekPanel();
+  },3000);
+ });
+ threadNewChat.addEventListener('pointermove',e=>{
+  if(threadHoldPoint&&threadHoldPoint.id===e.pointerId&&
+     Math.hypot(e.clientX-threadHoldPoint.x,e.clientY-threadHoldPoint.y)>14)cancelThreadHold();
+ });
+ for(const ev of ['pointerup','pointercancel','pointerleave'])threadNewChat.addEventListener(ev,cancelThreadHold);
+ threadNewChat.addEventListener('contextmenu',e=>e.preventDefault());
+
+ tempChatButton.addEventListener('click',e=>{
+  if(peekPanelOpen||performance.now()-peekHoldOpenedAt<900){e.preventDefault();return;}
+  if(scene!=='home')return;
+  setTemporaryChat(!temporaryChat);
+  setKeyboard(true,'temporary-chat-toggle');
+ });
+ // Three fixed columns, one continuous gesture: hold 1s, slide and release.
+ const workTab=$('tabWork'),workPicker=$('workForcePicker');
+ const workMusicChoices=$('workMusicChoices'),workCelebChoices=$('workCelebChoices'),workAnimalChoices=$('workAnimalChoices');
+ const WORK_COLUMNS=[['musicas',workMusicChoices],['celebridades',workCelebChoices],['animais',workAnimalChoices]];
+ let workGesture=null,workTimer=null,workHoldOpenedAt=-Infinity;
+ let cachedWorkChoices=null,workChoiceRequest=null,workFetchError=false;
+ function fetchWorkChoices(){
+  if(cachedWorkChoices)return Promise.resolve(cachedWorkChoices);
+  if(!workChoiceRequest){
+   workFetchError=false;
+   workChoiceRequest=Promise.all([
+    fetchListFile('musicas'),fetchListFile('celebridades'),fetchListFile('animais')
+   ]).then(([musics,celebs,animals])=>{
+    if(musics.length<10||celebs.length<10||animals.length<12)throw Error('listas indisponiveis');
+    if(animals.slice(0,10).some(name=>name==='Formiga 🐜'||name==='Elefante 🐘'))
+     throw Error('acompanhantes nao podem ser force');
+    cachedWorkChoices={
+     musicas:musics.slice(0,10),
+     celebridades:celebs.slice(0,10),
+     animais:animals.slice(0,10)
+    };
+    return cachedWorkChoices;
+   }).catch(error=>{workFetchError=true;throw error;})
+    .finally(()=>{workChoiceRequest=null;});
+  }
+  return workChoiceRequest;
+ }
+ function workChoiceDisplayName(category,name){
+  if(category!=='musicas')return name;
+  const separator=name.indexOf(' - ');
+  const title=(separator<0?name:name.slice(separator+3)).trim();
+  return title.replace(/^["“”]|["“”]$/g,'');
+ }
+ function highlightWorkChoices(){
+  for(const [category,node] of WORK_COLUMNS){
+   const saved=category==='musicas'?selectedMusicName:
+    category==='celebridades'?selectedCelebrityName:selectedAnimalName;
+   const names=cachedWorkChoices?.[category];
+   for(const row of node.children){
+    const index=Number(row.dataset.choice);
+    row.classList.toggle('saved',names?.[index]===(saved??names?.[0]));
+    row.classList.toggle('highlighted',
+     workGesture?.hover?.category===category&&workGesture.hover.index===index);
+   }
+  }
+ }
+ function showWorkChoices(){
+  if(!workGesture?.opened)return;
+  for(const [category,node] of WORK_COLUMNS){
+   node.replaceChildren();
+   if(!cachedWorkChoices){
+    const loading=document.createElement('div');loading.className='work-force-loading';
+    loading.textContent=workFetchError?'Lista indisponível':'Carregando...';
+    node.appendChild(loading);
+    continue;
+   }
+   cachedWorkChoices[category].forEach((name,index)=>{
+    const row=document.createElement('div');
+    row.className='work-force-choice';
+    if(category==='musicas')row.classList.add('music-choice');
+    row.dataset.choice=String(index);
+    const label=document.createElement('span');
+    label.className='work-force-label';
+    label.textContent=workChoiceDisplayName(category,name);
+    row.appendChild(label);
+    node.appendChild(row);
+   });
+  }
+  if(cachedWorkChoices)highlightWorkChoices();
+ }
+ function highlightWorkAt(x,y){
+  if(!workGesture?.opened||!cachedWorkChoices)return;
+  for(const [category,node] of WORK_COLUMNS){
+   const bounds=node.getBoundingClientRect();
+   if(x<bounds.left||x>bounds.right)continue;
+   for(const row of node.children){
+    const rect=row.getBoundingClientRect();
+    if(y>=rect.top&&y<rect.bottom){
+     workGesture.hover={category,index:Number(row.dataset.choice)};
+     highlightWorkChoices();
+     return;
+    }
+   }
+  }
+ }
+ function closeWorkPicker(){
+  workPicker.classList.remove('visible');
+  workPicker.setAttribute('aria-hidden','true');
+  clearTimeout(workTimer);workTimer=null;workGesture=null;
+ }
+ function saveWorkForce(category,index){
+  const names=cachedWorkChoices?.[category];
+  if(!names||!Number.isInteger(index)||index<0||index>=10)return;
+  const choice=names[index];
+  let changed=false,key=null;
+  if(category==='musicas'){
+   changed=choice!==selectedMusicName;
+   selectedMusicName=choice;key=MUSIC_FORCE_KEY;
+  }else if(category==='celebridades'){
+   changed=choice!==selectedCelebrityName;
+   selectedCelebrityName=choice;key=CELEBRITY_FORCE_KEY;
+  }else if(category==='animais'){
+   changed=choice!==selectedAnimalName;
+   selectedAnimalName=choice;key=ANIMAL_FORCE_KEY;
+  }else return;
+  try{localStorage.setItem(key,choice);}catch(error){}
+  if(changed){
+   delete lastReservedPositions[category];
+   try{localStorage.setItem(LAST_RESERVED_POSITIONS_KEY,
+    JSON.stringify(lastReservedPositions));}catch(error){}
+  }
+  diag.event('force-selected',{category,choice:index+1});
+ }
+ workTab.addEventListener('pointerdown',e=>{
+  if(!e.isPrimary||e.button!==0||scene!=='home'||temporaryChat||drawer)return;
+  closeWorkPicker();
+  const gesture={id:e.pointerId,x:e.clientX,y:e.clientY,opened:false,hover:null};
+  workGesture=gesture;
+  try{workTab.setPointerCapture(e.pointerId);}catch(error){}
+  fetchWorkChoices().then(()=>{
+   if(workGesture===gesture&&gesture.opened)showWorkChoices();
+  }).catch(()=>{
+   if(workGesture===gesture&&gesture.opened)showWorkChoices();
+  });
+  workTimer=setTimeout(()=>{
+   workTimer=null;
+   if(workGesture!==gesture||scene!=='home')return;
+   gesture.opened=true;workHoldOpenedAt=performance.now();
+   workPicker.classList.add('visible');
+   workPicker.setAttribute('aria-hidden','false');
+   showWorkChoices();
+  },1000);
+ });
+ workTab.addEventListener('pointermove',e=>{
+  if(!workGesture||workGesture.id!==e.pointerId)return;
+  if(!workGesture.opened){
+   if(Math.hypot(e.clientX-workGesture.x,e.clientY-workGesture.y)>16)
+    closeWorkPicker();
+   return;
+  }
+  e.preventDefault();
+  highlightWorkAt(e.clientX,e.clientY);
+ });
+ workTab.addEventListener('pointerup',e=>{
+  if(!workGesture||workGesture.id!==e.pointerId)return;
+  const gesture=workGesture;
+  if(gesture.opened){
+   e.preventDefault();e.stopPropagation();
+   highlightWorkAt(e.clientX,e.clientY);
+   if(gesture.hover)saveWorkForce(gesture.hover.category,gesture.hover.index);
+   workHoldOpenedAt=performance.now();
+  }
+  closeWorkPicker();
+ });
+ workTab.addEventListener('pointercancel',closeWorkPicker);
+ workTab.addEventListener('contextmenu',e=>e.preventDefault());
+ workTab.addEventListener('click',e=>{
+  if(performance.now()-workHoldOpenedAt<1000){e.preventDefault();return;}
+  $('tabChat').classList.remove('active');workTab.classList.add('active');
+ });
+ $('tabChat').addEventListener('click',()=>{ $('tabWork').classList.remove('active');$('tabChat').classList.add('active');});
+ // Keep the original native keyboard active when using top navigation.
+ // If iOS blurs the input during a header tap, this click is a valid user
+ // gesture in which to restore focus. Do not interfere with Peek settings.
+ let keyboardBeforeHeaderTap=false;
+ $('header').addEventListener('pointerdown',()=>{
+  keyboardBeforeHeaderTap=keyboard;
+ },true);
+ $('header').addEventListener('click',()=>{
+  const wasOpen=keyboardBeforeHeaderTap;
+  keyboardBeforeHeaderTap=false;
+  // The menu intentionally closes the keyboard; never reopen it while
+  // the sidebar is showing, even though this header tap began focused.
+  if(wasOpen&&!drawer&&!peekPanelOpen&&!app.classList.contains('jd-open'))
+   setKeyboard(true,'header-navigation');
+ });
+ $('header').addEventListener('pointercancel',()=>{
+  keyboardBeforeHeaderTap=false;
+ });
+ $('newChat').addEventListener('click',e=>{
+  if(peekPanelOpen||performance.now()-threadHoldOpenedAt<900){e.preventDefault();return;}
+  showScene('home');
+ });
+ // Previously opened demonstration UI; intentionally inert now.
+ $('more').addEventListener('click',()=>{});
+ $('searchChats').addEventListener('click',()=>{});
+ $('drawerNew').addEventListener('click',()=>showScene('home',{closeDrawer:true}));
+ $('recentAnimals').addEventListener('click',()=>{
+  if(latestTestVersion!==null&&latestTestVersion>GPT_TEST_VERSION){applyAvailableTestUpdate();return;}
+  if(restoreLatestConversation())return;
+  startReply('Liste 100 animais',null,{closeDrawer:true});
+ });
+ // A prompt tap has a single meaning, independent of keyboard visibility.
+ // Classify before the native input receives focus and moves the composer.
+ // This must work for both standard and temporary chats.
+ let fieldGesture=null,swallowFieldClick=false,promptPointerIntent=null;
+ // One shared left/right boundary for both rows of the composer.
+ function classifyPromptSide(x){
+  const textRect=placeholder.getBoundingClientRect();
+  const fieldRect=field.getBoundingClientRect();
+  // Keep a 27px activation zone when the placeholder is truncated.
+  const activationLeft=Math.min(textRect.right+6,fieldRect.right-27);
+  return x>activationLeft&&x<fieldRect.right-4?'secret':'normal';
+ }
+ function classifyPromptTouch(x,y){
+  if(draft)return null;
+  const fieldRect=field.getBoundingClientRect();
+  if(x<fieldRect.left||x>=fieldRect.right||y<fieldRect.top||y>fieldRect.bottom)return null;
+  return classifyPromptSide(x);
+ }
+ function applyPromptTouch(intent,reason){
+  if(!draft&&intent)setSecretMode(intent==='secret');
+  setKeyboard(true,reason);
+ }
+ field.addEventListener('pointerdown',e=>{
+  if(!e.isPrimary||(e.pointerType==='mouse'&&e.button!==0))return;
+  const intent=classifyPromptTouch(e.clientX,e.clientY);
+  promptPointerIntent=intent?{intent,id:e.pointerId,at:performance.now(),handled:false}:null;
+  // Important: do not focus or move the composer during pointerdown.
+  // iOS may refuse the software keyboard and leave its visual space reserved.
+  if(!keyboard)return;
+  fieldGesture={id:e.pointerId,x:e.clientX,y:e.clientY};
+  diag.event('prompt-swipe-start');
+ });
+ field.addEventListener('pointerup',e=>{
+  const touch=promptPointerIntent&&promptPointerIntent.id===e.pointerId?
+   promptPointerIntent:null;
+  if(fieldGesture&&e.pointerId===fieldGesture.id){
+   const dx=e.clientX-fieldGesture.x,dy=e.clientY-fieldGesture.y;
+   fieldGesture=null;
+   if(dy>=58&&Math.abs(dx)<=Math.max(45,dy*.55)){
+    swallowFieldClick=true;promptPointerIntent=null;
+    diag.event('prompt-swipe-down',{distance:Math.round(dy)});
+    setKeyboard(false,'prompt-swipe-down');
+    e.preventDefault();
+    setTimeout(()=>{swallowFieldClick=false;},340);
+    return;
+   }
+   diag.event('prompt-touch-without-dismiss');
+  }
+  // Apply the ORIGINAL region only after the finger lifts.
+  // A possible focus/layout shift cannot turn a secret tap into a normal one.
+  if(touch&&!touch.handled){
+   if(!draft)setSecretMode(touch.intent==='secret');
+   touch.handled=true;
+  }
+ });
+ field.addEventListener('pointercancel',()=>{fieldGesture=null;promptPointerIntent=null;diag.event('prompt-gesture-cancel');});
+ $('text-field').addEventListener('click',e=>{
+  if(swallowFieldClick){swallowFieldClick=false;promptPointerIntent=null;return;}
+  const cached=promptPointerIntent&&performance.now()-promptPointerIntent.at<850?
+   promptPointerIntent:null;
+  promptPointerIntent=null;
+  if(cached){
+   if(!cached.handled&&!draft)setSecretMode(cached.intent==='secret');
+   // Focus in click, a supported user gesture, never in pointerdown.
+   setKeyboard(true,'prompt-click');
+  }else{
+   const intent=classifyPromptTouch(e.clientX,e.clientY);
+   if(intent)applyPromptTouch(intent,'prompt-click-fallback');
+   else setKeyboard(true,'prompt-click');
+  }
+ });
+ $('text-field').addEventListener('keydown',e=>{if(e.target===field&&(e.key==='Enter'||e.key===' ')){e.preventDefault();setKeyboard(true,'prompt-accessibility');}});
+ // The empty LOWER composer row uses the very same left/right
+ // classifier as the upper field, plus its downward swipe-to-dismiss.
+ // A mode is chosen only on release, never at the start of a swipe.
+ // Only the blank space between + and the meter is touch-sensitive.
+ const lowerModeMeter=$('typingMeter');
+ function classifyLowerPromptTouch(x,y,target){
+  if(!keyboard||draft||target!==composer)return null;
+  const addRect=$('add').getBoundingClientRect();
+  const meterRect=lowerModeMeter.getBoundingClientRect();
+  if(y<addRect.top||y>addRect.bottom||
+     x<=addRect.right+6||x>=meterRect.left-6)return null;
+  return classifyPromptSide(x);
+ }
+ let lowerPointerGesture=null,lowerTouchGesture=null;
+ function finishLowerPromptGesture(gesture,x,y){
+  if(!gesture||!keyboard)return;
+  const dx=x-gesture.x,dy=y-gesture.y;
+  // Match the upper field's distance and direction for swipe dismissal.
+  if(dy>=58&&Math.abs(dx)<=Math.max(45,dy*.55)){
+   diag.event('lower-prompt-swipe-down',{distance:Math.round(dy)});
+   setKeyboard(false,'prompt-swipe-down');
+   return;
+  }
+  // A drag, long hold or sideways movement is not a selection.
+  if(Math.hypot(dx,dy)>12||performance.now()-gesture.time>650)return;
+  if(draft)return;
+  setSecretMode(gesture.intent==='secret');
+  if(document.activeElement!==nativeInput)nativeInput.focus({preventScroll:true});
+  diag.event('lower-prompt-mode',{mode:gesture.intent});
+ }
+ composer.addEventListener('pointerdown',e=>{
+  if(!e.isPrimary||(e.pointerType==='mouse'&&e.button!==0))return;
+  const intent=classifyLowerPromptTouch(e.clientX,e.clientY,e.target);
+  if(!intent)return;
+  lowerPointerGesture={id:e.pointerId,x:e.clientX,y:e.clientY,
+   intent,time:performance.now()};
+  // Keep the native textarea focused and retain the pointer for swipe end.
+  e.preventDefault();
+  try{composer.setPointerCapture(e.pointerId);}catch(error){}
+ });
+ composer.addEventListener('pointerup',e=>{
+  if(!lowerPointerGesture||lowerPointerGesture.id!==e.pointerId)return;
+  const gesture=lowerPointerGesture;
+  lowerPointerGesture=null;
+  // touchend may also arrive after pointerup; handle this touch just once.
+  if(lowerTouchGesture)lowerTouchGesture.handled=true;
+  finishLowerPromptGesture(gesture,e.clientX,e.clientY);
+ });
+ composer.addEventListener('pointercancel',()=>{lowerPointerGesture=null;});
+ composer.addEventListener('touchstart',e=>{
+  lowerTouchGesture=null;
+  if(e.touches.length!==1||e.changedTouches.length!==1)return;
+  const touch=e.changedTouches[0];
+  const intent=classifyLowerPromptTouch(touch.clientX,touch.clientY,e.target);
+  if(!intent)return;
+  lowerTouchGesture={id:touch.identifier,x:touch.clientX,y:touch.clientY,
+   intent,time:performance.now(),handled:false};
+  // Prevent a blank-row drag from stealing focus or scrolling the composer.
+  if(e.cancelable)e.preventDefault();
+ },{passive:false});
+ composer.addEventListener('touchend',e=>{
+  const gesture=lowerTouchGesture;
+  if(!gesture)return;
+  const touch=Array.from(e.changedTouches).find(t=>t.identifier===gesture.id);
+  if(!touch)return;
+  lowerTouchGesture=null;
+  if(gesture.handled)return;
+  lowerPointerGesture=null;
+  finishLowerPromptGesture(gesture,touch.clientX,touch.clientY);
+ });
+ composer.addEventListener('touchcancel',()=>{
+  lowerTouchGesture=null;lowerPointerGesture=null;
+ });
+ // Holding + for three seconds opens diagnostics, normal taps only open
+ let plusTimer=null,plusPress=null,plusHeld=false;
+ const plus=$('add');
+ plus.addEventListener('pointerdown',e=>{
+  if(!e.isPrimary)return;
+  plusHeld=false;clearTimeout(plusTimer);
+  plusPress={id:e.pointerId,x:e.clientX,y:e.clientY};
+  plusTimer=setTimeout(()=>{
+   if(!plusPress)return;
+   plusHeld=true;plusPress=null;
+   diag.event('diagnostics-open-longpress');diag.open();
+  },3000);
+ });
+ plus.addEventListener('pointermove',e=>{
+  if(plusPress&&Math.hypot(e.clientX-plusPress.x,e.clientY-plusPress.y)>14){
+   clearTimeout(plusTimer);plusTimer=null;plusPress=null;
+  }
+ });
+ const stopPlus=()=>{clearTimeout(plusTimer);plusTimer=null;plusPress=null;};
+ for(const ev of ['pointerup','pointercancel','pointerleave'])plus.addEventListener(ev,stopPlus);
+ plus.addEventListener('contextmenu',e=>e.preventDefault());
+ plus.addEventListener('click',e=>{
+  if(plusHeld){plusHeld=false;e.preventDefault();return;}
+  setKeyboard(true,'plus-tap');
+ });
+ // Only the small round meter is a momentary safety peek control.
+ // In this isolated experiment the microphone starts real speech transcription.
+ function quickPeekValue(){
+  // A newly armed secret mode has no digits yet, so recall the last
+  // successful force instead of hiding the safety peek.
+  if(secretMode&&secretDigits.length){
+   return secretDigits.length===2&&secretDigits[0]===0&&secretDigits[1]===0?
+    '100':secretDigits.join('');
+  }
+  return lastSecretPeekCode||(lastSecretPosition===null?null:String(lastSecretPosition));
+ }
+ function stopQuickPeek(){
+  if(quickPeekPointer===null)return;
+  quickPeekPointer=null;
+  clearSecretPeek();
+  diag.event('quick-secret-peek-hide');
+ }
+ for(const button of [$('typingMeter')]){
+  button.addEventListener('pointerdown',e=>{
+   // These peek controls never reveal a code with the keyboard closed.
+   if(!keyboard||!e.isPrimary||(e.pointerType==='mouse'&&e.button!==0))return;
+   // Prevent iOS focusing a control and dismissing the input keyboard.
+   e.preventDefault();e.stopPropagation();
+   if(quickPeekPointer!==null)return;
+   const value=quickPeekValue();
+   if(!value)return;
+   clearSecretPeek();
+   quickPeekPointer=e.pointerId;
+   secretPeek.textContent=value;
+   secretPeek.classList.toggle('peek-three-digits',value==='100');
+   secretPeek.classList.add('visible');
+   try{button.setPointerCapture(e.pointerId);}catch(error){}
+   diag.event('quick-secret-peek-show',{digits:value.length});
+  });
+  button.addEventListener('touchstart',e=>{
+   if(keyboard&&e.cancelable)e.preventDefault();
+  },{passive:false});
+  button.addEventListener('mousedown',e=>{if(keyboard)e.preventDefault();});
+  button.addEventListener('pointerup',e=>{
+   if(e.pointerId!==quickPeekPointer)return;
+   e.preventDefault();e.stopPropagation();
+   stopQuickPeek();
+   if(keyboard&&document.activeElement!==nativeInput)
+    nativeInput.focus({preventScroll:true});
+  });
+  button.addEventListener('pointercancel',stopQuickPeek);
+  button.addEventListener('lostpointercapture',stopQuickPeek);
+  button.addEventListener('contextmenu',e=>e.preventDefault());
+  button.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();});
+ }
+ window.addEventListener('blur',stopQuickPeek);
+ document.addEventListener('visibilitychange',()=>{
+  if(document.hidden)stopQuickPeek();
+ });
+
+ // V85 ISOLATED DICTATION TRIAL. No microphone audio or transcripts leave
+ // this page through application code; the browser may process speech online.
+ // No changes to the secret code parser, auto reply or the round peek control.
+ const dictationBar=$('dictationBar');
+ const dictationWave=$('dictationWave');
+ const dictationProcessing=$('dictationProcessing');
+ const dictationNotice=$('dictationNotice');
+ const dictationStop=$('dictationStop');
+ const dictationSend=$('dictationSend');
+ const dictationCancel=$('dictationCancel');
+ const micButton=$('mic');
+ const dictationBars=$('dictationBars');
+ const waveHeights=[4,6,8,13,19,11,6,15,23,17,9,5,12,20,14,7,4,9,16,6];
+ for(let i=0;i<waveHeights.length;i++){
+  const bar=document.createElement('span');
+  bar.style.setProperty('--wave-h',waveHeights[i]+'px');
+  bar.style.setProperty('--wave-delay',(-i*57)+'ms');
+  dictationBars.appendChild(bar);
+ }
+ const BrowserSpeechRecognition=window.SpeechRecognition||window.webkitSpeechRecognition;
+ let dictationPhase='idle',dictationSession=null,dictationSerial=0;
+ let dictationBaseDraft='',dictationCommitted='',dictationInterim='';
+ let dictationSendOnFinish=false,dictationProblem=null,dictationFinishTimer=null;
+ let dictationNoticeTimer=null,micDown=null,micTouchStart=null,micActionAt=-Infinity;
+ function notifyDictation(message){
+  clearTimeout(dictationNoticeTimer);
+  dictationNotice.textContent=message;dictationNotice.hidden=false;
+  dictationNoticeTimer=setTimeout(()=>{dictationNotice.hidden=true;},4100);
+ }
+ function dictationWords(){
+  return [dictationCommitted.trim(),dictationInterim.trim()].filter(Boolean).join(' ').trim();
+ }
+ function showDictationUI(){
+  const active=dictationPhase!=='idle';
+  app.classList.toggle('dictation-active',active);
+  dictationBar.hidden=!active;
+  dictationWave.hidden=dictationPhase==='finishing';
+  dictationProcessing.hidden=dictationPhase!=='finishing';
+  dictationStop.hidden=dictationPhase==='finishing';
+  micButton.setAttribute('aria-label',active?'Concluir ditado':'Ditar mensagem');
+  diag.event('dictation-ui',{phase:dictationPhase});
+ }
+ function resetDictationSession(){
+  clearTimeout(dictationFinishTimer);
+  dictationFinishTimer=null;
+  dictationSession=null;
+  dictationPhase='idle';
+  dictationSendOnFinish=false;
+  showDictationUI();
+ }
+ function joinDictationDraft(base,recognized){
+  const left=base.trimEnd(),right=recognized.trim();
+  if(!right)return base;
+  return left?(left+' '+right):right;
+ }
+ function finishDictationResult(){
+  if(dictationPhase==='idle')return;
+  const spoken=dictationWords();
+  const shouldSend=dictationSendOnFinish;
+  const problem=dictationProblem;
+  resetDictationSession();
+  if(spoken){
+   draft=joinDictationDraft(dictationBaseDraft,spoken);
+   caretPos=draft.length;
+   updateComposer();
+   diag.event('dictation-transcribed',{characters:spoken.length});
+   if(shouldSend&&draft.trim()){
+    sendDraft();
+    return;
+   }
+  }else{
+   diag.event('dictation-empty',{reason:problem||'no-result'});
+   notifyDictation(problem||'Não foi possível transcrever, tente falar novamente');
+  }
+  if(keyboard&&document.activeElement!==nativeInput)
+   nativeInput.focus({preventScroll:true});
+ }
+ function cancelDictation(){
+  if(dictationPhase==='idle')return;
+  const recognition=dictationSession;
+  dictationSerial++;
+  resetDictationSession();
+  dictationCommitted='';dictationInterim='';
+  // draft was never mutated while recording; X discards speech only.
+  if(recognition){
+   try{recognition.abort();}catch(error){}
+  }
+  if(keyboard&&document.activeElement!==nativeInput)
+   nativeInput.focus({preventScroll:true});
+  diag.event('dictation-cancelled');
+ }
+ function stopDictation(sendAfter){
+  if(dictationPhase==='idle')return;
+  dictationSendOnFinish=dictationSendOnFinish||!!sendAfter;
+  if(dictationPhase==='finishing')return;
+  dictationPhase='finishing';showDictationUI();
+  const rec=dictationSession;
+  // Install the timeout BEFORE stop(), because some implementations call
+  // onend synchronously and should be able to clear it immediately.
+  const sessionId=dictationSerial;
+  dictationFinishTimer=setTimeout(()=>{
+   if(dictationSerial===sessionId&&dictationPhase==='finishing')
+    finishDictationResult();
+  },2700);
+  try{rec?.stop();}catch(error){dictationProblem='Reconhecimento interrompido';}
+ }
+ function startDictation(){
+  if(dictationPhase!=='idle')return;
+  if(secretMode){
+   notifyDictation('Saia do modo secreto antes de usar o ditado');
+   return;
+  }
+  if(scene==='thinking'||scene==='list'){
+   notifyDictation('Aguarde a resposta terminar para ditar');
+   return;
+  }
+  if(typeof BrowserSpeechRecognition!=='function'){
+   notifyDictation('Reconhecimento de voz indisponível neste navegador');
+   return;
+  }
+  const rec=new BrowserSpeechRecognition();
+  rec.lang='pt-BR';
+  rec.continuous=true;
+  rec.interimResults=true;
+  rec.maxAlternatives=1;
+  dictationSerial++;
+  const sessionId=dictationSerial;
+  dictationSession=rec;
+  dictationBaseDraft=draft;
+  dictationCommitted='';dictationInterim='';
+  dictationProblem=null;dictationSendOnFinish=false;
+  dictationPhase='starting';showDictationUI();
+  // Both focus and SpeechRecognition.start should run in a user gesture.
+  if(!keyboard)setKeyboard(true,'dictation-tap');
+  if(document.activeElement!==nativeInput)nativeInput.focus({preventScroll:true});
+  rec.onstart=()=>{
+   if(sessionId!==dictationSerial)return;
+   if(dictationPhase==='starting'){dictationPhase='listening';showDictationUI();}
+   diag.event('dictation-started');
+  };
+  rec.onresult=e=>{
+   if(sessionId!==dictationSerial||dictationPhase==='idle')return;
+   const finalParts=[],interimParts=[];
+   for(let i=0;i<e.results.length;i++){
+    const alternative=e.results[i]?.[0];
+    if(!alternative?.transcript)continue;
+    (e.results[i].isFinal?finalParts:interimParts).push(alternative.transcript);
+   }
+   dictationCommitted=finalParts.join(' ').trim();
+   dictationInterim=interimParts.join(' ').trim();
+   diag.event('dictation-recognition',{finalCharacters:dictationCommitted.length,
+    interimCharacters:dictationInterim.length});
+  };
+  rec.onerror=e=>{
+   if(sessionId!==dictationSerial)return;
+   if(e.error==='not-allowed'||e.error==='service-not-allowed'){
+    dictationProblem='Autorize o microfone e o reconhecimento de voz no iPhone';
+   }else if(e.error==='network'){
+    dictationProblem='A transcrição precisa de conexão neste navegador';
+   }else if(e.error==='language-not-supported'){
+    dictationProblem='Português brasileiro não está disponível para transcrição';
+   }else if(e.error==='no-speech'){
+    dictationProblem='Nenhuma fala foi reconhecida';
+   }else if(e.error!=='aborted'){
+    dictationProblem='Falha no reconhecimento de voz ('+String(e.error||'desconhecida')+')';
+   }
+   diag.event('dictation-error',{type:e.error||'unknown'});
+   // Some WebKit failures never deliver a matching end event.
+   if(e.error!=='aborted'){
+    setTimeout(()=>{
+     if(sessionId===dictationSerial&&dictationPhase!=='idle')
+      finishDictationResult();
+    },1000);
+   }
+  };
+  rec.onend=()=>{
+   if(sessionId!==dictationSerial||dictationPhase==='idle')return;
+   diag.event('dictation-ended',{phase:dictationPhase});
+   finishDictationResult();
+  };
+  try{rec.start();}
+  catch(error){
+   dictationProblem='O iPhone não conseguiu iniciar o reconhecimento de voz';
+   diag.event('dictation-start-failed',{name:error?.name||'Error'});
+   resetDictationSession();notifyDictation(dictationProblem);
+  }
+ }
+ function activateDictationMic(){
+  if(performance.now()-micActionAt<430)return;
+  micActionAt=performance.now();
+  if(dictationPhase==='idle')startDictation();
+  else if(dictationPhase==='starting'||dictationPhase==='listening')stopDictation(false);
+ }
+ // Use actual pointer release to keep the real iOS keyboard focused; click
+ // remains a fallback for assistive input and browsers without Pointer Events.
+ micButton.addEventListener('pointerdown',e=>{
+  if(!e.isPrimary||(e.pointerType==='mouse'&&e.button!==0))return;
+  micDown={id:e.pointerId,x:e.clientX,y:e.clientY};
+  e.preventDefault();
+ });
+ micButton.addEventListener('pointerup',e=>{
+  if(!micDown||micDown.id!==e.pointerId)return;
+  const down=micDown;micDown=null;
+  e.preventDefault();
+  if(Math.hypot(e.clientX-down.x,e.clientY-down.y)<=15)activateDictationMic();
+ });
+ micButton.addEventListener('pointercancel',()=>{micDown=null;});
+ micButton.addEventListener('touchstart',e=>{
+  if(e.changedTouches.length===1){
+   const t=e.changedTouches[0];
+   micTouchStart={id:t.identifier,x:t.clientX,y:t.clientY};
+  }
+ },{passive:true});
+ micButton.addEventListener('touchend',e=>{
+  if(!micTouchStart)return;
+  const t=Array.from(e.changedTouches).find(x=>x.identifier===micTouchStart.id);
+  if(!t)return;
+  const point=micTouchStart;micTouchStart=null;
+  if(Math.hypot(t.clientX-point.x,t.clientY-point.y)<=15)activateDictationMic();
+ });
+ micButton.addEventListener('click',e=>{e.preventDefault();activateDictationMic();});
+ micButton.addEventListener('contextmenu',e=>e.preventDefault());
+ function bindDictationBarControl(button,action){
+  let contact=null,lastCall=-Infinity;
+  const run=()=>{
+   if(performance.now()-lastCall<400)return;
+   lastCall=performance.now();
+   action();
+  };
+  button.addEventListener('pointerdown',e=>{
+   if(!e.isPrimary||(e.pointerType==='mouse'&&e.button!==0))return;
+   contact={id:e.pointerId,x:e.clientX,y:e.clientY};
+   e.preventDefault();
+  });
+  button.addEventListener('pointerup',e=>{
+   if(!contact||e.pointerId!==contact.id)return;
+   const p=contact;contact=null;
+   e.preventDefault();
+   if(Math.hypot(e.clientX-p.x,e.clientY-p.y)<=15)run();
+  });
+  button.addEventListener('pointercancel',()=>{contact=null;});
+  button.addEventListener('click',e=>{e.preventDefault();run();});
+ }
+ bindDictationBarControl(dictationCancel,cancelDictation);
+ bindDictationBarControl(dictationStop,()=>stopDictation(false));
+ bindDictationBarControl(dictationSend,()=>stopDictation(true));
+ document.addEventListener('visibilitychange',()=>{
+  if(document.hidden&&dictationPhase!=='idle')cancelDictation();
+ });
+ window.addEventListener('pagehide',()=>{
+  if(dictationPhase!=='idle')cancelDictation();
+ });
+
+ $('sendVoice').addEventListener('click',e=>{
+  e.preventDefault();
+  // Send arrow and stop square retain their existing behavior.
+  if(scene==='thinking'||scene==='list'||draft.trim()){sendDraft();return;}
+  // The blue voice symbol is exclusively the ladybug reveal trigger.
+  armLadybugReveal();
+ });
+ // Native copy action for the currently visible assistant answer.
+ // Work on the response DOM, not the secret digits or source data.
+ const answerCopyButton=$('actions').querySelector('button[aria-label="Copiar"]');
+ answerCopyButton?.setAttribute('data-answer-copy','');
+ let answerCopyFeedbackTimer=null;
+ function visibleReplyText(){
+  const intro=$('answerIntro').textContent.trim();
+  const rows=Array.from(list.querySelectorAll('.row')).map((row,index)=>{
+   const number=row.querySelector('.number')?.textContent.trim()||String(index+1)+'.';
+   const word=row.querySelector('.word');
+   if(!word)return '';
+   // Copy exactly what spectators can see, including any hidden-emoji reveal.
+   const readable=word.cloneNode(true);
+   readable.querySelectorAll('.force-emoji.hidden').forEach(emoji=>emoji.remove());
+   return number+' '+(readable.textContent||'').trim();
+  }).filter(Boolean);
+  return [intro,rows.join('\n')].filter(Boolean).join('\n\n');
+ }
+ function legacyCopyReply(text){
+  const helper=document.createElement('textarea');
+  helper.value=text;helper.readOnly=true;helper.setAttribute('aria-hidden','true');
+  helper.style.cssText='position:fixed;left:-9999px;top:0;width:1px;height:1px;opacity:0;pointer-events:none';
+  document.body.appendChild(helper);
+  let success=false;
+  try{
+   helper.focus({preventScroll:true});helper.select();
+   helper.setSelectionRange(0,helper.value.length);
+   success=document.execCommand('copy');
+  }catch(error){success=false}
+  helper.remove();
+  return success;
+ }
+ function showCopyResult(success){
+  if(!answerCopyButton)return;
+  clearTimeout(answerCopyFeedbackTimer);
+  answerCopyButton.classList.toggle('copy-ok',success);
+  answerCopyButton.classList.toggle('copy-failed',!success);
+  answerCopyButton.setAttribute('aria-label',success?'Copiado':'Falha ao copiar');
+  answerCopyFeedbackTimer=setTimeout(()=>{
+   answerCopyButton.classList.remove('copy-ok','copy-failed');
+   answerCopyButton.setAttribute('aria-label','Copiar');
+   answerCopyFeedbackTimer=null;
+  },1700);
+ }
+ function copyVisibleReply(){
+  // No clipboard operation while a response is incomplete.
+  if(scene!=='end'||generating)return;
+  const reply=visibleReplyText();
+  if(!reply)return;
+  const succeeded=()=>{showCopyResult(true);diag.event('answer-copy-ok',{characters:reply.length})};
+  const failed=()=>{showCopyResult(false);diag.event('answer-copy-failed')};
+  if(navigator.clipboard?.writeText&&window.isSecureContext){
+   try{
+    navigator.clipboard.writeText(reply).then(succeeded,()=>{
+     if(legacyCopyReply(reply))succeeded();else failed();
+    });
+   }catch(error){if(legacyCopyReply(reply))succeeded();else failed()}
+  }else{
+   if(legacyCopyReply(reply))succeeded();else failed();
+  }
+ }
+ answerCopyButton?.addEventListener('click',copyVisibleReply);
+
+ // Real feedback, speech, native sharing and bottom response menu.
+ // These controls never call any ladybug/force/reveal routines.
+ const voteGroup=$('feedback');
+ const speakButton=$('actions').querySelector('[data-answer-speak]');
+ const shareButton=$('actions').querySelector('[data-answer-share]');
+ const moreAnswerButton=$('actions').querySelector('[data-answer-more]');
+ const answerOptions=$('answerOptions'),answerActionNotice=$('answerActionNotice');
+ let activeVote=null,noticeTimer=null,speechSerial=0,speechActive=false;
+ function showAnswerNotice(message){
+  clearTimeout(noticeTimer);
+  answerActionNotice.textContent=message;
+  answerActionNotice.hidden=false;
+  noticeTimer=setTimeout(()=>{
+   answerActionNotice.hidden=true;answerActionNotice.textContent='';noticeTimer=null;
+  },2100);
+ }
+ function clearAnswerNotice(){
+  clearTimeout(noticeTimer);noticeTimer=null;
+  answerActionNotice.hidden=true;answerActionNotice.textContent='';
+ }
+ function setAnswerVote(value){
+  activeVote=activeVote===value?null:value;
+  for(const button of voteGroup.querySelectorAll('[data-vote]')){
+   button.setAttribute('aria-pressed',String(activeVote===button.dataset.vote));
+  }
+  diag.event('answer-vote',{selection:activeVote||'none'});
+ }
+ voteGroup.addEventListener('click',event=>{
+  const button=event.target.closest('button[data-vote]');
+  if(!button||scene!=='end'||generating)return;
+  setAnswerVote(button.dataset.vote);
+ });
+ function closeAnswerOptions(){
+  if(answerOptions.hidden)return;
+  answerOptions.hidden=true;
+  moreAnswerButton.setAttribute('aria-expanded','false');
+ }
+ function updateSpeakUI(active){
+  speechActive=active;
+  speakButton.setAttribute('aria-pressed',String(active));
+  speakButton.setAttribute('aria-label',active?'Parar leitura':'Ouvir resposta');
+  const menuSpeak=answerOptions.querySelector('[data-answer-option="speak"]');
+  if(menuSpeak)menuSpeak.textContent=active?'Parar leitura':'Ouvir resposta';
+ }
+ function stopAnswerSpeech(){
+  speechSerial++;
+  updateSpeakUI(false);
+  try{window.speechSynthesis?.cancel()}catch(error){}
+ }
+ function speechChunks(text){
+  // Short utterances work better on iOS than one huge hundred-item utterance.
+  const chunks=[];let current='';
+  for(const line of text.split(/\n+/).map(x=>x.trim()).filter(Boolean)){
+   // Split unusually long lines without imposing a single 2000-char utterance.
+   const pieces=line.match(/.{1,145}/gu)||[];
+   for(const part of pieces){
+    if(current&&current.length+part.length+2>170){chunks.push(current);current='';}
+    current+=(current?'. ':'')+part;
+   }
+  }
+  if(current)chunks.push(current);
+  return chunks;
+ }
+ function toggleAnswerSpeech(){
+  closeAnswerOptions();
+  if(speechActive){stopAnswerSpeech();diag.event('answer-speech-stopped');return;}
+  if(scene!=='end'||generating)return;
+  if(!window.speechSynthesis||typeof window.SpeechSynthesisUtterance!=='function'){
+   showAnswerNotice('Leitura de voz indisponível');return;
+  }
+  const reply=visibleReplyText();
+  if(!reply)return;
+  const chunks=speechChunks(reply);
+  if(!chunks.length)return;
+  stopAnswerSpeech();
+  const serial=++speechSerial;
+  const synthesis=window.speechSynthesis;
+  const preferredVoices=synthesis.getVoices?.()||[];
+  const voice=preferredVoices.find(v=>v.lang?.toLowerCase()==='pt-br')||
+   preferredVoices.find(v=>v.lang?.toLowerCase().startsWith('pt'))||null;
+  let position=0;
+  updateSpeakUI(true);
+  function nextChunk(){
+   if(serial!==speechSerial)return;
+   if(position>=chunks.length){
+    updateSpeakUI(false);diag.event('answer-speech-ended');return;
+   }
+   const utterance=new SpeechSynthesisUtterance(chunks[position++]);
+   utterance.lang=voice?.lang||'pt-BR';
+   if(voice)utterance.voice=voice;
+   utterance.rate=1;utterance.pitch=1;
+   utterance.onend=nextChunk;
+   utterance.onerror=event=>{
+    if(serial!==speechSerial)return;
+    updateSpeakUI(false);
+    if(!['canceled','interrupted'].includes(event.error)){
+     showAnswerNotice('Não foi possível reproduzir');
+     diag.event('answer-speech-error',{reason:event.error||'unknown'});
+    }
+   };
+   try{synthesis.speak(utterance)}
+   catch(error){
+    if(serial===speechSerial){stopAnswerSpeech();showAnswerNotice('Leitura indisponível');}
+   }
+  }
+  diag.event('answer-speech-started',{chunks:chunks.length});
+  nextChunk();
+ }
+ function shareVisibleAnswer(){
+  closeAnswerOptions();
+  if(scene!=='end'||generating)return;
+  const reply=visibleReplyText();
+  if(!reply)return;
+  if(typeof navigator.share==='function'){
+   // Native share must be called synchronously from the user tap on iOS.
+   try{
+    Promise.resolve(navigator.share({title:'Resposta',text:reply})).then(
+     ()=>diag.event('answer-share-complete'),
+     error=>{
+      if(error?.name!=='AbortError'){
+       showAnswerNotice('Compartilhamento indisponível');
+       diag.event('answer-share-failed');
+      }
+     });
+   }catch(error){showAnswerNotice('Compartilhamento indisponível');}
+   return;
+  }
+  // Browsers without a share sheet may still copy for manual sharing.
+  if(navigator.clipboard?.writeText&&window.isSecureContext){
+   try{
+    navigator.clipboard.writeText(reply).then(
+     ()=>showAnswerNotice('Copiado para compartilhar'),
+     ()=>showAnswerNotice(legacyCopyReply(reply)?
+      'Copiado para compartilhar':'Compartilhamento indisponível'));
+   }catch(error){
+    showAnswerNotice(legacyCopyReply(reply)?
+     'Copiado para compartilhar':'Compartilhamento indisponível');
+   }
+  }else{
+   showAnswerNotice(legacyCopyReply(reply)?
+    'Copiado para compartilhar':'Compartilhamento indisponível');
+  }
+ }
+ speakButton.addEventListener('click',toggleAnswerSpeech);
+ shareButton.addEventListener('click',shareVisibleAnswer);
+ moreAnswerButton.addEventListener('click',()=>{
+  if(scene!=='end'||generating)return;
+  answerOptions.hidden=!answerOptions.hidden;
+  moreAnswerButton.setAttribute('aria-expanded',String(!answerOptions.hidden));
+  clearAnswerNotice();
+ });
+ answerOptions.addEventListener('click',event=>{
+  const choice=event.target.closest('button[data-answer-option]');
+  if(!choice)return;
+  const command=choice.dataset.answerOption;
+  closeAnswerOptions();
+  if(command==='copy')copyVisibleReply();
+  else if(command==='speak')toggleAnswerSpeech();
+  else if(command==='share')shareVisibleAnswer();
+ });
+ document.addEventListener('pointerdown',event=>{
+  if(!answerOptions.hidden&&!answerOptions.contains(event.target)&&
+     !moreAnswerButton.contains(event.target))closeAnswerOptions();
+ },{passive:true});
+ scroller.addEventListener('scroll',()=>{
+  if(!answerOptions.hidden)closeAnswerOptions();
+ },{passive:true});
+ document.addEventListener('visibilitychange',()=>{
+  if(document.hidden&&speechActive)stopAnswerSpeech();
+ });
+ window.addEventListener('pagehide',()=>{if(speechActive)stopAnswerSpeech()});
+ function resetAnswerInteractions(){
+  closeAnswerOptions();
+  stopAnswerSpeech();
+  activeVote=null;
+  for(const button of voteGroup.querySelectorAll('[data-vote]')){
+   button.setAttribute('aria-pressed','false');
+  }
+  clearAnswerNotice();
+  clearTimeout(answerCopyFeedbackTimer);
+  answerCopyButton?.classList.remove('copy-ok','copy-failed');
+  answerCopyButton?.setAttribute('aria-label','Copiar');
+ }
+ $('jump').addEventListener('click',()=>{scroller.scrollTo({top:scroller.scrollHeight,behavior:'smooth'});});
+ scroller.addEventListener('scroll',refreshJump,{passive:true});
+ // A tap on any part of the conversation hides the mock keyboard,
+ // while dragging to scroll does not count as a tap
+ let conversationTap=null;
+ scroller.addEventListener('pointerdown',e=>{
+  if(!keyboard||!e.isPrimary)return;
+  conversationTap={id:e.pointerId,x:e.clientX,y:e.clientY,time:performance.now()};
+ },{passive:true});
+ scroller.addEventListener('pointercancel',()=>{conversationTap=null;},{passive:true});
+ scroller.addEventListener('pointerup',e=>{
+  if(!keyboard||!conversationTap||e.pointerId!==conversationTap.id)return;
+  const dx=e.clientX-conversationTap.x,dy=e.clientY-conversationTap.y;
+  const duration=performance.now()-conversationTap.time;
+  conversationTap=null;
+  if(Math.hypot(dx,dy)>12||duration>650)return;
+  diag.event('conversation-tap-dismiss',{reason:'conversation-tap'});
+  setKeyboard(false,'conversation-tap');
+ },{passive:true});
+ // Dormant simulated keyboard kept intact for safe rollback
+ const layouts={
+  letters:[['Q','W','E','R','T','Y','U','I','O','P'],['A','S','D','F','G','H','J','K','L'],
+   ['⇧','Z','X','C','V','B','N','M','⌫'],['123','☺','espaço','↵']],
+  numbers:[['1','2','3','4','5','6','7','8','9','0'],
+   ['-','/',':',';','(',')','$','&','@','"'],['#+=','.',',','?','!',"'",'⌫'],
+   ['ABC','☺','espaço','↵']],
+  symbols:[['[',']','{','}','#','%','^','*','+','='],
+   ['_','\\','|','~','<','>','€','£','¥','•'],['123','.',',','?','!',"'",'⌫'],
+   ['ABC','☺','espaço','↵']],
+  emoji:[['😀','😂','🥰','😍','😊','👍','❤️','😎','🙏','🔥'],
+   ['🙂','😅','😭','🤔','😘','💙','🎉','😮','❤️‍🔥'],
+   ['ABC','🐞','✨','💯','💬','⌫'],['123','☺','espaço','↵']]
+ };
+ const accents={A:['á','à','â','ã','ä'],E:['é','è','ê','ë'],
+  I:['í','ì','î','ï'],O:['ó','ò','ô','õ','ö'],U:['ú','ù','û','ü'],C:['ç'],N:['ñ']};
+ const SHIFT_SVG='<svg class="shift-arrow" viewBox="0 0 26 28" aria-hidden="true">'+
+  '<path d="M13 2.7 2.7 13.4v4.2h5.1v7.1h10.4v-7.1h5.1v-4.2z"/>'+
+  '<path class="caps-line" d="M7.6 27h10.8"/></svg>';
+ const accentsPopup=document.createElement('div');accentsPopup.id='accentChoices';
+ page.appendChild(accentsPopup);
+ let lastShiftAt=-Infinity,deleteTimer=null,repeatTimer=null,touchHold=null,accentPosition=null;
+ function refreshLetterLabels(){
+  if(keyboardMode!=='letters')return;
+  for(const button of $('keyboard').querySelectorAll('.kb-letter')){
+   const s=shiftNext?button.dataset.letter:button.dataset.letter.toLowerCase();
+   if(button.textContent!==s)button.textContent=s;
+   button.classList.toggle('kb-lowercase',!shiftNext);
+   button.dataset.show=s;
+  }
+  const shift=$('keyboard').querySelector('.kb-shift');
+  if(shift){
+   shift.classList.toggle('kb-shift-on',shiftNext);
+   shift.classList.toggle('kb-caps-lock',capsLocked);
+   shift.setAttribute('aria-pressed',String(shiftNext));
+  }
+ }
+ function insertText(str){
+  caretPos=Math.max(0,Math.min(draft.length,caretPos));
+  draft=draft.slice(0,caretPos)+str+draft.slice(caretPos);
+  caretPos+=str.length;
+ }
+ const graphemeTool=typeof Intl!=='undefined'&&Intl.Segmenter?
+  new Intl.Segmenter('pt-BR',{granularity:'grapheme'}):null;
+ function eraseOne(){
+  if(caretPos>0){
+   const prefix=draft.slice(0,caretPos);
+   let back=caretPos-1;
+   if(graphemeTool){
+    const segments=Array.from(graphemeTool.segment(prefix));
+    back=segments.length?segments[segments.length-1].index:0;
+   }else{
+    const parts=Array.from(prefix);
+    back=Math.max(0,caretPos-(parts[parts.length-1]?.length||1));
+   }
+   draft=draft.slice(0,back)+draft.slice(caretPos);
+   caretPos=back;
+  }
+  if(secretMode&&draft.length<secretDigits.length){
+   secretDigits.length=Math.max(0,draft.length);
+   if(secretDigits.length)showSecretPeek();
+   else clearSecretPeek();
+   diag.event('secret-code-corrected',{count:secretDigits.length});
+  }
+  if(!draft){shiftNext=true;capsLocked=false;lastShiftAt=-Infinity;}
+ }
+ function hideAccents(){accentsPopup.classList.remove('visible');accentsPopup.replaceChildren();accentPosition=null;}
+ function applyAccent(letter){
+  if(accentPosition!==null&&accentPosition>=0&&accentPosition<draft.length){
+   draft=draft.slice(0,accentPosition)+letter+draft.slice(accentPosition+1);
+   caretPos=Math.max(caretPos,accentPosition+letter.length);
+   updateComposer();diag.event('accent-selected');
+  }
+  hideAccents();
+ }
+ function showAccents(key,button){
+  if(secretMode&&secretDigits.length<=2)return;
+  const variants=accents[key];if(!variants||keyboardMode!=='letters')return;
+  hideAccents();accentPosition=caretPos-1;
+  const rect=button.getBoundingClientRect(),r=page.getBoundingClientRect();
+  accentsPopup.style.left=Math.max(93,Math.min(r.width-93,rect.left-r.left+rect.width/2))+'px';
+  accentsPopup.style.bottom=Math.max(15,r.bottom-rect.top+6)+'px';
+  for(const option of variants){
+   const base=draft[accentPosition]||'';
+   const symbol=base===base.toUpperCase()&&base.toLowerCase()!==base?
+    option.toUpperCase():option;
+   const b=document.createElement('button');b.type='button';b.textContent=symbol;
+   b.addEventListener('pointerdown',e=>{e.preventDefault();applyAccent(symbol)});
+   b.addEventListener('click',()=>applyAccent(symbol));
+   accentsPopup.appendChild(b);
+  }
+  accentsPopup.classList.add('visible');
+  diag.event('accent-options-open',{count:variants.length});
+ }
+ function commitKeyboardKey(key,meta={}){
+  const t=performance.now(),before=draft.length,oldCaret=caretPos;
+  let kind='character',action='insert';
+  const secretLetter=secretMode&&secretDigits.length<2&&keyboardMode==='letters'&&/^[A-Z]$/.test(key);
+  const secretPending=secretMode&&secretDigits.length<2;
+  if(secretPending&&!secretLetter&&!['123','ABC','#+=','☺','⇧','⌫'].includes(key)){
+   kind='secret';action='waiting-for-code-letter';
+  }else if(['123','ABC','#+=','☺'].includes(key)){
+   kind='layout';action='switch-layout';
+   keyboardMode=key==='123'?'numbers':key==='ABC'?'letters':
+    key==='#+='?'symbols':keyboardMode==='emoji'?'letters':'emoji';
+   renderKeyboard();
+   diag.event('keyboard-layout-change',{mode:keyboardMode});
+  }else if(key==='⇧'){
+   kind='shift';action='toggle-shift';
+   const now=performance.now();
+   if(capsLocked){capsLocked=false;shiftNext=false;lastShiftAt=-Infinity;}
+   else if(now-lastShiftAt<380){capsLocked=true;shiftNext=true;lastShiftAt=-Infinity;action='caps-lock';}
+   else{shiftNext=!shiftNext;lastShiftAt=now;}
+   refreshLetterLabels();
+  }else if(key==='⌫'){
+   kind='backspace';action=meta.repeat?'repeat-delete':'delete';
+   eraseOne();refreshLetterLabels();updateComposer();
+  }else if(key==='↵'){
+   kind='return';action='newline';insertText('\n');
+   if(!capsLocked){shiftNext=true;refreshLetterLabels();}
+   updateComposer();
+  }else if(key==='espaço'){
+   kind='space';action='space';
+   if(caretPos>=2&&draft[caretPos-1]===' '&&/[\p{L}\p{N}]/u.test(draft[caretPos-2])){
+    draft=draft.slice(0,caretPos-1)+'. '+draft.slice(caretPos);caretPos++;
+    action='double-space-period';
+    if(!capsLocked){shiftNext=true;refreshLetterLabels();}
+   }else{
+    insertText(' ');
+    if(!capsLocked&&/[.!?]\s$/u.test(draft.slice(0,caretPos))){shiftNext=true;refreshLetterLabels();}
+   }
+   updateComposer();
+  }else{
+   if(secretLetter){
+    secretDigits.push(secretDigit(key));
+    insertText(secretDigits.length===1?'L':'i');
+    kind='secret';action=secretDigits.length===1?'first-code-letter':'second-code-letter';
+    if(secretDigits.length===2)rememberLastSecretPeek(
+     secretDigits[0]===0&&secretDigits[1]===0?'100':secretDigits.join(''));
+    showSecretPeek();
+    diag.event('secret-code-progress',{count:secretDigits.length});
+   }else{
+    const value=keyboardMode==='letters'?(shiftNext?key:key.toLowerCase()):key;
+    insertText(value);
+   }
+   if(keyboardMode==='letters'&&shiftNext&&!capsLocked){shiftNext=false;refreshLetterLabels();}
+   updateComposer();
+  }
+  diag.keyAction?.({pointerId:meta.pointerId??null,row:meta.row??null,col:meta.col??null,
+   kind,action,mode:keyboardMode,source:meta.source||'pointer',
+   before,after:draft.length,caretBefore:oldCaret,caretAfter:caretPos,
+   processingMs:performance.now()-t});
+ }
+ function stopDelete(){clearTimeout(deleteTimer);clearTimeout(repeatTimer);deleteTimer=repeatTimer=null;}
+ function repeatDelete(pointerId,row,col){
+  stopDelete();const start=performance.now();
+  const tick=()=>{
+   if(touchHold?.id!==pointerId||!draft)return;
+   commitKeyboardKey('⌫',{source:'repeat',pointerId,row,col,repeat:true});
+   repeatTimer=setTimeout(tick,performance.now()-start>1500?52:95);
+  };
+  deleteTimer=setTimeout(tick,380);
+ }
+ function stopTouch(pointerId){
+  if(!touchHold||touchHold.id!==pointerId)return;
+  clearTimeout(touchHold.longTimer);stopDelete();
+  if(touchHold.trackpad){
+   $('keyboard').classList.remove('kb-trackpad');
+   diag.event('space-trackpad-end',{caretPos});
+  }
+  touchHold.button?.classList.remove('kb-pressed');
+  touchHold=null;
+ }
+ function renderKeyboard(){
+  hideAccents();
+  const rows=layouts[keyboardMode];
+  ['kbTop','kbMiddle','kbBottom','kbControls'].forEach((id,rowIndex)=>{
+   const row=$(id);row.replaceChildren();
+   rows[rowIndex].forEach((key,col)=>{
+    const button=document.createElement('button');button.type='button';button.className='kb-key';
+    if((rowIndex===2&&(col===0||col===rows[rowIndex].length-1))||
+       (rowIndex===3&&key!=='espaço'))button.classList.add('kb-wide');
+    if(rowIndex===3){
+     if(key==='123'||key==='ABC')button.classList.add('kb-123');
+     else if(key==='☺')button.classList.add('kb-emoji');
+     else if(key==='espaço')button.classList.add('kb-space');
+     else button.classList.add('kb-return');
+    }
+    if(keyboardMode==='letters'&&/^[A-Z]$/.test(key)){
+     button.classList.add('kb-letter');button.dataset.letter=key;
+    }else if(key==='⇧'){button.classList.add('kb-shift');button.innerHTML=SHIFT_SVG;}
+    if(key!=='⇧')button.textContent=key==='espaço'?'':key;
+    if(key==='espaço')button.setAttribute('aria-label','Espaço');
+    if(key==='⇧')button.setAttribute('aria-label','Maiúsculas');
+    if(key==='⌫')button.setAttribute('aria-label','Apagar');
+    if(key==='123')button.setAttribute('aria-label','Números');
+    if(key==='ABC')button.setAttribute('aria-label','Letras');
+    let lastTouch=-Infinity;
+    button.addEventListener('pointerdown',e=>{
+     if(e.pointerType!=='touch'&&e.pointerType!=='pen')return;
+     e.preventDefault();lastTouch=performance.now();
+     if((key==='espaço'||key==='⌫')&&button.setPointerCapture){
+      try{button.setPointerCapture(e.pointerId)}catch(error){}
+     }
+     if(touchHold)stopTouch(touchHold.id);
+     touchHold={id:e.pointerId,button,key,x:e.clientX,startCaret:caretPos,longTimer:null,
+      trackpad:false,lastStep:0};
+     button.classList.add('kb-pressed');
+     commitKeyboardKey(key,{source:'touch-down',pointerId:e.pointerId,row:id,col});
+     if(key==='⌫')repeatDelete(e.pointerId,id,col);
+     else if(key==='espaço'){
+      touchHold.longTimer=setTimeout(()=>{
+       if(touchHold?.id!==e.pointerId)return;
+       touchHold.trackpad=true;
+       const at=touchHold.startCaret;
+       if(draft[at]===' '&&caretPos===at+1){
+        draft=draft.slice(0,at)+draft.slice(at+1);caretPos=at;updateComposer();
+       }
+       $('keyboard').classList.add('kb-trackpad');
+       diag.event('space-trackpad-start',{caretPos});
+      },440);
+     }else if(accents[key]){
+      touchHold.longTimer=setTimeout(()=>{
+       if(touchHold?.id===e.pointerId)showAccents(key,button);
+      },480);
+     }
+    });
+    button.addEventListener('pointermove',e=>{
+     if(touchHold?.id!==e.pointerId||!touchHold.trackpad)return;
+     const step=Math.trunc((e.clientX-touchHold.x)/10);
+     if(step!==touchHold.lastStep){
+      caretPos=Math.max(0,Math.min(draft.length,caretPos+step-touchHold.lastStep));
+      touchHold.lastStep=step;updateComposer();
+     }
+    });
+    for(const ev of ['pointerup','pointercancel','pointerleave']){
+     if(ev==='pointerleave'&&(key==='espaço'||key==='⌫'))continue;
+     button.addEventListener(ev,e=>{stopTouch(e.pointerId);button.classList.remove('kb-pressed')});
+    }
+    button.addEventListener('click',()=>{
+     if(performance.now()-lastTouch<700)return;
+     commitKeyboardKey(key,{source:'click',row:id,col});
+    });
+    row.appendChild(button);
+   });
+  });
+  refreshLetterLabels();
+ }
+ renderKeyboard();
+ // Tap within already-typed text to move both visual and native insertion points
+ field.addEventListener('click',e=>{
+  if(!keyboard||!draft||!e.isTrusted)return;
+  const range=document.caretRangeFromPoint?.(e.clientX,e.clientY);
+  if(!range)return;
+  if(beforeSpan.contains(range.startContainer))caretPos=range.startOffset;
+  else if(afterSpan.contains(range.startContainer))caretPos=beforeSpan.textContent.length+range.startOffset;
+  else return;
+  caretPos=Math.max(0,Math.min(draft.length,caretPos));
+  updateComposer();diag.event('caret-moved',{caretPos});
+ });
+ // The only persistent conversation always occupies the first Recentes item.
+ const RECENT_CONVERSATION_KEY='joaninha-chat-test-gpt-2-latest-conversation-v1';
+ let latestTestVersion=null,updateCheckSequence=0,testUpdateInProgress=false;
+ const recentAnimals=$('recentAnimals');
+ // Offline-cache health and available updates are tracked independently.
+ const PENDING_UPDATE_KEY='joaninha-pending-update-v1';
+ const offlineHintNode=$('offlineHint');
+ let offlineCacheReady=false,offlineCheckRunning=null;
+ try{
+  const storedVersion=Number(localStorage.getItem(PENDING_UPDATE_KEY));
+  if(Number.isSafeInteger(storedVersion)&&storedVersion>GPT_TEST_VERSION)
+   latestTestVersion=storedVersion;
+  else localStorage.removeItem(PENDING_UPDATE_KEY);
+ }catch(error){}
+ function refreshAttentionIndicator(){
+  const updatePending=latestTestVersion!==null&&latestTestVersion>GPT_TEST_VERSION;
+  // Keep offline diagnostics independent of the visible update check.
+  app.classList.toggle('offline-attention',!offlineCacheReady||updatePending);
+  app.classList.toggle('update-attention',updatePending);
+ }
+ function updateOfflineIndicator(){
+  offlineHintNode.classList.toggle('shown',navigator.onLine===false);
+ }
+ refreshAttentionIndicator();
+ function communicateWithOfflineWorker(type,payload={},timeoutMs=35000){
+  return new Promise((resolve,reject)=>{
+   const worker=navigator.serviceWorker?.controller;
+   if(!worker){reject(Error('Offline ainda não inicializado'));return;}
+   const channel=new MessageChannel();
+   const timer=setTimeout(()=>{
+    channel.port1.close();reject(Error('Tempo limite do modo offline'));
+   },timeoutMs);
+   channel.port1.onmessage=e=>{
+    clearTimeout(timer);channel.port1.close();
+    const result=e.data||{};
+    if(result.ok)resolve(result);
+    else reject(Error(result.error||'Falha do armazenamento offline'));
+   };
+   try{worker.postMessage({type,...payload},[channel.port2]);}
+   catch(error){clearTimeout(timer);channel.port1.close();reject(error);}
+  });
+ }
+ async function ensureOfflinePrepared(){
+  if(offlineCheckRunning)return offlineCheckRunning;
+  if(!navigator.serviceWorker?.controller){
+   offlineCacheReady=false;
+   refreshAttentionIndicator();
+   return;
+  }
+  offlineCheckRunning=(async()=>{
+   try{
+    let state=await communicateWithOfflineWorker('STATUS',{},12000);
+    if(!state.ready&&navigator.onLine!==false)
+     state=await communicateWithOfflineWorker('REPAIR',{},50000);
+    offlineCacheReady=state.ready===true;
+   }catch(error){
+    offlineCacheReady=false;
+   }
+   refreshAttentionIndicator();
+  })();
+  try{await offlineCheckRunning;}finally{offlineCheckRunning=null;}
+ }
+ function startOfflineSupport(){
+  updateOfflineIndicator();
+  window.addEventListener('offline',()=>{
+   updateOfflineIndicator();ensureOfflinePrepared();
+  });
+  window.addEventListener('online',()=>{
+   updateOfflineIndicator();ensureOfflinePrepared();
+  });
+  if(!('serviceWorker' in navigator))return;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>ensureOfflinePrepared());
+  window.addEventListener('pageshow',()=>ensureOfflinePrepared());
+  document.addEventListener('visibilitychange',()=>{
+   if(document.visibilityState==='visible')ensureOfflinePrepared();
+  });
+  navigator.serviceWorker.register('./sw.js',{scope:'./'}).then(()=>
+   navigator.serviceWorker.ready.then(()=>ensureOfflinePrepared())
+  ).catch(()=>{});
+ }
+
+ function cleanRecentConversation(raw){
+  if(!raw||raw.format!=='joaninha-single-recent-v1'||!Array.isArray(raw.turns)||
+   !raw.turns.length||raw.turns.length>40)return null;
+  const turns=[];
+  for(const turn of raw.turns){
+   if(typeof turn?.message!=='string'||!turn.message.trim()||
+    turn.message.length>2000||typeof turn.intro!=='string'||
+    turn.intro.length>5000||!Array.isArray(turn.rows)||turn.rows.length>250)return null;
+   const rows=[];
+   for(const row of turn.rows){
+    if(typeof row?.text!=='string'||row.text.length>500)return null;
+    rows.push({text:row.text,
+     forceIndex:Number.isInteger(row.forceIndex)&&row.forceIndex>=1&&
+      row.forceIndex<=turn.rows.length?row.forceIndex:null,
+     emojiHidden:row.emojiHidden===true});
+   }
+   turns.push({message:turn.message,intro:turn.intro,rows});
+  }
+  return {format:'joaninha-single-recent-v1',
+   title:turns[turns.length-1].message.trim().slice(0,160),turns};
+ }
+ let lastSavedConversation=null;
+ try{
+  const stored=localStorage.getItem(RECENT_CONVERSATION_KEY);
+  if(stored)lastSavedConversation=cleanRecentConversation(JSON.parse(stored));
+ }catch(error){diag.event('recent-conversation-read-failed');}
+ function captureRecentTurn(bubble,intro,listNode){
+  if(!bubble||!listNode)return null;
+  const message=bubble.textContent?.trim()||'';
+  const rows=Array.from(listNode.querySelectorAll('.row')).map(row=>({
+   text:row.querySelector('.word')?.textContent||'',
+   forceIndex:Number(row.dataset.forceIndex)||null,
+   emojiHidden:!!row.querySelector('.force-emoji.hidden')
+  }));
+  return message&&rows.length?{message,intro:intro?.textContent||'',rows}:null;
+ }
+ function rememberCompletedConversation(){
+  if(temporaryChat||scene!=='end'||generating)return;
+  const archived=Array.from(historyHost.children).map(section=>captureRecentTurn(
+   section.querySelector('.archived-bubble-row .bubble'),
+   section.querySelector('.archived-intro'),
+   section.querySelector('.archived-list')
+  )).filter(Boolean);
+  const current=captureRecentTurn(
+   $('bubble-row').querySelector('.bubble'),$('answerIntro'),list);
+  if(!current)return;
+  const saved=cleanRecentConversation({
+   format:'joaninha-single-recent-v1',turns:archived.slice(-39).concat(current)
+  });
+  if(!saved)return;
+  try{
+   localStorage.setItem(RECENT_CONVERSATION_KEY,JSON.stringify(saved));
+   lastSavedConversation=saved;
+   renderRecentEntry();
+   diag.event('recent-conversation-saved',{turns:saved.turns.length,rows:current.rows.length});
+  }catch(error){diag.event('recent-conversation-save-failed');}
+ }
+ function restoreLatestConversation(){
+  const saved=lastSavedConversation;
+  if(!saved||!saved.turns.length)return false;
+  cancelReply();
+  resetAnswerInteractions();
+  if(temporaryChat)setTemporaryChat(false);
+  draft='';caretPos=0;capsLocked=false;shiftNext=true;setSecretMode(false);
+  refreshLetterLabels();updateComposer();
+  // Restoring conversation history must not dismiss the native keyboard.
+  historyHost.replaceChildren();
+  forceEmojiSpan=null;
+  for(let t=0;t<saved.turns.length;t++){
+   const turn=saved.turns[t];
+   let target;
+   if(t<saved.turns.length-1){
+    const section=document.createElement('section');
+    section.className='archived-turn';
+    const bubbleRow=document.createElement('div');bubbleRow.className='archived-bubble-row';
+    const bubble=document.createElement('div');bubble.className='bubble';
+    bubble.textContent=turn.message;bubbleRow.appendChild(bubble);
+    const intro=document.createElement('p');intro.className='archived-intro';
+    intro.textContent=turn.intro;
+    target=document.createElement('div');target.className='archived-list';
+    const actions=$('actions').cloneNode(true);
+    actions.removeAttribute('id');actions.classList.add('archived-actions');
+    for(const element of actions.querySelectorAll('[id]')){
+     if(element.id==='feedback')element.classList.add('archived-feedback');
+     element.removeAttribute('id');
+    }
+    section.append(bubbleRow,intro,target,actions);
+    historyHost.appendChild(section);
+   }else{
+    $('bubble-row').querySelector('.bubble').textContent=turn.message;
+    $('answerIntro').textContent=turn.intro;
+    list.replaceChildren();
+    target=list;
+   }
+   turn.rows.forEach((row,index)=>{
+    const node=appendReplyRow(row.text,index,row.forceIndex,target);
+    if(row.emojiHidden)node.querySelector('.force-emoji')?.classList.add('hidden');
+   });
+  }
+  // Restoring a normal conversation must not clear a newer secret code.
+  // For users upgrading from an earlier version, recover a prior forced
+  // position from history only if no latest peek was saved yet.
+  if(lastSecretPeekCode===null){
+   const earlierForced=saved.turns.slice().reverse().flatMap(turn=>turn.rows)
+    .find(row=>row.forceIndex!==null);
+   if(earlierForced)rememberLastSecretPeek(
+    earlierForced.forceIndex===100?'100':String(earlierForced.forceIndex).padStart(2,'0'));
+  }
+  showScene('end',{closeDrawer:true});
+  requestAnimationFrame(()=>{scroller.scrollTop=scroller.scrollHeight;refreshJump();});
+  diag.event('recent-conversation-restored',{turns:saved.turns.length});
+  return true;
+ }
+ function renderRecentEntry(){
+  const available=latestTestVersion!==null&&latestTestVersion>GPT_TEST_VERSION;
+  const title=available?'Deseja atualizar o app':lastSavedConversation?.title||'Lista de animais';
+  recentAnimals.textContent=title;
+  recentAnimals.title=title;
+  recentAnimals.classList.toggle('update-ready',available);
+  recentAnimals.setAttribute('aria-label',available?'Deseja atualizar o app, toque para atualizar':title);
+ }
+ function renderAvailableTestUpdate(version){
+  latestTestVersion=Number.isSafeInteger(version)&&version>GPT_TEST_VERSION?version:null;
+  try{
+   if(latestTestVersion===null)localStorage.removeItem(PENDING_UPDATE_KEY);
+   else localStorage.setItem(PENDING_UPDATE_KEY,String(latestTestVersion));
+  }catch(error){}
+  refreshAttentionIndicator();
+  renderRecentEntry();
+ }
+ renderRecentEntry();
+ async function checkForTestUpdate(){
+  if(location.protocol==='file:'||document.visibilityState==='hidden'||navigator.onLine===false)return;
+  const sequence=++updateCheckSequence;
+  try{
+   const url=new URL('./index-version.json',document.baseURI);
+   url.searchParams.set('ts',String(Date.now()));
+   const response=await fetch(url.href,{cache:'no-store'});
+   if(!response.ok)throw new Error('Marcador indisponível');
+   const data=await response.json();
+   const latest=Number(data.version);
+   if(!Number.isSafeInteger(latest)||latest<1)throw new Error('Versão inválida');
+   if(sequence===updateCheckSequence)renderAvailableTestUpdate(latest);
+  }catch(error){
+   // Offline, keep Lista de animais usable, never block navigation
+  }
+ }
+ async function applyAvailableTestUpdate(){
+  if(testUpdateInProgress||latestTestVersion===null||latestTestVersion<=GPT_TEST_VERSION)return;
+  testUpdateInProgress=true;
+  const url=new URL('./index.html',document.baseURI);
+  url.searchParams.set('v',String(latestTestVersion));
+  url.searchParams.set('ts',String(Date.now()));
+  try{
+   const response=await fetch(url.href,{cache:'no-store'});
+   if(!response.ok)throw new Error('HTML indisponível');
+   const source=await response.text();
+   const match=source.match(/const GPT_TEST_VERSION\s*=\s*(\d+)\s*;/);
+   if(!match||Number(match[1])<latestTestVersion)throw new Error('Publicação em andamento');
+   // Cache the whole new version only after the user accepts the update.
+   if(navigator.serviceWorker?.controller){
+    const prepared=await communicateWithOfflineWorker('PREPARE_UPDATE',
+     {version:latestTestVersion},60000);
+    if(!prepared.ready||prepared.version!==latestTestVersion)
+     throw Error('Atualização offline incompleta');
+   }
+   location.replace(url.href);
+  }catch(error){
+   testUpdateInProgress=false;
+   recentAnimals.textContent='Atualização indisponível, tente novamente';
+   setTimeout(()=>renderAvailableTestUpdate(latestTestVersion),2200);
+  }
+ }
+ // Keep the update indicator proactive, rather than discovering releases
+ // only after the user opens the sidebar. The badge and sidebar share
+ // renderAvailableTestUpdate as their single source of truth.
+ $('top-menu').addEventListener('click',()=>checkForTestUpdate());
+ window.addEventListener('pageshow',()=>checkForTestUpdate());
+ window.addEventListener('focus',()=>checkForTestUpdate());
+ window.addEventListener('online',()=>checkForTestUpdate());
+ document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible')checkForTestUpdate();
+ });
+ // iOS PWAs can stay foregrounded for a long time without pageshow or
+ // visibilitychange; poll the tiny version manifest only while visible.
+ const UPDATE_CHECK_POLL_MS=60000;
+ setInterval(()=>{
+  if(document.visibilityState==='visible'&&navigator.onLine!==false)
+   checkForTestUpdate();
+ },UPDATE_CHECK_POLL_MS);
+ // A newly opened PWA may have fired pageshow before listeners were attached.
+ checkForTestUpdate();
+ // Opening the sidebar with a left-edge swipe is intentionally disabled
+ // Vertical drawer scrolling must not accidentally dismiss the menu at its ends
+ let drawerSwipe=null;
+ $('drawer').addEventListener('touchstart',e=>{
+  if(e.touches.length!==1){drawerSwipe=null;return;}
+  drawerSwipe={x:e.touches[0].clientX,y:e.touches[0].clientY};
+ },{passive:true});
+ $('drawer').addEventListener('touchcancel',()=>{drawerSwipe=null;},{passive:true});
+ $('drawer').addEventListener('touchend',e=>{
+  if(!drawerSwipe||e.changedTouches.length!==1){drawerSwipe=null;return;}
+  const dx=e.changedTouches[0].clientX-drawerSwipe.x;
+  const dy=e.changedTouches[0].clientY-drawerSwipe.y;
+  drawerSwipe=null;
+  if(dx < -105 && Math.abs(dy)<40 && Math.abs(dx)>Math.abs(dy)*2.5){
+   diag.event('drawer-intentional-horizontal-dismiss',{direction:'left'});
+   setDrawer(false);
+  }
+ },{passive:true});
+ page.addEventListener('click',e=>{
+  if(drawer && !e.target.closest('#header'))setDrawer(false);
+ });
+ // Close the keyboard on a short tap in the conversation, regardless of
+ // whether it is empty or contains messages. Swipes in the conversation are
+ // scrolling gestures and must never dismiss the keyboard. Header, actions
+ // and composer controls remain excluded.
+ function isConversationDismissArea(e,y){
+  if(!keyboard||drawer||app.classList.contains('jd-open')||
+     app.classList.contains('peek-panel-on')||!themePicker.hidden)return false;
+  const path=typeof e.composedPath==='function'?e.composedPath():[];
+  const excluded=new Set(['composer','keyboard','header','jump',
+   'jdPanel','jdShade','drawer','sidebar','recentAnimals',
+   'workForcePicker','themePicker','peekPanel','peekShade',
+   'answerOptions','answerActionNotice','actions','thread-actions']);
+  if(path.some(node=>node&&(
+    excluded.has(node.id)||
+    ['BUTTON','INPUT','TEXTAREA','A','SELECT'].includes(node.tagName)||
+    node.getAttribute?.('role')==='button'||
+    node.classList?.contains?.('kb-key'))))return false;
+  const top=$('header').getBoundingClientRect().bottom;
+  const bottom=composer.getBoundingClientRect().top;
+  return y>top&&y<bottom;
+ }
+ function completeConversationDismiss(gesture,x,y){
+  if(!gesture||!keyboard)return;
+  const dx=x-gesture.x,dy=y-gesture.y;
+  // Both upward and downward drags scroll, neither is a dismissal gesture.
+  if(Math.hypot(dx,dy)>12)return;
+  const top=$('header').getBoundingClientRect().bottom;
+  const bottom=composer.getBoundingClientRect().top;
+  if(Math.hypot(dx,dy)<=12&&performance.now()-gesture.time<=650&&
+     y>top&&y<bottom){
+   diag.event('conversation-tap-dismiss',{reason:'conversation-tap'});
+   setKeyboard(false,'conversation-tap');
+  }
+ }
+ let conversationPointer=null,conversationTouch=null;
+ page.addEventListener('pointerdown',e=>{
+  conversationPointer=null;
+  if(!e.isPrimary||!isConversationDismissArea(e,e.clientY))return;
+  conversationPointer={id:e.pointerId,x:e.clientX,y:e.clientY,time:performance.now()};
+ },{passive:true});
+ page.addEventListener('pointercancel',()=>{conversationPointer=null;},{passive:true});
+ page.addEventListener('pointerup',e=>{
+  if(!conversationPointer||e.pointerId!==conversationPointer.id)return;
+  const gesture=conversationPointer;conversationPointer=null;
+  completeConversationDismiss(gesture,e.clientX,e.clientY);
+ },{passive:true});
+ // On iOS, touchend can complete a short tap after pointer cancellation;
+ // larger touch movements are ignored so native scrolling remains intact.
+ page.addEventListener('touchstart',e=>{
+  conversationTouch=null;
+  if(e.touches.length!==1||e.changedTouches.length!==1)return;
+  const t=e.changedTouches[0];
+  if(!isConversationDismissArea(e,t.clientY))return;
+  conversationTouch={id:t.identifier,x:t.clientX,y:t.clientY,time:performance.now()};
+ },{passive:true});
+ page.addEventListener('touchcancel',()=>{conversationTouch=null;},{passive:true});
+ page.addEventListener('touchend',e=>{
+  if(!conversationTouch)return;
+  const t=Array.from(e.changedTouches).find(t=>t.identifier===conversationTouch.id);
+  if(!t)return;
+  const gesture=conversationTouch;conversationTouch=null;
+  completeConversationDismiss(gesture,t.clientX,t.clientY);
+ },{passive:true});
+ // A desktop-only shortcut; not displayed on the iPhone reproduction
+ window.addEventListener('keydown',e=>{
+  if(e.key==='Escape')setDrawer(false);
+ });
+ updateComposer();
+ applyViewport();
+ // A previous user-opened keyboard is a preference, not proof of iOS keyboard
+ // availability. Try only after a fresh standalone-PWA launch, without taps.
+ // Never display a phantom keyboard: native focus alone is insufficient.
+ if(isIOS&&standalone&&restoreKeyboardOnLaunch){
+  probingStartupKeyboard=true;
+  diag.event('startup-keyboard-restore-attempt');
+  try{nativeInput.focus({preventScroll:true});}
+  catch(error){diag.event('startup-keyboard-restore-focus-error');}
+  // The existing UI stays closed until the system keyboard is truly visible.
+  setTimeout(()=>{
+   if(!probingStartupKeyboard)return;
+   probingStartupKeyboard=false;
+   const vv=window.visualViewport;
+   const measured=vv?Math.max(0,Math.round(baseAppHeight-(vv.offsetTop+vv.height))):0;
+   if(measured>130&&document.activeElement===nativeInput){
+    setKeyboard(true,'startup-restore');
+    diag.event('startup-keyboard-restore-confirmed',{height:measured});
+   }else{
+    if(document.activeElement===nativeInput)nativeInput.blur();
+    diag.event('startup-keyboard-restore-blocked',{height:measured});
+   }
+  },900);
+ }
+ startOfflineSupport();
+})();
+</script>
+</body>
+</html>
