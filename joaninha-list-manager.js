@@ -132,7 +132,7 @@
    '<button type="button" id="jlmExportJson" class="jlm-btn">Exportar JSON</button>'+
    '<button type="button" id="jlmRestore" class="jlm-btn">Restaurar padrões</button></footer></div>'+
    '<div id="jlmEditView" class="jlm-view" hidden><div class="jlm-scroll">'+
-   '<div class="jlm-field"><label for="jlmName">Nome da lista</label><input class="jlm-input" id="jlmName" maxlength="90" placeholder="Ex: Cidades"></div>'+
+   '<div class="jlm-field"><label for="jlmName">Nome da lista</label><input class="jlm-input" id="jlmName" maxlength="90" placeholder="Ex: cidades"></div>'+
    '<div class="jlm-field"><label for="jlmTerms">Palavras-chave</label><textarea class="jlm-input" id="jlmTerms" rows="2" placeholder="cidade, cidades, lugar"></textarea>'+
    '<div class="jlm-help">Separe os gatilhos por vírgulas</div></div>'+
    '<div class="jlm-field"><label for="jlmItems">Conteúdo da lista</label><textarea class="jlm-input" id="jlmItems" rows="9" placeholder="Uma palavra por linha"></textarea>'+
