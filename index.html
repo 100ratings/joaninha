@@ -175,6 +175,7 @@ border-radius:10px;background:rgba(29,29,32,.84);color:#a9a9af;font-size:10.5px}
 #answerIntro,.archived-intro{display:none;font-size:var(--answer-font,17.2px);line-height:calc(var(--answer-font,17.2px) * 1.34);color:#ededf0;margin:0 0 14px}
 .archived-intro{display:block}
 #app.scene-list #answerIntro,#app.scene-end #answerIntro{display:block}
+#answerIntro:empty,.archived-intro:empty{display:none!important}
 #list,.archived-list{list-style:none;padding:0;margin:0}
 #list .row,.archived-list .row{font-size:var(--answer-font,17.2px);line-height:calc(var(--answer-font,17.2px) * 1.233);letter-spacing:-.17px;display:grid;grid-template-columns:calc(22px + var(--answer-number-extra,0px)) 1fr;column-gap:8px;margin:0;min-height:calc(var(--answer-font,17.2px) * 1.24)}
 /* Space only between successive items, never above the first item. */
@@ -915,17 +916,63 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   if(!Number.isInteger(quantity)||quantity<1||quantity>items.length)throw Error('quantidade indisponivel');
   return {...candidate,items,quantity};
  }
- // A natural answer header, using the meaning of the recognized request.
- function introForRequest(request,resolved){
-  const q=resolved.quantity,plain=request.plain;
+ // Local response language engine: phrasing only, never changes list items or forces.
+ let introVariantIndex=0;
+ function introForRequest(request,resolved,ordered){
+  const plain=request.plain||'';
+  // Respect explicit requests to skip the introductory sentence.
+  const noIntroduction=
+   /\b(?:sem|dispense|evite)\s+(?:(?:qualquer|nenhuma|uma|a)\s+)?(?:introducao|preambulo|prefacio|comentarios?|texto inicial)\b/.test(plain)||
+   /\b(?:so|somente|apenas)\s+(?:(?:a|uma|os|as)\s+)?(?:lista|nomes|itens)\b/.test(plain)||
+   /\b(?:va|vai|ir)\s+(?:direto|diretamente)\s+(?:para\s+)?(?:a\s+)?lista\b/.test(plain);
+  if(noIntroduction)return '';
+
+  const q=resolved.quantity;
+  const singular={
+   animais:'animal',celebridades:'celebridade',filmes:'filme',musicas:'música',
+   aleatorias:'música aleatória',insetos:'inseto',cervejas:'cerveja',
+   hobbies:'hobby',perguntas:'pergunta',pontosturisticos:'ponto turístico',
+   aura:'cor de aura',familiareszoologicos:'familiar zoológico',
+   contatoespiritual:'pergunta para contato espiritual'
+  };
+  const noun=q===1?(singular[resolved.file]||resolved.label):resolved.label;
+  if(q===1)return 'Aqui está um exemplo de '+noun+':';
+
+  // Build the description exclusively from properties the displayed data supports.
+  let subject=q+' '+noun;
   if(resolved.file==='contatoespiritual'){
    if(/\b(?:falar|conversar|comunicar|dialogar)\b.*\b(?:espirito|espiritos)\b/.test(plain))
-    return 'Aqui estão as '+q+' perguntas para falar com '+(plain.includes('espiritos')?'espíritos':'espírito')+':';
-   return 'Aqui estão as '+q+' perguntas para contato espiritual:';
+    subject=q+' perguntas para falar com '+(plain.includes('espiritos')?'espíritos':'espírito');
+  }else if(resolved.file==='aura'&&ordered.every(item=>item.includes(':'))){
+   subject=q+' cores das auras e seus significados';
   }
-  if(resolved.file==='aura')return 'Aqui estão as '+q+' cores das auras e seus significados:';
-  if(resolved.file==='familiareszoologicos')return 'Aqui estão os '+q+' familiares zoológicos:';
-  return 'Aqui estão '+q+' '+resolved.label+':';
+  const onlyNames=/\bnomes\b/.test(plain);
+  if(onlyNames&&['animais','celebridades','filmes','musicas','insetos','cervejas','pontosturisticos'].includes(resolved.file))
+   subject=q+' nomes de '+noun;
+
+  // Do not promise emojis if any displayed item lacks one.
+  const wantsEmojis=/\b(?:emojis?|emoticons?)\b/.test(plain)&&
+   !/\b(?:sem|nao quero|dispense|exclua|remova|retire)\s+(?:os\s+)?(?:emojis?|emoticons?)\b/.test(plain);
+  const allWithEmojis=ordered.length>0&&ordered.every(item=>/\p{Extended_Pictographic}/u.test(item));
+  if(wantsEmojis&&allWithEmojis)subject+=' com seus respectivos emojis';
+
+  // Concise, examples and suggestions each get a fitting tone.
+  if(/\b(?:seja\s+(?:breve|direto|objetivo)|de\s+forma\s+(?:breve|direta|objetiva)|bem\s+resumid[oa]|resposta\s+(?:curta|direta)|sem\s+enrolacao|rapidinho)\b/.test(plain))
+   return 'Aqui vão '+subject+':';
+  if(/\b(?:exemplos?|exemplifique)\b/.test(plain)&&
+     !['aura','contatoespiritual'].includes(resolved.file))
+   return 'Claro! Separei '+q+' exemplos de '+noun+
+    (wantsEmojis&&allWithEmojis?' com seus respectivos emojis':'')+':';
+  if(/\b(?:sugira|sugestoes|recomende)\b/.test(plain))
+   return 'Aqui estão '+subject+' como sugestões:';
+
+  const styles=[
+   'Claro! Aqui está uma lista de '+subject+':',
+   'Aqui estão '+subject+':',
+   'Separei uma lista com '+subject+':',
+   'Segue uma lista com '+subject+':'
+  ];
+  return styles[introVariantIndex++%styles.length];
  }
  function arrange(items,position,quantity,category){
   if(!Number.isInteger(position)||position<1||position>quantity)throw Error('codigo fora da lista');
@@ -1007,7 +1054,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   return {ordered:indices.map(i=>items[i]),
    reservedPosition:finalIndex<0?null:finalIndex+1};
  }
- const GPT_TEST_VERSION=92;
+ const GPT_TEST_VERSION=93;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // Experimental cold-start keyboard restore, independent of any magic state.
  // A normal user opening the keyboard opts in for subsequent launches.
@@ -1280,7 +1327,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
     arrange(resolved.items,forcedPosition,resolved.quantity,resolved.file);
    rememberReservedPosition(resolved.file,
     forcedPosition===null?normal.reservedPosition:forcedPosition);
-   intro.textContent=introForRequest(request,resolved);
+   intro.textContent=introForRequest(request,resolved,ordered);
    showScene('list');
    generating=true;updateComposer();
    let count=0;
