@@ -210,6 +210,11 @@ border-radius:10px;background:rgba(29,29,32,.84);color:#a9a9af;font-size:10.5px}
 #composer>button{background:transparent;border:0;padding:0;display:grid;place-items:center;flex:none}
 #add{width:33px;height:40px;touch-action:none;position:relative;-webkit-touch-callout:none}
 #add svg{width:26px;height:26px}
+/* Subtle non-interactive number guide sized after the iPhone 12 Pro Max image. */
+#numberGridOverlay{display:none;position:absolute;z-index:35;inset:40px 7px;pointer-events:none;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(4,minmax(0,1fr));column-gap:9px;row-gap:16px}
+#numberGridOverlay.visible{display:grid}
+#numberGridOverlay .number-grid-cell{display:flex;align-items:center;justify-content:center;min-width:0;min-height:0;border:1.5px solid rgba(247,247,250,.28);color:rgba(247,247,250,.38);font-size:clamp(49px,17vw,76px);font-weight:300;font-variant-numeric:tabular-nums;line-height:1}
+html[data-theme="light"] #numberGridOverlay .number-grid-cell{border-color:rgba(28,28,32,.28);color:rgba(28,28,32,.4)}
 #text-field{flex:1;min-width:0;color:#8b8b90;font-size:16.7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:38px;display:flex;align-items:center}
 #text-field.has-text{color:#f2f2f4}
 #text-field{touch-action:none;-webkit-touch-callout:none}
@@ -700,6 +705,12 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
    </div>
   </div>
   <div id="top-fade" aria-hidden="true"></div><div id="bottom-fade" aria-hidden="true"></div>
+  <div id="numberGridOverlay" aria-hidden="true">
+   <span class="number-grid-cell">1</span><span class="number-grid-cell">2</span><span class="number-grid-cell">3</span>
+   <span class="number-grid-cell">4</span><span class="number-grid-cell">5</span><span class="number-grid-cell">6</span>
+   <span class="number-grid-cell">7</span><span class="number-grid-cell">8</span><span class="number-grid-cell">9</span>
+   <span class="number-grid-cell"></span><span class="number-grid-cell">0</span><span class="number-grid-cell"></span>
+  </div>
   <button id="jump" class="glass" aria-label="Ir para o final da resposta"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v15m0 0-7-7m7 7 7-7"/></svg></button>
   <div id="composer" aria-label="Campo de mensagem de demonstração">
    <button id="add" aria-label="Adicionar"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M12 2v20M2 12h20"/></svg></button>
@@ -1080,7 +1091,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   return {ordered:indices.map(i=>items[i]),
    reservedPosition:finalIndex<0?null:finalIndex+1};
  }
- const GPT_TEST_VERSION=111;
+ const GPT_TEST_VERSION=112;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // Experimental cold-start keyboard restore, independent of any magic state.
  // A normal user opening the keyboard opts in for subsequent launches.
@@ -2408,31 +2419,44 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
  composer.addEventListener('touchcancel',()=>{
   lowerTouchGesture=null;lowerPointerGesture=null;
  });
- // Holding + for three seconds opens diagnostics, normal taps only open
- let plusTimer=null,plusPress=null,plusHeld=false;
- const plus=$('add');
+ // Simple + taps are inert. Holding for 3 seconds toggles the grid
+ // only when the native keyboard is closed; diagnostics are no longer opened.
+ const plus=$('add'),numberGridOverlay=$('numberGridOverlay');
+ let plusTimer=null,plusPress=null,numberGridVisible=false;
+ function stopPlusHold(){
+  clearTimeout(plusTimer);plusTimer=null;plusPress=null;
+ }
+ function toggleNumberGrid(){
+  numberGridVisible=!numberGridVisible;
+  numberGridOverlay.classList.toggle('visible',numberGridVisible);
+  diag.event('number-grid-toggle',{visible:numberGridVisible});
+ }
  plus.addEventListener('pointerdown',e=>{
-  if(!e.isPrimary)return;
-  plusHeld=false;clearTimeout(plusTimer);
-  plusPress={id:e.pointerId,x:e.clientX,y:e.clientY};
+  if(!e.isPrimary||(e.pointerType==='mouse'&&e.button!==0))return;
+  e.preventDefault();e.stopPropagation();
+  stopPlusHold();
+  if(keyboard)return;
+  const gesture={id:e.pointerId,x:e.clientX,y:e.clientY};
+  plusPress=gesture;
   plusTimer=setTimeout(()=>{
-   if(!plusPress)return;
-   plusHeld=true;plusPress=null;
-   diag.event('diagnostics-open-longpress');diag.open();
+   plusTimer=null;
+   if(plusPress!==gesture||keyboard)return;
+   plusPress=null;
+   toggleNumberGrid();
   },3000);
  });
+ plus.addEventListener('touchstart',e=>{
+  if(e.cancelable)e.preventDefault();
+ },{passive:false});
+ plus.addEventListener('mousedown',e=>e.preventDefault());
  plus.addEventListener('pointermove',e=>{
-  if(plusPress&&Math.hypot(e.clientX-plusPress.x,e.clientY-plusPress.y)>14){
-   clearTimeout(plusTimer);plusTimer=null;plusPress=null;
-  }
+  if(plusPress&&plusPress.id===e.pointerId&&
+     Math.hypot(e.clientX-plusPress.x,e.clientY-plusPress.y)>14)stopPlusHold();
  });
- const stopPlus=()=>{clearTimeout(plusTimer);plusTimer=null;plusPress=null;};
- for(const ev of ['pointerup','pointercancel','pointerleave'])plus.addEventListener(ev,stopPlus);
+ for(const ev of ['pointerup','pointercancel','pointerleave'])
+  plus.addEventListener(ev,stopPlusHold);
  plus.addEventListener('contextmenu',e=>e.preventDefault());
- plus.addEventListener('click',e=>{
-  if(plusHeld){plusHeld=false;e.preventDefault();return;}
-  setKeyboard(true,'plus-tap');
- });
+ plus.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();});
  // The circular meter now toggles the optional second force only.
  let meterPointerId=null;
  const secondForceMeter=$('typingMeter');
