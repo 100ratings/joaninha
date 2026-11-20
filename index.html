@@ -157,7 +157,7 @@ white-space:nowrap;overflow:hidden}
 #offlineHint{display:none;position:absolute;top:calc(var(--safe-top) + 50px);right:17px;z-index:42;
 pointer-events:none;padding:4px 8px;border:1px solid rgba(255,255,255,.12);
 border-radius:10px;background:rgba(29,29,32,.84);color:#a9a9af;font-size:10.5px}
-#offlineHint.shown{display:block}
+#offlineHint.shown{display:none}
 #top-home-right{margin-left:auto}
 #thread-actions{height:44px;width:109px;border-radius:24px;display:none;align-items:center;justify-content:space-evenly;padding:0 5px 0 6px}
 #thread-actions button{display:grid;place-items:center;background:transparent;border:0;min-width:42px;height:40px;padding:5px}
@@ -1214,7 +1214,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   if(out.some(item=>item===undefined))throw Error('lista preparada incompleta');
   return {ordered:out,reservedPosition:position};
  }
- const GPT_TEST_VERSION=117;
+ const GPT_TEST_VERSION=118;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // The number grid owns its own input state, independent of secret keyboard typing.
  let numberGridVisible=false,gridDigits='',gridGesture=null;
@@ -3574,13 +3574,22 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   })();
   try{await offlineCheckRunning;}finally{offlineCheckRunning=null;}
  }
+ // iOS may display a native network warning if SW registration checks for
+ // updates in airplane mode. Inspect the existing offline cache locally;
+ // defer registration until connectivity returns.
+ function registerOfflineWorkerWhenOnline(){
+  if(!('serviceWorker' in navigator)||navigator.onLine===false)return;
+  navigator.serviceWorker.register('./sw.js',{scope:'./'}).then(()=>
+   navigator.serviceWorker.ready.then(()=>ensureOfflinePrepared())
+  ).catch(()=>{});
+ }
  function startOfflineSupport(){
   updateOfflineIndicator();
   window.addEventListener('offline',()=>{
    updateOfflineIndicator();ensureOfflinePrepared();
   });
   window.addEventListener('online',()=>{
-   updateOfflineIndicator();ensureOfflinePrepared();
+   updateOfflineIndicator();registerOfflineWorkerWhenOnline();ensureOfflinePrepared();
   });
   if(!('serviceWorker' in navigator))return;
   navigator.serviceWorker.addEventListener('controllerchange',()=>ensureOfflinePrepared());
@@ -3588,9 +3597,8 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   document.addEventListener('visibilitychange',()=>{
    if(document.visibilityState==='visible')ensureOfflinePrepared();
   });
-  navigator.serviceWorker.register('./sw.js',{scope:'./'}).then(()=>
-   navigator.serviceWorker.ready.then(()=>ensureOfflinePrepared())
-  ).catch(()=>{});
+  if(navigator.onLine===false)ensureOfflinePrepared();
+  else registerOfflineWorkerWhenOnline();
  }
 
  function cleanRecentConversation(raw){
