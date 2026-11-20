@@ -351,9 +351,6 @@ border-radius:10px;background:rgba(29,29,32,.84);color:#a9a9af;font-size:10.5px}
 /* The real native textarea must receive touches rather than the fake field.
    This prevents a tap in the composer from blurring its focused input. */
 #nativeInput{pointer-events:auto;z-index:2}
-/* Mirror native textarea geometry to the visible text so iOS tap targets match. */
-#nativeInput{font:inherit;line-height:23px;letter-spacing:inherit;white-space:pre-wrap;overflow-wrap:anywhere;box-sizing:border-box;padding:7.5px 0 0}
-#app.keyboard-on #nativeInput{left:3px;width:calc(100% - 3px);padding-top:9.5px}
 
 /* === LAB TRANSICOES v2, deliberadamente perceptiveis ===
   Aplicado em clone isolado: apenas aparencia, sem alterar foco, teclado ou magia
@@ -1057,7 +1054,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   return {ordered:indices.map(i=>items[i]),
    reservedPosition:finalIndex<0?null:finalIndex+1};
  }
- const GPT_TEST_VERSION=94;
+ const GPT_TEST_VERSION=95;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // Experimental cold-start keyboard restore, independent of any magic state.
  // A normal user opening the keyboard opts in for subsequent launches.
@@ -1381,27 +1378,21 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
  nativeInput.setAttribute('enterkeyhint','enter');
  nativeInput.spellcheck=true;
  field.replaceChildren(inputLine,nativeInput);
- // Native iOS selection owns cursor movement, including spacebar trackpad.
- // Only force a native cursor position after a programmatic text replacement.
  function syncNativeInput(){
-  const changed=nativeInput.value!==draft;
-  if(changed)nativeInput.value=draft;
-  if(changed&&document.activeElement===nativeInput&&
+  if(nativeInput.value!==draft)nativeInput.value=draft;
+  if(document.activeElement===nativeInput&&
      (nativeInput.selectionStart!==caretPos||nativeInput.selectionEnd!==caretPos)){
    nativeInput.setSelectionRange(caretPos,caretPos);
   }
- }
- function paintComposerCaret(){
-  caretPos=Math.max(0,Math.min(draft.length,caretPos));
-  beforeSpan.textContent=draft.slice(0,caretPos);
-  afterSpan.textContent=draft.slice(caretPos);
  }
  function updateComposer(){
   const ongoing=scene==='thinking'||scene==='list';
   const hasDraft=!!draft.trim()&&!ongoing&&(!secretMode||secretDigits.length===2);
   composer.classList.toggle('has-draft',hasDraft);
   field.classList.toggle('has-text',!!draft);
-  paintComposerCaret();
+  caretPos=Math.max(0,Math.min(draft.length,caretPos));
+  beforeSpan.textContent=draft.slice(0,caretPos);
+  afterSpan.textContent=draft.slice(caretPos);
   placeholder.textContent=temporaryChat?(secretMode?'Chat temporário.':'Chat temporário'):(secretMode?'Perguntar ao ChatGPT.':'Perguntar ao ChatGPT');
   placeholder.hidden=!!draft;
   syncNativeInput();
@@ -1643,7 +1634,6 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   if(secretDigits.length<2&&replacementEvent){
    // No prediction/autocorrection may invent or overwrite a code digit.
    nativeInput.value=old;caretPos=Math.min(caretPos,old.length);
-   nativeInput.setSelectionRange(caretPos,caretPos);
    updateComposer();return;
   }
   if(secretDigits.length===2&&(replacementEvent||suggestionReplacingWord)){
@@ -1652,7 +1642,6 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
    // For the common Liate -> Liste change, no DOM rewrite is necessary.
    if(incoming.length<2){
     nativeInput.value=old;caretPos=Math.min(caretPos,old.length);
-    nativeInput.setSelectionRange(caretPos,caretPos);
    }else{
     draft=incoming.startsWith('Li')?incoming:'Li'+incoming.slice(2);
     caretPos=Math.max(0,Math.min(draft.length,inputCaret));
@@ -1708,23 +1697,11 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
    }
   });
  });
- // Reflect iOS trackpad/taps/selection without collapsing the native range.
- function syncCaretFromNative(){
-  if(document.activeElement!==nativeInput||nativeInput.value!==draft||!draft)return;
-  const start=nativeInput.selectionStart,end=nativeInput.selectionEnd;
-  if(!Number.isInteger(start)||!Number.isInteger(end))return;
-  const position=nativeInput.selectionDirection==='backward'?start:end;
-  if(position===caretPos)return;
-  caretPos=position;
-  paintComposerCaret();
-  diag.event('caret-moved',{caretPos,source:'native'});
- }
- nativeInput.addEventListener('select',syncCaretFromNative);
- nativeInput.addEventListener('selectionchange',syncCaretFromNative);
- document.addEventListener('selectionchange',syncCaretFromNative);
- nativeInput.addEventListener('keyup',syncCaretFromNative);
- nativeInput.addEventListener('pointerup',()=>requestAnimationFrame(syncCaretFromNative));
- nativeInput.addEventListener('touchend',()=>requestAnimationFrame(syncCaretFromNative),{passive:true});
+ nativeInput.addEventListener('select',()=>{
+  if(document.activeElement!==nativeInput||nativeInput.value!==draft)return;
+  const position=nativeInput.selectionStart;
+  if(position!==caretPos){caretPos=position;updateComposer();}
+ });
  function forcedSecretPosition(){
   if(secretDigits.length!==2)return null;
   return (secretDigits[0]*10+secretDigits[1])||100;
@@ -2956,16 +2933,14 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
  renderKeyboard();
  // Tap within already-typed text to move both visual and native insertion points
  field.addEventListener('click',e=>{
-  // The native textarea handles normal taps; use fallback only off the textarea.
-  if(!keyboard||!draft||!e.isTrusted||e.target===nativeInput)return;
+  if(!keyboard||!draft||!e.isTrusted)return;
   const range=document.caretRangeFromPoint?.(e.clientX,e.clientY);
   if(!range)return;
   if(beforeSpan.contains(range.startContainer))caretPos=range.startOffset;
   else if(afterSpan.contains(range.startContainer))caretPos=beforeSpan.textContent.length+range.startOffset;
   else return;
   caretPos=Math.max(0,Math.min(draft.length,caretPos));
-  if(document.activeElement===nativeInput)nativeInput.setSelectionRange(caretPos,caretPos);
-  paintComposerCaret();diag.event('caret-moved',{caretPos,source:'fallback'});
+  updateComposer();diag.event('caret-moved',{caretPos});
  });
  // The only persistent conversation always occupies the first Recentes item.
  const RECENT_CONVERSATION_KEY='joaninha-chat-test-gpt-2-latest-conversation-v1';
