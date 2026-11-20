@@ -1119,7 +1119,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   if(out.some(item=>item===undefined))throw Error('lista preparada incompleta');
   return {ordered:out,reservedPosition:position};
  }
- const GPT_TEST_VERSION=113;
+ const GPT_TEST_VERSION=114;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // The number grid owns its own input state, independent of secret keyboard typing.
  let numberGridVisible=false,gridDigits='',gridGesture=null;
@@ -1439,7 +1439,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   caretPos=Math.max(0,Math.min(draft.length,caretPos));
   beforeSpan.textContent=draft.slice(0,caretPos);
   afterSpan.textContent=draft.slice(caretPos);
-  placeholder.textContent=temporaryChat?(secretMode||numberGridVisible?'Chat temporário.':'Chat temporário'):(secretMode||numberGridVisible?'Perguntar ao ChatGPT.':'Perguntar ao ChatGPT');
+  placeholder.textContent=temporaryChat?(secretMode||numberGridVisible?'Chat temporário.':'Chat temporário'):(numberGridVisible?'Perguntar ao ChatGPT .':secretMode?'Perguntar ao ChatGPT.':'Perguntar ao ChatGPT');
   placeholder.hidden=!!draft;
   syncNativeInput();
   const newLines=Math.min(4,Math.max(1,draft.split('\n').length));
@@ -2606,13 +2606,13 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   const gesture={id,resetTimer:null};
   gridGesture=gesture;
   if(gridDigits.length===2){
-   // A completed code is locked until the magician holds a tile for 2s.
+   // A completed code is locked until the magician holds a tile for 1s.
    gesture.resetTimer=setTimeout(()=>{
     if(gridGesture!==gesture||!numberGridVisible||keyboard)return;
     gridDigits=digit;
     showGridPeek();
     diag.event('grid-code-restarted',{firstDigit:digit});
-   },2000);
+   },1000);
   }else{
    gridDigits+=digit;
    showGridPeek();
