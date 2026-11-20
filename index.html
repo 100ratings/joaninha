@@ -211,8 +211,37 @@ border-radius:10px;background:rgba(29,29,32,.84);color:#a9a9af;font-size:10.5px}
 #add{width:33px;height:40px;touch-action:none;position:relative;-webkit-touch-callout:none}
 #add svg{width:26px;height:26px}
 /* Subtle non-interactive number guide sized after the iPhone 12 Pro Max image. */
-#numberGridOverlay{display:none;position:absolute;z-index:35;inset:40px 7px;pointer-events:none;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(4,minmax(0,1fr));column-gap:9px;row-gap:16px}
-#numberGridOverlay.visible{display:grid}
+#numberGridOverlay{display:grid;visibility:hidden;position:absolute;z-index:35;inset:40px 7px;pointer-events:none;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(4,minmax(0,1fr));column-gap:9px;row-gap:16px}
+#numberGridOverlay.visible{visibility:visible}
+/* Training-only number guide settings, independent of input and Peek. */
+#gridSettingsShade[hidden],#gridSettings[hidden]{display:none!important}
+#gridSettingsShade{position:absolute;inset:0;z-index:58;background:rgba(0,0,0,.14)}
+#gridSettings{position:absolute;z-index:59;bottom:calc(var(--composer-bottom) + 66px);
+ left:32px;right:32px;max-width:342px;padding:14px 15px 12px;
+ background:rgba(38,38,42,.98);color:#f6f6f8;border:1px solid rgba(255,255,255,.13);
+ border-radius:18px;box-shadow:0 10px 32px rgba(0,0,0,.45);
+ -webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px)}
+#app.keyboard-on #gridSettings{bottom:calc(var(--kbd-h) + 124px)}
+#gridSettings .grid-settings-head{display:flex;align-items:center;justify-content:space-between;
+ margin-bottom:12px;font-size:15px;font-weight:650}
+#gridSettingsClose{border:0;background:transparent;color:inherit;font-size:24px;
+ font-weight:300;width:30px;height:30px;display:grid;place-items:center}
+#gridSettings .grid-settings-row{display:flex;align-items:center;justify-content:space-between;gap:14px}
+#gridSettings .grid-settings-label{font-size:15px;font-weight:550}
+#gridSettings .grid-settings-label small{display:block;margin-top:4px;font-size:12px;
+ font-weight:400;color:#a4a4ac}
+#gridTrainingSwitch{display:flex;align-items:center;justify-content:flex-start;flex:none;
+ width:51px;height:31px;padding:3px;border:0;border-radius:20px;background:#65656b}
+#gridTrainingSwitch[aria-checked="true"]{background:#35b963;justify-content:flex-end}
+#gridTrainingSwitch .grid-settings-thumb{background:white;border-radius:50%;
+ width:25px;height:25px;box-shadow:0 1px 3px rgba(0,0,0,.23)}
+#gridTrainingNote{font-size:11.5px;line-height:1.45;color:#b4b4be;
+ margin:12px 0 0;padding-top:10px;border-top:1px solid rgba(255,255,255,.08)}
+html[data-theme="light"] #gridSettings{background:rgba(250,250,253,.99);
+ color:#25262b;border-color:rgba(0,0,0,.12);box-shadow:0 10px 32px rgba(0,0,0,.18)}
+html[data-theme="light"] #gridSettings .grid-settings-label small,
+html[data-theme="light"] #gridTrainingNote{color:#626570}
+html[data-theme="light"] #gridTrainingNote{border-top-color:rgba(0,0,0,.09)}
 #numberGridOverlay .number-grid-cell{display:flex;align-items:center;justify-content:center;min-width:0;min-height:0;border:1.5px solid rgba(247,247,250,.28);color:rgba(247,247,250,.38);font-size:clamp(49px,17vw,76px);font-weight:300;font-variant-numeric:tabular-nums;line-height:1}
 html[data-theme="light"] #numberGridOverlay .number-grid-cell{border-color:rgba(28,28,32,.28);color:rgba(28,28,32,.4)}
 #text-field{flex:1;min-width:0;color:#8b8b90;font-size:16.7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:38px;display:flex;align-items:center}
@@ -711,6 +740,17 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
    <span class="number-grid-cell">7</span><span class="number-grid-cell">8</span><span class="number-grid-cell">9</span>
    <span class="number-grid-cell"></span><span class="number-grid-cell">0</span><span class="number-grid-cell"></span>
   </div>
+  <div id="gridSettingsShade" hidden aria-hidden="true"></div>
+  <section id="gridSettings" role="dialog" aria-modal="true" aria-labelledby="gridSettingsTitle" hidden>
+   <div class="grid-settings-head"><strong id="gridSettingsTitle">Configurações</strong>
+    <button id="gridSettingsClose" type="button" aria-label="Fechar configurações">×</button></div>
+   <div class="grid-settings-row">
+    <div class="grid-settings-label">Modo treino<small>Exibir os números na tela</small></div>
+    <button id="gridTrainingSwitch" type="button" role="switch" aria-checked="false" aria-label="Modo treino">
+     <span class="grid-settings-thumb" aria-hidden="true"></span></button>
+   </div>
+   <p id="gridTrainingNote">Os números funcionam mesmo com a grade invisível</p>
+  </section>
   <button id="jump" class="glass" aria-label="Ir para o final da resposta"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v15m0 0-7-7m7 7 7-7"/></svg></button>
   <div id="composer" aria-label="Campo de mensagem de demonstração">
    <button id="add" aria-label="Adicionar"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M12 2v20M2 12h20"/></svg></button>
@@ -1119,10 +1159,14 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   if(out.some(item=>item===undefined))throw Error('lista preparada incompleta');
   return {ordered:out,reservedPosition:position};
  }
- const GPT_TEST_VERSION=114;
+ const GPT_TEST_VERSION=115;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // The number grid owns its own input state, independent of secret keyboard typing.
  let numberGridVisible=false,gridDigits='',gridGesture=null;
+ // Visual training preference persists; the numeric input mode never depends on it.
+ const GRID_TRAINING_KEY='joaninha-number-grid-training-v1';
+ let numberGridTraining=false,gridSettingsOpen=false;
+ try{numberGridTraining=localStorage.getItem(GRID_TRAINING_KEY)==='1';}catch(error){}
  // Experimental cold-start keyboard restore, independent of any magic state.
  // A normal user opening the keyboard opts in for subsequent launches.
  const KEYBOARD_RESTORE_KEY='joaninha-keyboard-start-open-v1';
@@ -2529,24 +2573,50 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
  composer.addEventListener('touchcancel',()=>{
   lowerTouchGesture=null;lowerPointerGesture=null;
  });
- // Simple + taps are inert. Holding for 3 seconds toggles the grid
- // only when the native keyboard is closed; diagnostics are no longer opened.
+ // Short + tap toggles the numeric magic mode. A 3s hold opens settings
+ // without changing the mode. Training changes visibility, never touch regions.
  const plus=$('add'),numberGridOverlay=$('numberGridOverlay');
- let plusTimer=null,plusPress=null;
+ const gridSettings=$('gridSettings'),gridSettingsShade=$('gridSettingsShade');
+ const gridTrainingSwitch=$('gridTrainingSwitch'),gridTrainingNote=$('gridTrainingNote');
+ let plusTimer=null,plusPress=null,lastPlusPointerAt=-Infinity;
+ function updateGridVisual(){
+  numberGridOverlay.classList.toggle('visible',numberGridVisible&&numberGridTraining);
+  gridTrainingSwitch.setAttribute('aria-checked',String(numberGridTraining));
+  gridTrainingNote.textContent=numberGridTraining?
+   'A grade aparece quando o modo secreto está ativado':
+   'Os números funcionam mesmo com a grade invisível';
+  plus.setAttribute('aria-pressed',String(numberGridVisible));
+ }
+ function setGridSettings(open){
+  gridSettingsOpen=Boolean(open);
+  gridSettings.hidden=!gridSettingsOpen;
+  gridSettingsShade.hidden=!gridSettingsOpen;
+  diag.event('grid-settings-toggle',{open:gridSettingsOpen});
+ }
+ gridTrainingSwitch.addEventListener('click',e=>{
+  e.preventDefault();e.stopPropagation();
+  numberGridTraining=!numberGridTraining;
+  try{localStorage.setItem(GRID_TRAINING_KEY,numberGridTraining?'1':'0');}catch(error){}
+  updateGridVisual();
+  diag.event('grid-training-toggle',{enabled:numberGridTraining});
+ });
+ $('gridSettingsClose').addEventListener('click',()=>setGridSettings(false));
+ gridSettingsShade.addEventListener('click',()=>setGridSettings(false));
  function stopPlusHold(){
   clearTimeout(plusTimer);plusTimer=null;plusPress=null;
  }
  function toggleNumberGrid(){
+  if(gridSettingsOpen)setGridSettings(false);
   numberGridVisible=!numberGridVisible;
   gridDigits='';
   if(numberGridVisible){
-   // Do not make normal spectator typing act as a secret keyboard code.
+   // The spectator's normal keyboard input must not become a secret code.
    setSecretMode(false);setDoubleForceEnabled(false);
   }else{
    stopGridGesture();
    clearSecretPeek();
   }
-  numberGridOverlay.classList.toggle('visible',numberGridVisible);
+  updateGridVisual();
   updateComposer();
   diag.event('number-grid-toggle',{visible:numberGridVisible});
  }
@@ -2554,14 +2624,13 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   if(!e.isPrimary||(e.pointerType==='mouse'&&e.button!==0))return;
   e.preventDefault();e.stopPropagation();
   stopPlusHold();
-  if(keyboard)return;
   const gesture={id:e.pointerId,x:e.clientX,y:e.clientY};
   plusPress=gesture;
   plusTimer=setTimeout(()=>{
    plusTimer=null;
-   if(plusPress!==gesture||keyboard)return;
+   if(plusPress!==gesture)return;
    plusPress=null;
-   toggleNumberGrid();
+   setGridSettings(true);
   },3000);
  });
  plus.addEventListener('touchstart',e=>{
@@ -2572,10 +2641,25 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   if(plusPress&&plusPress.id===e.pointerId&&
      Math.hypot(e.clientX-plusPress.x,e.clientY-plusPress.y)>14)stopPlusHold();
  });
- for(const ev of ['pointerup','pointercancel','pointerleave'])
-  plus.addEventListener(ev,stopPlusHold);
+ plus.addEventListener('pointerup',e=>{
+  if(!plusPress||plusPress.id!==e.pointerId)return;
+  e.preventDefault();e.stopPropagation();
+  stopPlusHold();
+  lastPlusPointerAt=performance.now();
+  toggleNumberGrid();
+ });
+ plus.addEventListener('pointercancel',e=>{
+  if(plusPress?.id===e.pointerId){stopPlusHold();lastPlusPointerAt=performance.now();}
+ });
+ plus.addEventListener('pointerleave',stopPlusHold);
  plus.addEventListener('contextmenu',e=>e.preventDefault());
- plus.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();});
+ // Keyboard accessibility only; touch/mouse gestures are handled on pointerup.
+ plus.addEventListener('click',e=>{
+  e.preventDefault();e.stopPropagation();
+  if(e.detail===0&&performance.now()-lastPlusPointerAt>750)toggleNumberGrid();
+ });
+ window.addEventListener('blur',stopPlusHold);
+ updateGridVisual();
  // The guide is non-interactive CSS; capture the underlying page touch start.
  // One contact equals exactly one digit, regardless of later finger movement.
  function stopGridGesture(){
@@ -2594,7 +2678,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   return null;
  }
  function gridInputAllowed(e){
-  if(!numberGridVisible||keyboard||drawer||!['list','end'].includes(scene)||
+  if(!numberGridVisible||gridSettingsOpen||keyboard||drawer||!['list','end'].includes(scene)||
      !activeGridList||activeGridList.token!==replyToken||
      activeGridList.quantity<31||activeGridList.secondaryPosition!==null)return false;
   const target=e.target;
