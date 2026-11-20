@@ -1078,7 +1078,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   return {ordered:indices.map(i=>items[i]),
    reservedPosition:finalIndex<0?null:finalIndex+1};
  }
- const GPT_TEST_VERSION=106;
+ const GPT_TEST_VERSION=107;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // Experimental cold-start keyboard restore, independent of any magic state.
  // A normal user opening the keyboard opts in for subsequent launches.
@@ -1157,7 +1157,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   // Otherwise the probe timeout could blur a keyboard opened by that user.
   if(next&&probingStartupKeyboard&&reason!=='startup-restore')
    probingStartupKeyboard=false;
-  if(!next&&keyboard&&!['prompt-swipe-down','conversation-tap','drawer-open','peek-panel','native-blur','message-sent'].includes(reason)){
+  if(!next&&keyboard&&!['prompt-swipe-down','conversation-tap','drawer-open','peek-panel','native-blur','message-sent','work-picker','list-manager'].includes(reason)){
    diag.event('keyboard-close-prevented',{reason});
    return false;
   }
@@ -2142,6 +2142,9 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
    workTimer=null;
    if(workGesture!==gesture||scene!=='home')return;
    gesture.opened=true;workHoldOpenedAt=performance.now();
+   // Menu activation dismisses the keyboard, not the initial tap.
+   keyboardBeforeHeaderTap=false;
+   if(keyboard)setKeyboard(false,'work-picker');
    workPicker.classList.add('visible');
    workPicker.setAttribute('aria-hidden','false');
    showWorkChoices();
@@ -2187,7 +2190,8 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
    if(chatHoldGesture!==gesture||scene!=='home')return;
    chatHoldOpenedAt=performance.now();chatHoldHandled=true;
    closeWorkPicker();
-   setKeyboard(false,'list-manager');
+   keyboardBeforeHeaderTap=false;
+   if(keyboard)setKeyboard(false,'list-manager');
    JoaninhaLists.open();
    cancelChatHold();
   },1000);
@@ -2216,7 +2220,9 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   const wasOpen=keyboardBeforeHeaderTap;
   keyboardBeforeHeaderTap=false;
   // The menu intentionally closes the keyboard; never reopen it while
-  // the sidebar is showing, even though this header tap began focused.
+  // the sidebar or a long-press menu is showing.
+  if(performance.now()-workHoldOpenedAt<1000||
+     performance.now()-chatHoldOpenedAt<1100)return;
   if(wasOpen&&!drawer&&!peekPanelOpen&&!app.classList.contains('jd-open')&&
      !document.body.classList.contains('jlm-open'))
    setKeyboard(true,'header-navigation');
