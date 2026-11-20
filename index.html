@@ -1048,7 +1048,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   return {ordered:indices.map(i=>items[i]),
    reservedPosition:finalIndex<0?null:finalIndex+1};
  }
- const GPT_TEST_VERSION=96;
+ const GPT_TEST_VERSION=97;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // Experimental cold-start keyboard restore, independent of any magic state.
  // A normal user opening the keyboard opts in for subsequent launches.
@@ -2258,8 +2258,8 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   if(plusHeld){plusHeld=false;e.preventDefault();return;}
   setKeyboard(true,'plus-tap');
  });
- // The small round meter and the microphone are momentary safety peek controls.
- // The blue send/voice button keeps its own action, independently of the peek.
+ // Only the microphone triggers the momentary safety peek, even with keyboard closed.
+ // The left meter stays visible for future use; the blue voice button is unchanged.
  function quickPeekValue(){
   // A newly armed secret mode has no digits yet, so recall the last
   // successful force instead of hiding the safety peek.
@@ -2275,10 +2275,9 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   clearSecretPeek();
   diag.event('quick-secret-peek-hide');
  }
- for(const button of [$('typingMeter'),$('mic')]){
+ for(const button of [$('mic')]){
   button.addEventListener('pointerdown',e=>{
-   // These peek controls never reveal a code with the keyboard closed.
-   if(!keyboard||!e.isPrimary||(e.pointerType==='mouse'&&e.button!==0))return;
+   if(!e.isPrimary||(e.pointerType==='mouse'&&e.button!==0))return;
    // Prevent iOS focusing a control and dismissing the input keyboard.
    e.preventDefault();e.stopPropagation();
    if(quickPeekPointer!==null)return;
@@ -2293,9 +2292,9 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
    diag.event('quick-secret-peek-show',{digits:value.length});
   });
   button.addEventListener('touchstart',e=>{
-   if(keyboard&&e.cancelable)e.preventDefault();
+   if(e.cancelable)e.preventDefault();
   },{passive:false});
-  button.addEventListener('mousedown',e=>{if(keyboard)e.preventDefault();});
+  button.addEventListener('mousedown',e=>e.preventDefault());
   button.addEventListener('pointerup',e=>{
    if(e.pointerId!==quickPeekPointer)return;
    e.preventDefault();e.stopPropagation();
