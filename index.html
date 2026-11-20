@@ -961,6 +961,9 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   const personalized=JoaninhaLists.getItems(category);
   if(personalized)return personalized;
   if(!category||!/^[a-z0-9]+$/.test(category))throw Error('categoria invalida');
+  // Without a controlling cache worker, offline fetches only wake the iOS alert.
+  if(navigator.onLine===false&&!navigator.serviceWorker?.controller)
+   throw Error('lista offline indisponível');
   const offlineHint=navigator.onLine===false?'&offline=1':'';
   const response=await fetch('chat-test-gpt-2-listas/'+encodeURIComponent(category)+'.txt?v=48&ts='+Date.now()+offlineHint,{cache:'no-store'});
   if(!response.ok)throw Error('lista nao disponivel');
