@@ -244,9 +244,9 @@ border-radius:10px;background:rgba(29,29,32,.84);color:#a9a9af;font-size:10.5px}
 @-webkit-keyframes cursorBlinkV4{0%,49.9%{opacity:1}50%,100%{opacity:0}}
 #app.keyboard-on #add{grid-column:1;grid-row:2;justify-self:start;width:33px}
 #app.keyboard-on #typingMeter{display:block;grid-column:3;grid-row:2}
-/* 28px touch target, preserving the original 24px meter artwork. */
-#typingMeter{display:none;width:28px;height:28px;border-radius:50%;position:relative;align-self:center;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
-#typingMeter .meter-visual{position:absolute;inset:2px;border-radius:50%;border:2px solid #68707c;border-left-color:#3369f4;border-bottom-color:#3369f4;pointer-events:none}
+/* 32px touch target, preserving the original 24px meter artwork. */
+#typingMeter{display:none;width:32px;height:32px;border-radius:50%;position:relative;align-self:center;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+#typingMeter .meter-visual{position:absolute;inset:4px;border-radius:50%;border:2px solid #68707c;border-left-color:#3369f4;border-bottom-color:#3369f4;pointer-events:none}
 #typingMeter .meter-visual:after{content:"";position:absolute;inset:7px;background:#fff;border-radius:50%}
 #app.double-force-on #typingMeter .meter-visual:before{content:"";position:absolute;z-index:1;left:50%;top:50%;width:3px;height:3px;transform:translate(-50%,-50%);border-radius:50%;background:#000;pointer-events:none}
 #app.keyboard-on #mic{grid-column:4;grid-row:2;width:30px}
@@ -1080,7 +1080,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   return {ordered:indices.map(i=>items[i]),
    reservedPosition:finalIndex<0?null:finalIndex+1};
  }
- const GPT_TEST_VERSION=109;
+ const GPT_TEST_VERSION=110;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // Experimental cold-start keyboard restore, independent of any magic state.
  // A normal user opening the keyboard opts in for subsequent launches.
