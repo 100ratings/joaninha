@@ -1783,7 +1783,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   app.classList.toggle('temporary-chat',temporaryChat);
   $('top-home-right').setAttribute('aria-label',temporaryChat?'Desativar chat temporário':'Ativar chat temporário');
   $('top-home-right').setAttribute('aria-pressed',String(temporaryChat));
-  setSecretMode(false);
+  setSecretMode(false);setDoubleForceEnabled(false);
   draft='';caretPos=0;
   updateComposer();
   diag.event('temporary-chat-toggle',{active:temporaryChat});
@@ -3148,7 +3148,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   cancelReply();
   resetAnswerInteractions();
   if(temporaryChat)setTemporaryChat(false);
-  draft='';caretPos=0;capsLocked=false;shiftNext=true;setSecretMode(false);
+  draft='';caretPos=0;capsLocked=false;shiftNext=true;setSecretMode(false);setDoubleForceEnabled(false);
   refreshLetterLabels();updateComposer();
   // Restoring conversation history must not dismiss the native keyboard.
   historyHost.replaceChildren();
