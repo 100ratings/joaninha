@@ -1076,7 +1076,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   return {ordered:indices.map(i=>items[i]),
    reservedPosition:finalIndex<0?null:finalIndex+1};
  }
- const GPT_TEST_VERSION=101;
+ const GPT_TEST_VERSION=102;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // Experimental cold-start keyboard restore, independent of any magic state.
  // A normal user opening the keyboard opts in for subsequent launches.
@@ -1159,6 +1159,8 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
    diag.event('keyboard-close-prevented',{reason});
    return false;
   }
+  // A deliberate or unavoidable dismissal always overrides reply retention.
+  if(!next)retainKeyboardForReply=false;
   if(next===keyboard){
    if(next&&document.activeElement!==nativeInput)nativeInput.focus({preventScroll:true});
    return true;
@@ -1214,7 +1216,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   scroller.scrollTop=Math.max(0,scroller.scrollTop+targetRect.top-scrollRect.top-106);
  }
  // Cancel only superseded requests, never alter an active keyboard
- let replyToken=0;
+ let replyToken=0,retainKeyboardForReply=false;
  function cancelReply(){
   replyToken++;
   stopAuto();
@@ -1237,6 +1239,10 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   closeAnswerOptions();
   archiveCurrentTurn();
   resetAnswerInteractions();
+  // Keep the iPhone keyboard already open at send time, never open a closed one.
+  retainKeyboardForReply=keyboard;
+  if(retainKeyboardForReply&&document.activeElement!==nativeInput)
+   nativeInput.focus({preventScroll:true});
   draft='';caretPos=0;capsLocked=false;shiftNext=true;
   setSecretMode(false);setDoubleForceEnabled(false);refreshLetterLabels();updateComposer();
   // Sending a message no longer dismisses an already-open native keyboard.
@@ -1712,11 +1718,29 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   if(probingStartupKeyboard)return;
   if(!keyboard)setKeyboard(true,'native-focus');
  });
+ function shouldRetainReplyKeyboard(){
+  return retainKeyboardForReply&&keyboard&&!document.hidden&&!drawer&&
+   (scene==='thinking'||scene==='list'||scene==='end');
+ }
  nativeInput.addEventListener('blur',()=>{
-  // Preserve keyboard focus during protected composer gestures:
-  // microphone Peek, second-force toggle, and the send/voice button.
+  // WebKit focus loss during a reply is not an intentional keyboard dismissal.
+  // The user's explicit close gestures still take precedence.
+  if(shouldRetainReplyKeyboard()){
+   try{nativeInput.focus({preventScroll:true});}catch(error){}
+   if(document.activeElement===nativeInput){
+    diag.event('reply-keyboard-focus-preserved');
+    return;
+   }
+  }
   requestAnimationFrame(()=>{
    if(quickPeekPointer!==null||meterPointerId!==null||voicePointerId!==null)return;
+   if(shouldRetainReplyKeyboard()){
+    try{nativeInput.focus({preventScroll:true});}catch(error){}
+    if(document.activeElement===nativeInput){
+     diag.event('reply-keyboard-focus-restored');
+     return;
+    }
+   }
    if(keyboard&&document.activeElement!==nativeInput){
     setKeyboard(false,'native-blur');
    }
@@ -1809,7 +1833,11 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   stopAuto();scene=next;
   app.classList.remove('scene-home','scene-thinking','scene-list','scene-end');
   app.classList.add('scene-'+next);
-  // State transitions must never dismiss an already-open mock keyboard
+  // State transitions never dismiss a keyboard opened before sending.
+  if(next==='home')retainKeyboardForReply=false;
+  else if(retainKeyboardForReply&&keyboard&&document.activeElement!==nativeInput&&!drawer){
+   try{nativeInput.focus({preventScroll:true});}catch(error){}
+  }
   if(next==='home'){
    resetAnswerInteractions();
    historyHost.replaceChildren();
