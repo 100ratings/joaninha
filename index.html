@@ -1226,14 +1226,14 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   target.appendChild(row);
   return row;
  }
- async function startReply(message,forcedPosition=null,options=null){
+ async function startReply(message,forcedPosition=null,options=null,secondaryPosition=null){
   const token=++replyToken;
   stopAuto();
   closeAnswerOptions();
   archiveCurrentTurn();
   resetAnswerInteractions();
   draft='';caretPos=0;capsLocked=false;shiftNext=true;
-  setSecretMode(false);refreshLetterLabels();updateComposer();
+  setSecretMode(false);setDoubleForceEnabled(false);refreshLetterLabels();updateComposer();
   // Sending a message no longer dismisses an already-open native keyboard.
   $('bubble-row').querySelector('.bubble').textContent=message;
   const intro=$('answerIntro');
@@ -1250,9 +1250,14 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
    if(forcedPosition!==null&&(!Number.isInteger(forcedPosition)||forcedPosition<1||forcedPosition>resolved.quantity)){
     throw new Error('Posição secreta fora dos limites da lista');
    }
+   if(secondaryPosition!==null&&(!Number.isInteger(secondaryPosition)||
+      secondaryPosition<1||secondaryPosition>resolved.quantity||
+      forcedPosition===null||secondaryPosition===forcedPosition))
+    throw new Error('Segunda posição secreta inválida');
    const normal=forcedPosition===null?
     shuffleNormalList(resolved.items,resolved.quantity,resolved.file):null;
-   const ordered=normal?normal.ordered:
+   const ordered=normal?normal.ordered:secondaryPosition!==null?
+    arrangeDouble(resolved.items,forcedPosition,secondaryPosition,resolved.quantity,resolved.file):
     arrange(resolved.items,forcedPosition,resolved.quantity,resolved.file);
    rememberReservedPosition(resolved.file,
     forcedPosition===null?normal.reservedPosition:forcedPosition);
@@ -1316,7 +1321,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
  }
  function updateComposer(){
   const ongoing=scene==='thinking'||scene==='list';
-  const hasDraft=!!draft.trim()&&!ongoing&&(!secretMode||secretDigits.length===2);
+  const hasDraft=!!draft.trim()&&!ongoing&&(!secretMode||(secretDigits.length===2&&(!doubleForceEnabled||secondSecretDigits.length===2)));
   composer.classList.toggle('has-draft',hasDraft);
   field.classList.toggle('has-text',!!draft);
   caretPos=Math.max(0,Math.min(draft.length,caretPos));
@@ -1759,7 +1764,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
    resetAnswerInteractions();
    historyHost.replaceChildren();
    $('answerIntro').textContent='';$('list').replaceChildren();
-   draft='';caretPos=0;capsLocked=false;shiftNext=true;setSecretMode(false);refreshLetterLabels();
+   draft='';caretPos=0;capsLocked=false;shiftNext=true;setSecretMode(false);setDoubleForceEnabled(false);refreshLetterLabels();
   }
   updateComposer();
   requestAnimationFrame(()=>{
@@ -1773,14 +1778,19 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
  }
  function sendDraft(){
   if(scene==='thinking'||scene==='list'){cancelReply();showScene('end');return;}
-  if(generating||(secretMode&&secretDigits.length!==2))return;
+  if(generating||(secretMode&&(secretDigits.length!==2||
+      (doubleForceEnabled&&secondSecretDigits.length!==2))))return;
   if(!draft.trim()){setKeyboard(true);return;}
   const message=draft.trim();
   const position=secretMode?forcedSecretPosition():null;
+  const secondary=secretMode?forcedSecondPosition():null;
+  if(secondary!==null&&secondary===position){
+   diag.event('double-force-invalid',{reason:'same-position'});return;
+  }
   // A normal message must NEVER wipe the most recent secret peek.
   if(position!==null)rememberLastSecretPeek(
    secretDigits[0]===0&&secretDigits[1]===0?'100':secretDigits.join(''));
-  startReply(message,position);
+  startReply(message,position,null,secondary);
  }
  // Appearance settings are independent of the keyboard and magic state.
  const THEME_STORAGE_KEY='joaninha-appearance-v1';
