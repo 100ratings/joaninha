@@ -228,7 +228,7 @@ border-radius:10px;background:rgba(29,29,32,.84);color:#a9a9af;font-size:10.5px}
 #secretPeek.peek-four-digits{transform:translateX(-1ch)}
 #mic{width:31px;height:40px;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 #mic svg{width:25px;height:25px}
-#sendVoice{position:relative;border-radius:50%!important;width:34px;height:34px;background:var(--blue)!important;color:#fff}
+#sendVoice{position:relative;border-radius:50%!important;width:34px;height:34px;background:var(--blue)!important;color:#fff;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 #sendVoice svg{width:22px;height:22px}
 #stopPath,#sendPath{display:none}
 #app.scene-thinking #stopPath,#app.scene-list #stopPath{display:block}
@@ -2515,6 +2515,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   runVoiceButtonAction();
  });
  sendVoice.addEventListener('pointercancel',()=>{voicePointerId=null;});
+ sendVoice.addEventListener('contextmenu',e=>e.preventDefault());
  sendVoice.addEventListener('click',e=>{
   e.preventDefault();
   if(performance.now()-lastVoicePointerAction<700)return;
