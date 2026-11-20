@@ -1012,7 +1012,11 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
      primary===secondary||quantity<2||items.length<2)
    throw Error('Posições das duas forças inválidas');
   const ordered=arrange(items,primary,quantity,category);
-  const current=ordered.indexOf(items[1]),target=secondary-1;
+  let current=ordered.indexOf(items[1]);
+  const target=secondary-1;
+  // Two source rows may share the same label. Never move the first force.
+  if(current===primary-1)current=ordered.findIndex((item,index)=>
+   index!==primary-1&&item===items[1]);
   if(current<0)throw Error('Segunda força não está na lista');
   if(current===target)return ordered;
   if(category==='familiareszoologicos'&&quantity===31&&items.length===31)
@@ -2767,6 +2771,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
  const graphemeTool=typeof Intl!=='undefined'&&Intl.Segmenter?
   new Intl.Segmenter('pt-BR',{granularity:'grapheme'}):null;
  function eraseOne(){
+  const beforeDraft=draft;
   if(caretPos>0){
    const prefix=draft.slice(0,caretPos);
    let back=caretPos-1;
@@ -2780,7 +2785,18 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
    draft=draft.slice(0,back)+draft.slice(caretPos);
    caretPos=back;
   }
-  if(secretMode&&draft.length<secretDigits.length){
+  if(secretMode&&doubleForceEnabled){
+   const previous=secretDigits.join(',');
+   const edit=transformDualSecretInput(beforeDraft,draft,dualTypedKeys,caretPos);
+   draft=edit.text;caretPos=edit.caret;dualTypedKeys=edit.keys;
+   secretDigits=dualTypedKeys.slice(0,2).map(secretDigit);
+   secondSecretDigits=dualTypedKeys.slice(2,4).map(secondSecretDigit);
+   if(secretDigits.join(',')!==previous){
+    if(secretDigits.length)showSecretPeek();else clearSecretPeek();
+   }
+   diag.event('secret-code-corrected',{count:secretDigits.length,
+    secondaryCount:secondSecretDigits.length});
+  }else if(secretMode&&draft.length<secretDigits.length){
    secretDigits.length=Math.max(0,draft.length);
    if(secretDigits.length)showSecretPeek();
    else clearSecretPeek();
