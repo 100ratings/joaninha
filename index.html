@@ -1080,7 +1080,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   return {ordered:indices.map(i=>items[i]),
    reservedPosition:finalIndex<0?null:finalIndex+1};
  }
- const GPT_TEST_VERSION=110;
+ const GPT_TEST_VERSION=111;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // Experimental cold-start keyboard restore, independent of any magic state.
  // A normal user opening the keyboard opts in for subsequent launches.
@@ -2248,13 +2248,16 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
  // A prompt tap has a single meaning, independent of keyboard visibility.
  // Classify before the native input receives focus and moves the composer.
  // This must work for both standard and temporary chats.
- let fieldGesture=null,swallowFieldClick=false,promptPointerIntent=null;
+ let fieldGesture=null,promptPointerIntent=null;
  // One shared left/right boundary for both rows of the composer.
  function classifyPromptSide(x){
-  const textRect=placeholder.getBoundingClientRect();
   const fieldRect=field.getBoundingClientRect();
-  // Keep a 27px activation zone when the placeholder is truncated.
-  const activationLeft=Math.min(textRect.right+6,fieldRect.right-27);
+  const pageRect=page.getBoundingClientRect();
+  // One fixed screen-space divider for open and closed keyboards.
+  // 204px preserves the existing open-keyboard behavior on full-size iPhones.
+  // Scale on narrow screens and keep a 27px secret target in narrow fields.
+  const stableDivider=pageRect.left+Math.min(204,pageRect.width*.55);
+  const activationLeft=Math.min(fieldRect.right-27,Math.max(fieldRect.left+27,stableDivider));
   return x>activationLeft&&x<fieldRect.right-4?'secret':'normal';
  }
  function classifyPromptTouch(x,y){
@@ -2284,11 +2287,11 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
    const dx=e.clientX-fieldGesture.x,dy=e.clientY-fieldGesture.y;
    fieldGesture=null;
    if(dy>=58&&Math.abs(dx)<=Math.max(45,dy*.55)){
-    swallowFieldClick=true;promptPointerIntent=null;
+    // Do not reopen the keyboard or change mode on a delayed click.
+    promptPointerIntent={id:e.pointerId,handled:true,dismissed:true};
     diag.event('prompt-swipe-down',{distance:Math.round(dy)});
     setKeyboard(false,'prompt-swipe-down');
     e.preventDefault();
-    setTimeout(()=>{swallowFieldClick=false;},340);
     return;
    }
    diag.event('prompt-touch-without-dismiss');
@@ -2300,21 +2303,36 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
    touch.handled=true;
   }
  });
- field.addEventListener('pointercancel',()=>{fieldGesture=null;promptPointerIntent=null;diag.event('prompt-gesture-cancel');});
+ field.addEventListener('pointercancel',()=>{
+  fieldGesture=null;
+  // Retain the original side if WebKit delivers a click after cancel.
+  if(promptPointerIntent)promptPointerIntent.canceled=true;
+  diag.event('prompt-gesture-cancel');
+ });
  $('text-field').addEventListener('click',e=>{
-  if(swallowFieldClick){swallowFieldClick=false;promptPointerIntent=null;return;}
-  const cached=promptPointerIntent&&performance.now()-promptPointerIntent.at<850?
-   promptPointerIntent:null;
+  const cached=promptPointerIntent;
   promptPointerIntent=null;
-  if(cached){
+  if(cached?.dismissed)return;
+  const matchingPointer=cached&&
+   (!Number.isFinite(e.pointerId)||e.pointerId===0||e.pointerId===cached.id);
+  if(matchingPointer){
+   // A delayed or canceled pointer click keeps its original side.
    if(!cached.handled&&!draft)setSecretMode(cached.intent==='secret');
-   // Focus in click, a supported user gesture, never in pointerdown.
    setKeyboard(true,'prompt-click');
-  }else{
-   const intent=classifyPromptTouch(e.clientX,e.clientY);
-   if(intent)applyPromptTouch(intent,'prompt-click-fallback');
-   else setKeyboard(true,'prompt-click');
+   return;
   }
+  // An unpaired synthetic pointer click must never disarm a secret mode.
+  const pointerClick=e.detail>0||
+   (typeof e.pointerType==='string'&&e.pointerType!=='')||
+   e.sourceCapabilities?.firesTouchEvents===true;
+  if(pointerClick){
+   setKeyboard(true,'prompt-unpaired-click');
+   return;
+  }
+  // Keyboard and accessibility clicks without pointers remain supported.
+  const intent=classifyPromptTouch(e.clientX,e.clientY);
+  if(intent)applyPromptTouch(intent,'prompt-accessibility-click');
+  else setKeyboard(true,'prompt-click');
  });
  $('text-field').addEventListener('keydown',e=>{if(e.target===field&&(e.key==='Enter'||e.key===' ')){e.preventDefault();setKeyboard(true,'prompt-accessibility');}});
  // The empty LOWER composer row uses the very same left/right
