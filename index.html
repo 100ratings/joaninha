@@ -1078,7 +1078,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   return {ordered:indices.map(i=>items[i]),
    reservedPosition:finalIndex<0?null:finalIndex+1};
  }
- const GPT_TEST_VERSION=105;
+ const GPT_TEST_VERSION=106;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // Experimental cold-start keyboard restore, independent of any magic state.
  // A normal user opening the keyboard opts in for subsequent launches.
@@ -1770,6 +1770,8 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
  function setSecretMode(enabled){
   if(enabled&&draft.length)return false;
   secretMode=!!enabled;secretDigits=[];secondSecretDigits=[];dualTypedKeys=[];clearSecretPeek();
+  // Choosing the normal (left) input must also clear the double-force meter.
+  if(!secretMode&&doubleForceEnabled)setDoubleForceEnabled(false);
   updateComposer();diag.event(secretMode?'secret-armed':'secret-disarmed');
   return true;
  }
