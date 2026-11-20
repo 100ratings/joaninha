@@ -165,6 +165,10 @@ async function listResponse(request,path,event){
  // Keep the active version's list snapshot stable even while online.
  // New TXT data becomes active only after PREPARE_UPDATE stages all versioned resources.
  if(saved)return saved;
+ // An explicitly offline list request must never initiate a network request
+ // if its saved snapshot is unavailable.
+ if(new URL(request.url).searchParams.get('offline')==='1')
+  return new Response('Lista offline indisponível',{status:503});
  const controller=new AbortController();
  const timer=setTimeout(()=>controller.abort(),2200);
  try{
