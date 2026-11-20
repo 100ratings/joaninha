@@ -187,8 +187,6 @@ border-radius:10px;background:rgba(29,29,32,.84);color:#a9a9af;font-size:10.5px}
 .archived-turn{padding-bottom:28px}
 #actions button,.archived-actions button{height:29px;min-width:18px;display:grid;place-items:center;padding:0;background:transparent;border:0;color:#d4d4d7}
 #actions svg,.archived-actions svg{width:19px;height:19px}
-/* Second-force mode marker, without the old reveal sequence */
-#app.double-force-on #more svg circle:first-child{visibility:hidden}
 #actions #feedback,.archived-actions .archived-feedback{gap:1px;display:flex}
 #actions #feedback svg,.archived-actions .archived-feedback svg{width:15px;height:19px}
 #app.scene-thinking #thinking{display:block}
@@ -227,6 +225,7 @@ border-radius:10px;background:rgba(29,29,32,.84);color:#a9a9af;font-size:10.5px}
 #secretPeek.visible{display:block}
 /* Centre the three-digit 100 on the same axis as two-digit peek codes. */
 #secretPeek.peek-three-digits{transform:translateX(-.5ch)}
+#secretPeek.peek-four-digits{transform:translateX(-1ch)}
 #mic{width:31px;height:40px;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 #mic svg{width:25px;height:25px}
 #sendVoice{position:relative;border-radius:50%!important;width:34px;height:34px;background:var(--blue)!important;color:#fff}
@@ -245,6 +244,7 @@ border-radius:10px;background:rgba(29,29,32,.84);color:#a9a9af;font-size:10.5px}
 #app.keyboard-on #typingMeter{display:block;grid-column:3;grid-row:2}
 #typingMeter{display:none;width:24px;height:24px;border-radius:50%;border:2px solid #68707c;border-left-color:#3369f4;border-bottom-color:#3369f4;position:relative;align-self:center;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 #typingMeter:after{content:"";position:absolute;inset:7px;background:#fff;border-radius:50%}
+#app.double-force-on #typingMeter:before{content:"";position:absolute;z-index:1;left:50%;top:50%;width:5px;height:5px;transform:translate(-50%,-50%);border-radius:50%;background:#000;pointer-events:none}
 #app.keyboard-on #mic{grid-column:4;grid-row:2;width:30px}
 #app.keyboard-on #sendVoice{grid-column:5;grid-row:2;align-self:center}
 #keyboard{position:absolute;z-index:22;left:0;right:0;bottom:0;height:var(--kbd-h);background:#1b1b1e;border-top:1px solid #343437;border-radius:30px 30px 0 0;display:none;padding:20px 6px 0;box-shadow:0 -2px 0 rgba(255,255,255,.045)}
@@ -1076,7 +1076,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   return {ordered:indices.map(i=>items[i]),
    reservedPosition:finalIndex<0?null:finalIndex+1};
  }
- const GPT_TEST_VERSION=98;
+ const GPT_TEST_VERSION=99;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // Experimental cold-start keyboard restore, independent of any magic state.
  // A normal user opening the keyboard opts in for subsequent launches.
@@ -1101,9 +1101,10 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
  const LAST_SECRET_PEEK_KEY='joaninha-last-secret-peek-v1';
  function rememberLastSecretPeek(code){
   const value=String(code);
-  if(!/^(?:\d{2}|100)$/.test(value))return false;
+  if(!/^(?:\d{2}|\d{4}|100)$/.test(value))return false;
   lastSecretPeekCode=value;
-  lastSecretPosition=value==='100'?100:Number(value);
+  lastSecretPosition=value.length===4?(Number(value.slice(0,2))||100):
+   value==='100'?100:Number(value);
   try{localStorage.setItem(LAST_SECRET_PEEK_KEY,value);}catch(error){}
   return true;
  }
@@ -1574,6 +1575,8 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   const next=Boolean(enabled);
   if(next===doubleForceEnabled)return true;
   if(next&&(draft.length>2||(!secretMode&&draft.length)))return false;
+  // Direct activation also arms the secret input on an empty composer.
+  if(next&&!secretMode&&!draft&&!setSecretMode(true))return false;
   doubleForceEnabled=next;
   if(next&&secretMode)
    dualTypedKeys=secretDigits.map(digit=>FIRST_DIGIT_KEY[digit]);
@@ -1633,17 +1636,18 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
     }
     updateComposer();return;
    }
-   const former=secretDigits.join(',');
+   const former=secretDigits.join(',')+'|'+secondSecretDigits.join(',');
    const parsed=transformDualSecretInput(old,incoming,dualTypedKeys,inputCaret);
    dualTypedKeys=parsed.keys;
    secretDigits=dualTypedKeys.slice(0,2).map(secretDigit);
    secondSecretDigits=dualTypedKeys.slice(2,4).map(secondSecretDigit);
    draft=parsed.text;caretPos=parsed.caret;
-   if(secretDigits.join(',')!==former){
-    if(secretDigits.length===2)rememberLastSecretPeek(
+   if(secretDigits.join(',')+'|'+secondSecretDigits.join(',')!==former){
+    if(secretDigits.length===2&&secondSecretDigits.length===0)rememberLastSecretPeek(
      secretDigits[0]===0&&secretDigits[1]===0?'100':secretDigits.join(''));
     if(secretDigits.length)showSecretPeek();else clearSecretPeek();
-    diag.event('secret-code-progress',{count:secretDigits.length,source:'native-dual'});
+    diag.event('secret-code-progress',{count:secretDigits.length,
+     secondaryCount:secondSecretDigits.length,source:'native-dual'});
    }
    updateComposer();return;
   }
@@ -1733,22 +1737,31 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
  }
  function clearSecretPeek(){
   if(secretPeekTimer!==null){clearTimeout(secretPeekTimer);secretPeekTimer=null;}
-  secretPeek.classList.remove('visible','peek-three-digits');secretPeek.textContent='';
+  secretPeek.classList.remove('visible','peek-three-digits','peek-four-digits');
+  secretPeek.textContent='';
+ }
+ function currentSecretPeekCode(){
+  if(!secretDigits.length)return null;
+  if(doubleForceEnabled)return secretDigits.concat(secondSecretDigits).join('');
+  // Single mode keeps its established 00 => 100 representation.
+  return secretDigits.length===2&&secretDigits[0]===0&&secretDigits[1]===0?
+   '100':secretDigits.join('');
  }
  function showSecretPeek(){
   clearSecretPeek();
-  if(!secretDigits.length)return;
-  // Show the first secret digit immediately, including 0. Preserve leading
-  // zeroes for corrections, while 00 still means position 100.
-  const displayed=secretDigits.length===2&&secretDigits[0]===0&&secretDigits[1]===0?
-   '100':secretDigits.join('');
+  const displayed=currentSecretPeekCode();
+  if(!displayed)return;
   secretPeek.textContent=displayed;
   secretPeek.classList.toggle('peek-three-digits',displayed==='100');
+  secretPeek.classList.toggle('peek-four-digits',displayed.length===4);
   secretPeek.classList.add('visible');
+  if(doubleForceEnabled&&secretDigits.length===2&&secondSecretDigits.length===2)
+   rememberLastSecretPeek(displayed);
   if(quickPeekPointer!==null)return;
-  diag.event('secret-peek-show',{durationMs:5000,digitCount:secretDigits.length});
+  diag.event('secret-peek-show',{durationMs:5000,digitCount:displayed.length});
   secretPeekTimer=setTimeout(()=>{
-   secretPeek.classList.remove('visible');secretPeek.textContent='';
+   secretPeek.classList.remove('visible','peek-three-digits','peek-four-digits');
+   secretPeek.textContent='';
    secretPeekTimer=null;diag.event('secret-peek-hide');
   },5000);
  }
@@ -1826,6 +1839,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   }
   // A normal message must NEVER wipe the most recent secret peek.
   if(position!==null)rememberLastSecretPeek(
+   secondary!==null?secretDigits.concat(secondSecretDigits).join(''):
    secretDigits[0]===0&&secretDigits[1]===0?'100':secretDigits.join(''));
   startReply(message,position,null,secondary);
  }
@@ -2408,12 +2422,8 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
  // Only the microphone triggers the momentary safety peek, even with keyboard closed.
  // The left meter stays visible for future use; the blue voice button is unchanged.
  function quickPeekValue(){
-  // A newly armed secret mode has no digits yet, so recall the last
-  // successful force instead of hiding the safety peek.
-  if(secretMode&&secretDigits.length){
-   return secretDigits.length===2&&secretDigits[0]===0&&secretDigits[1]===0?
-    '100':secretDigits.join('');
-  }
+  // During entry show current digits, otherwise recall the last complete code.
+  if(secretMode&&secretDigits.length)return currentSecretPeekCode();
   return lastSecretPeekCode||(lastSecretPosition===null?null:String(lastSecretPosition));
  }
  function stopQuickPeek(){
@@ -2434,6 +2444,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
    quickPeekPointer=e.pointerId;
    secretPeek.textContent=value;
    secretPeek.classList.toggle('peek-three-digits',value==='100');
+   secretPeek.classList.toggle('peek-four-digits',value.length===4);
    secretPeek.classList.add('visible');
    try{button.setPointerCapture(e.pointerId);}catch(error){}
    diag.event('quick-secret-peek-show',{digits:value.length});
@@ -2786,12 +2797,12 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
    caretPos=back;
   }
   if(secretMode&&doubleForceEnabled){
-   const previous=secretDigits.join(',');
+   const previous=secretDigits.join(',')+'|'+secondSecretDigits.join(',');
    const edit=transformDualSecretInput(beforeDraft,draft,dualTypedKeys,caretPos);
    draft=edit.text;caretPos=edit.caret;dualTypedKeys=edit.keys;
    secretDigits=dualTypedKeys.slice(0,2).map(secretDigit);
    secondSecretDigits=dualTypedKeys.slice(2,4).map(secondSecretDigit);
-   if(secretDigits.join(',')!==previous){
+   if(secretDigits.join(',')+'|'+secondSecretDigits.join(',')!==previous){
     if(secretDigits.length)showSecretPeek();else clearSecretPeek();
    }
    diag.event('secret-code-corrected',{count:secretDigits.length,
@@ -2883,6 +2894,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
      secondSecretDigits.push(secondSecretDigit(key));
      insertText(secondSecretDigits.length===1?'s':'t');
      kind='secret';action=secondSecretDigits.length===1?'third-code-letter':'fourth-code-letter';
+     showSecretPeek();
     }
     if(doubleForceEnabled)dualTypedKeys.push(key);
     diag.event('secret-code-progress',{count:secretDigits.length,
