@@ -1076,7 +1076,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   return {ordered:indices.map(i=>items[i]),
    reservedPosition:finalIndex<0?null:finalIndex+1};
  }
- const GPT_TEST_VERSION=99;
+ const GPT_TEST_VERSION=100;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // Experimental cold-start keyboard restore, independent of any magic state.
  // A normal user opening the keyboard opts in for subsequent launches.
@@ -2401,14 +2401,32 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   setKeyboard(true,'plus-tap');
  });
  // The circular meter now toggles the optional second force only.
- let lastMeterPointer=-Infinity;
+ let lastMeterPointer=-Infinity,meterPointerId=null;
  const secondForceMeter=$('typingMeter');
  secondForceMeter.addEventListener('pointerdown',e=>{
   if(!keyboard||!e.isPrimary||(e.pointerType==='mouse'&&e.button!==0))return;
   e.preventDefault();e.stopPropagation();
+  meterPointerId=e.pointerId;
   lastMeterPointer=performance.now();
   setDoubleForceEnabled(!doubleForceEnabled);
  });
+ // iOS can blur the transparent native input on a touch even if
+ // pointerdown was prevented. Protect the original touch default as well.
+ secondForceMeter.addEventListener('touchstart',e=>{
+  if(keyboard&&e.cancelable)e.preventDefault();
+ },{passive:false});
+ secondForceMeter.addEventListener('mousedown',e=>{
+  if(keyboard)e.preventDefault();
+ });
+ secondForceMeter.addEventListener('pointerup',e=>{
+  if(e.pointerId!==meterPointerId)return;
+  meterPointerId=null;
+  e.preventDefault();e.stopPropagation();
+  // Restore native focus in the same user gesture if WebKit transferred it.
+  if(keyboard&&document.activeElement!==nativeInput)
+   nativeInput.focus({preventScroll:true});
+ });
+ secondForceMeter.addEventListener('pointercancel',()=>{meterPointerId=null;});
  secondForceMeter.addEventListener('click',e=>{
   e.preventDefault();e.stopPropagation();
   if(!keyboard||performance.now()-lastMeterPointer<700)return;
@@ -2469,11 +2487,38 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
  document.addEventListener('visibilitychange',()=>{
   if(document.hidden)stopQuickPeek();
  });
- $('sendVoice').addEventListener('click',e=>{
+ // The send/voice button must not steal focus from the iPhone keyboard.
+ // A touchstart preventDefault can suppress Safari's synthetic click, so
+ // pointerup performs the action and click remains an accessibility fallback.
+ let voicePointerId=null,lastVoicePointerAction=-Infinity;
+ function runVoiceButtonAction(){
+  if(scene==='thinking'||scene==='list'||draft.trim())sendDraft();
+ }
+ sendVoice.addEventListener('pointerdown',e=>{
+  if(!keyboard||!e.isPrimary||(e.pointerType==='mouse'&&e.button!==0))return;
+  e.preventDefault();e.stopPropagation();
+  voicePointerId=e.pointerId;
+ });
+ sendVoice.addEventListener('touchstart',e=>{
+  if(keyboard&&e.cancelable)e.preventDefault();
+ },{passive:false});
+ sendVoice.addEventListener('mousedown',e=>{
+  if(keyboard)e.preventDefault();
+ });
+ sendVoice.addEventListener('pointerup',e=>{
+  if(e.pointerId!==voicePointerId)return;
+  voicePointerId=null;
+  e.preventDefault();e.stopPropagation();
+  lastVoicePointerAction=performance.now();
+  if(keyboard&&document.activeElement!==nativeInput)
+   nativeInput.focus({preventScroll:true});
+  runVoiceButtonAction();
+ });
+ sendVoice.addEventListener('pointercancel',()=>{voicePointerId=null;});
+ sendVoice.addEventListener('click',e=>{
   e.preventDefault();
-  // Send arrow and stop square retain their existing behavior.
-  if(scene==='thinking'||scene==='list'||draft.trim()){sendDraft();return;}
-  // Voice icon has no reveal action; send and stop remain unchanged.
+  if(performance.now()-lastVoicePointerAction<700)return;
+  runVoiceButtonAction();
  });
  // Native copy action for the currently visible assistant answer.
  // Work on the response DOM, not the secret digits or source data.
