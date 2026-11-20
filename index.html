@@ -354,7 +354,7 @@ html[data-theme="light"] #numberGridOverlay .number-grid-cell{border-color:rgba(
 #peekAppearancePreview{height:70px;display:grid;place-items:center;border-radius:12px;margin:10px 0 8px;
  background:linear-gradient(90deg,#19191d 0%,#19191d 50%,#555560 50%,#555560 100%);
  border:1px solid rgba(255,255,255,.14)}
-#peekAppearancePreview span{font-size:calc(var(--peek-font,9px)*2);font-weight:550;line-height:1.1;
+#peekAppearancePreview span{font-size:var(--peek-preview-font,18px);font-weight:550;line-height:1.1;
  font-variant-numeric:tabular-nums;color:var(--peek-color,#c9c9d0);opacity:var(--peek-opacity,1);
  text-shadow:var(--peek-shadow,0 1px 2px #000);-webkit-text-stroke:var(--peek-preview-outline-width,0px) var(--peek-outline-color,#000);paint-order:stroke fill}
 .peek-preview-hint{font-size:11px;color:#b6b6bf;margin:0 0 9px}
@@ -1679,6 +1679,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   const stroke=PEEK_STROKE[peekSettings.outline];
   for(const node of [composer,$('peekAppearancePreview')]){
    node.style.setProperty('--peek-font',peekSettings.font+'px');
+   node.style.setProperty('--peek-preview-font',peekSettings.font*2+'px');
    node.style.setProperty('--peek-opacity',String(peekSettings.opacity/100));
    node.style.setProperty('--peek-color',peekSettings.color);
    node.style.setProperty('--peek-outline-width',stroke+'px');
