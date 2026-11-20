@@ -1078,7 +1078,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   return {ordered:indices.map(i=>items[i]),
    reservedPosition:finalIndex<0?null:finalIndex+1};
  }
- const GPT_TEST_VERSION=104;
+ const GPT_TEST_VERSION=105;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // Experimental cold-start keyboard restore, independent of any magic state.
  // A normal user opening the keyboard opts in for subsequent launches.
@@ -1248,7 +1248,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   list.replaceChildren();
   showScene('thinking',options);
   generating=true;updateComposer();
-  const thinkingFinished=new Promise(resolve=>setTimeout(resolve,2500));
+  const thinkingFinished=new Promise(resolve=>setTimeout(resolve,1500));
   try{
    const request=parseRequest(message);
    const resolved=await resolveList(request);
