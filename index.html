@@ -1713,10 +1713,10 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   if(!keyboard)setKeyboard(true,'native-focus');
  });
  nativeInput.addEventListener('blur',()=>{
-  // Let a same-gesture composer click restore focus before closing UI.
-  // A held quick peek must never request a keyboard dismissal.
+  // Preserve keyboard focus during protected composer gestures:
+  // microphone Peek, second-force toggle, and the send/voice button.
   requestAnimationFrame(()=>{
-   if(quickPeekPointer!==null)return;
+   if(quickPeekPointer!==null||meterPointerId!==null||voicePointerId!==null)return;
    if(keyboard&&document.activeElement!==nativeInput){
     setKeyboard(false,'native-blur');
    }
