@@ -257,7 +257,7 @@ html[data-theme="light"] #numberGridOverlay .number-grid-cell{border-color:rgba(
 #app.keyboard-on #secretHotspot{display:none}
 /* Stable left edge keeps the first digit anchored as the code grows */
 #secretPeek{display:none;position:absolute;z-index:28;left:calc(50% - 24px + var(--peek-x,0px));top:calc(50% - 2px - var(--peek-y,0px));width:55px;text-align:left;white-space:nowrap;pointer-events:none;
- color:#c9c9d0;font-size:var(--peek-font,12px);opacity:var(--peek-opacity,1);font-weight:550;line-height:1.1;letter-spacing:-.1px;font-variant-numeric:tabular-nums;text-shadow:0 1px 2px #000}
+ color:var(--peek-color,#c9c9d0);font-size:var(--peek-font,12px);opacity:var(--peek-opacity,1);font-weight:550;line-height:1.1;letter-spacing:-.1px;font-variant-numeric:tabular-nums;text-shadow:var(--peek-shadow,0 1px 2px #000);-webkit-text-stroke:var(--peek-outline-width,0px) var(--peek-outline-color,#000);paint-order:stroke fill}
 #secretPeek.visible{display:block}
 /* Centre the three-digit 100 on the same axis as two-digit peek codes. */
 #secretPeek.peek-three-digits{transform:translateX(-.5ch)}
@@ -350,6 +350,35 @@ html[data-theme="light"] #numberGridOverlay .number-grid-cell{border-color:rgba(
 .peek-footer button{height:40px;border-radius:12px;border:1px solid #54545f;background:#3a3a41;font-size:13px;font-weight:600}
 #peekSave{background:#356af0;border-color:#356af0}
 #peekStorageStatus{margin-top:8px;min-height:13px;text-align:center;color:#b2ddb9;font-size:11px}
+/* Peek appearance editor: same visual properties as the actual secret Peek. */
+#peekAppearancePreview{height:70px;display:grid;place-items:center;border-radius:12px;margin:10px 0 8px;
+ background:linear-gradient(90deg,#19191d 0%,#19191d 50%,#555560 50%,#555560 100%);
+ border:1px solid rgba(255,255,255,.14)}
+#peekAppearancePreview span{font-size:calc(var(--peek-font,9px)*2);font-weight:550;line-height:1.1;
+ font-variant-numeric:tabular-nums;color:var(--peek-color,#c9c9d0);opacity:var(--peek-opacity,1);
+ text-shadow:var(--peek-shadow,0 1px 2px #000);-webkit-text-stroke:var(--peek-preview-outline-width,0px) var(--peek-outline-color,#000);paint-order:stroke fill}
+.peek-preview-hint{font-size:11px;color:#b6b6bf;margin:0 0 9px}
+#peekPalette{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;margin:6px 0 11px}
+#peekPalette button{min-width:0;height:39px;border-radius:10px;background:rgba(255,255,255,.045);
+ border:1px solid rgba(255,255,255,.14);display:grid;place-items:center}
+#peekPalette button::before{content:"";width:22px;height:22px;border-radius:50%;
+ background:var(--swatch);border:1px solid rgba(255,255,255,.32)}
+#peekPalette button[aria-pressed="true"]{border-color:#7da5ff;box-shadow:inset 0 0 0 1px #7da5ff}
+.peek-custom-color{display:grid;grid-template-columns:38px minmax(0,1fr);gap:9px;align-items:center}
+#peekColorPicker{height:35px;width:38px;padding:2px;background:#393940;border:1px solid #666670;border-radius:9px}
+#peekHexValue{height:35px;min-width:0;width:100%;padding:0 10px;background:#2c2c33;color:#f5f5f8;
+ border:1px solid #666670;border-radius:9px;font:500 13px ui-monospace,SFMono-Regular,monospace}
+#peekOutlineChoices{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin:7px 0}
+#peekOutlineChoices button{min-width:0;min-height:35px;padding:0 4px;border:1px solid #666670;
+ border-radius:9px;background:#393941;font-size:12px;font-weight:550;color:#eaeaf0}
+#peekOutlineChoices button[aria-pressed="true"]{background:#31529a;border-color:#7da5ff}
+.peek-shadow-row{display:flex;align-items:center;justify-content:space-between;margin:13px 0 10px;
+ gap:10px;font-size:13px;font-weight:600}
+#peekShadowToggle{min-width:110px;min-height:34px;padding:0 8px;border:1px solid #666670;
+ background:#393941;border-radius:10px;font-size:12px;font-weight:600}
+#peekShadowToggle[aria-pressed="true"]{background:#31529a;border-color:#7da5ff}
+#peekStyleReset{width:100%;min-height:36px;margin:6px 0 4px;padding:7px;border:1px solid #666670;
+ border-radius:10px;background:rgba(255,255,255,.05);font-size:12px;font-weight:550}
 
 .peek-tabs{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:4px;margin:11px 0 9px;border-radius:13px;background:rgba(24,24,28,.54)}
 .peek-tabs button{border:0;border-radius:9px;background:transparent;height:34px;font-size:13px;font-weight:650;color:#c8c8cf}
@@ -786,6 +815,32 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
    <div class="peek-adjust"><button type="button" data-peek-font="-1">−</button><input id="peekFont" type="range" min="8" max="30" step="1" value="9" aria-label="Tamanho do peek"><button type="button" data-peek-font="1">+</button></div>
    <div class="peek-label">Opacidade <output id="peekOpacityLabel">100%</output></div>
    <div class="peek-adjust"><button type="button" data-peek-opacity="-5">−</button><input id="peekOpacity" type="range" min="0" max="100" step="5" value="100" aria-label="Opacidade do peek"><button type="button" data-peek-opacity="5">+</button></div>
+   <div class="peek-label">Cor dos números <output id="peekColorLabel">#C9C9D0</output></div>
+   <div id="peekAppearancePreview" aria-label="Prévia ampliada do Peek"><span aria-hidden="true">25</span></div>
+   <p class="peek-preview-hint">Prévia ampliada 2×, o número no campo mostra o tamanho real</p>
+   <div id="peekPalette" role="group" aria-label="Cores prontas do Peek">
+    <button type="button" data-peek-color="#C9C9D0" aria-label="Cinza" aria-pressed="true" style="--swatch:#C9C9D0"></button>
+    <button type="button" data-peek-color="#FFFFFF" aria-label="Branco" aria-pressed="false" style="--swatch:#FFFFFF"></button>
+    <button type="button" data-peek-color="#121212" aria-label="Preto" aria-pressed="false" style="--swatch:#121212"></button>
+    <button type="button" data-peek-color="#C9A75E" aria-label="Dourado" aria-pressed="false" style="--swatch:#C9A75E"></button>
+    <button type="button" data-peek-color="#5A8CDB" aria-label="Azul" aria-pressed="false" style="--swatch:#5A8CDB"></button>
+    <button type="button" data-peek-color="#C97575" aria-label="Vermelho" aria-pressed="false" style="--swatch:#C97575"></button>
+   </div>
+   <div class="peek-custom-color">
+    <input type="color" id="peekColorPicker" value="#c9c9d0" aria-label="Selecionar cor personalizada">
+    <input type="text" id="peekHexValue" value="#C9C9D0" maxlength="7" spellcheck="false" autocomplete="off" autocapitalize="characters" placeholder="#RRGGBB" aria-label="Código hexadecimal da cor">
+   </div>
+   <div class="peek-label">Contorno <output id="peekOutlineLabel">Sem contorno</output></div>
+   <div id="peekOutlineChoices" role="group" aria-label="Espessura do contorno">
+    <button type="button" data-peek-outline="none" aria-pressed="true">Sem</button>
+    <button type="button" data-peek-outline="fine" aria-pressed="false">Fino</button>
+    <button type="button" data-peek-outline="medium" aria-pressed="false">Médio</button>
+    <button type="button" data-peek-outline="thick" aria-pressed="false">Grosso</button>
+   </div>
+   <div class="peek-shadow-row"><span>Sombra suave</span>
+    <button type="button" id="peekShadowToggle" aria-pressed="true">Ativada</button>
+   </div>
+   <button type="button" id="peekStyleReset">Restaurar aparência original, manter posição</button>
    </div>
    <div id="peekTabFonts" role="tabpanel" aria-labelledby="peekTabFontsButton" hidden>
     <p class="peek-hint">Acompanhe as mudanças nas mensagens visíveis atrás deste painel</p>
@@ -1159,7 +1214,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   if(out.some(item=>item===undefined))throw Error('lista preparada incompleta');
   return {ordered:out,reservedPosition:position};
  }
- const GPT_TEST_VERSION=115;
+ const GPT_TEST_VERSION=116;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // The number grid owns its own input state, independent of secret keyboard typing.
  let numberGridVisible=false,gridDigits='',gridGesture=null;
@@ -1493,11 +1548,22 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
  // Secret input never exposes the original keystrokes in the visible message
  const secretPeek=$('secretPeek');
  const PEEK_KEY='joaninha-chat-test-gpt-2-peek-settings-v1';
- const PEEK_DEFAULT={x:17,y:-13,font:9,opacity:100};
+ const PEEK_DEFAULT={x:17,y:-13,font:9,opacity:100,color:'#C9C9D0',outline:'none',shadow:true};
+ const PEEK_STROKE={none:0,fine:0.4,medium:0.8,thick:1.2};
+ const PEEK_OUTLINE_LABEL={none:'Sem contorno',fine:'Fino',medium:'Médio',thick:'Grosso'};
  const bounded=(value,min,max,fallback)=>{const n=Number(value);return Number.isFinite(n)?Math.max(min,Math.min(max,Math.round(n))):fallback};
+ function normalisePeekHex(value){
+  if(typeof value!=='string')return null;
+  const hex=value.trim().toUpperCase(),short=/^#([0-9A-F]{3})$/.exec(hex);
+  if(short)return '#'+Array.from(short[1],c=>c+c).join('');
+  return /^#[0-9A-F]{6}$/.test(hex)?hex:null;
+ }
  function cleanPeek(raw){
   return {x:bounded(raw?.x,-160,160,PEEK_DEFAULT.x),y:bounded(raw?.y,-100,100,PEEK_DEFAULT.y),
-   font:bounded(raw?.font,8,30,PEEK_DEFAULT.font),opacity:bounded(raw?.opacity,0,100,PEEK_DEFAULT.opacity)};
+   font:bounded(raw?.font,8,30,PEEK_DEFAULT.font),opacity:bounded(raw?.opacity,0,100,PEEK_DEFAULT.opacity),
+   color:normalisePeekHex(raw?.color)||PEEK_DEFAULT.color,
+   outline:Object.prototype.hasOwnProperty.call(PEEK_STROKE,raw?.outline)?raw.outline:PEEK_DEFAULT.outline,
+   shadow:raw?.shadow!==false};
  }
  let peekSettings={...PEEK_DEFAULT},peekStoreOK=true,peekPanelOpen=false;
  let peekKeyboardBefore=false,peekVisibleBefore=false,peekStep=1;
@@ -1608,8 +1674,18 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
  function applyPeek(){
   composer.style.setProperty('--peek-x',peekSettings.x+'px');
   composer.style.setProperty('--peek-y',peekSettings.y+'px');
-  composer.style.setProperty('--peek-font',peekSettings.font+'px');
-  composer.style.setProperty('--peek-opacity',String(peekSettings.opacity/100));
+  const rgb=[1,3,5].map(i=>parseInt(peekSettings.color.slice(i,i+2),16));
+  const contrast=rgb[0]*.299+rgb[1]*.587+rgb[2]*.114<126?'#FFFFFF':'#000000';
+  const stroke=PEEK_STROKE[peekSettings.outline];
+  for(const node of [composer,$('peekAppearancePreview')]){
+   node.style.setProperty('--peek-font',peekSettings.font+'px');
+   node.style.setProperty('--peek-opacity',String(peekSettings.opacity/100));
+   node.style.setProperty('--peek-color',peekSettings.color);
+   node.style.setProperty('--peek-outline-width',stroke+'px');
+   node.style.setProperty('--peek-preview-outline-width',stroke*2+'px');
+   node.style.setProperty('--peek-outline-color',contrast);
+   node.style.setProperty('--peek-shadow',peekSettings.shadow?'0 1px 2px #000':'none');
+  }
  }
  function refreshPeekPanel(){
   $('peekCoords').textContent='X '+peekSettings.x+' · Y '+peekSettings.y;
@@ -1619,6 +1695,16 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   $('peekOpacity').value=String(peekSettings.opacity);
   $('peekStepLabel').textContent=peekStep+' px';
   $('peekStep').textContent='Passo de '+peekStep+' px';
+  $('peekColorLabel').textContent=peekSettings.color;
+  $('peekColorPicker').value=peekSettings.color.toLowerCase();
+  $('peekHexValue').value=peekSettings.color;
+  for(const button of $('peekPalette').querySelectorAll('[data-peek-color]'))
+   button.setAttribute('aria-pressed',String(button.dataset.peekColor===peekSettings.color));
+  $('peekOutlineLabel').textContent=PEEK_OUTLINE_LABEL[peekSettings.outline];
+  for(const button of $('peekOutlineChoices').querySelectorAll('[data-peek-outline]'))
+   button.setAttribute('aria-pressed',String(button.dataset.peekOutline===peekSettings.outline));
+  $('peekShadowToggle').setAttribute('aria-pressed',String(peekSettings.shadow));
+  $('peekShadowToggle').textContent=peekSettings.shadow?'Ativada':'Desativada';
   refreshFontControls();
   refreshListSpacingControls();
   $('peekStorageStatus').textContent=peekStoreOK&&fontStoreOK&&listSpacingStoreOK?'Salvo automaticamente neste aparelho':'Falha ao salvar no navegador';
@@ -1674,6 +1760,10 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   const font=button.getAttribute('data-peek-font'),opacity=button.getAttribute('data-peek-opacity');
   const scaleDelta=button.getAttribute('data-font-scale-delta');
   const spacingDelta=button.getAttribute('data-list-spacing-delta');
+  const presetColor=button.getAttribute('data-peek-color');
+  const outline=button.getAttribute('data-peek-outline');
+  if(presetColor!==null){editPeek({color:presetColor});return;}
+  if(outline!==null){editPeek({outline});return;}
   if(scaleDelta!==null){editFontScale(fontScale+Number(scaleDelta));return;}
   if(spacingDelta!==null){editListSpacing(listSpacing+Number(spacingDelta));return;}
   if(x!==null)editPeek({x:peekSettings.x+Number(x)*peekStep});
@@ -1683,6 +1773,18 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
  });
  $('peekFont').addEventListener('input',e=>editPeek({font:Number(e.target.value)}));
  $('peekOpacity').addEventListener('input',e=>editPeek({opacity:Number(e.target.value)}));
+ $('peekColorPicker').addEventListener('input',e=>editPeek({color:e.target.value}));
+ const peekHexInput=$('peekHexValue');
+ peekHexInput.addEventListener('input',()=>{
+  const hex=normalisePeekHex(peekHexInput.value);
+  if(hex)editPeek({color:hex});
+ });
+ peekHexInput.addEventListener('blur',()=>{peekHexInput.value=peekSettings.color;});
+ $('peekShadowToggle').addEventListener('click',()=>editPeek({shadow:!peekSettings.shadow}));
+ $('peekStyleReset').addEventListener('click',()=>editPeek({
+  color:PEEK_DEFAULT.color,opacity:PEEK_DEFAULT.opacity,font:PEEK_DEFAULT.font,
+  outline:PEEK_DEFAULT.outline,shadow:PEEK_DEFAULT.shadow
+ }));
  $('fontScaleRange').addEventListener('input',e=>editFontScale(Number(e.target.value)));
  $('listSpacingRange').addEventListener('input',e=>editListSpacing(Number(e.target.value)));
 
