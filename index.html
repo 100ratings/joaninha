@@ -1091,8 +1091,38 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   return {ordered:indices.map(i=>items[i]),
    reservedPosition:finalIndex<0?null:finalIndex+1};
  }
- const GPT_TEST_VERSION=112;
+ // Prepare a full-size presentation with the reserved item between 31 and N.
+ // Preserve the existing animal companions and the fixed zoo-familiar rule.
+ function prepareGridList(items,quantity,category){
+  const position=31+Math.floor(Math.random()*(quantity-30));
+  const locked=[{target:position-1,source:0}];
+  if(category==='animais'&&(!JoaninhaLists.hasCustomItems(category)||
+     (items.indexOf('Formiga 🐜')>0&&items.indexOf('Elefante 🐘')>0))){
+   const formiga=items.indexOf('Formiga 🐜'),elefante=items.indexOf('Elefante 🐘');
+   if(formiga<1||elefante<1||formiga===elefante)throw Error('animais incompletos');
+   locked.push({target:(position-2+quantity)%quantity,source:formiga},
+    {target:position%quantity,source:elefante});
+  }
+  if(category==='familiareszoologicos'&&quantity===31&&items.length===31){
+   locked.push({target:(position===20?21:20)-1,source:1});
+  }
+  const used=new Set(locked.map(entry=>entry.source));
+  const remaining=items.map((_,i)=>i).filter(i=>!used.has(i));
+  for(let i=remaining.length-1;i>0;i--){
+   const j=Math.floor(Math.random()*(i+1));
+   [remaining[i],remaining[j]]=[remaining[j],remaining[i]];
+  }
+  const out=Array(quantity);
+  for(const entry of locked)out[entry.target]=items[entry.source];
+  let cursor=0;
+  for(let i=0;i<quantity;i++)if(out[i]===undefined)out[i]=items[remaining[cursor++]];
+  if(out.some(item=>item===undefined))throw Error('lista preparada incompleta');
+  return {ordered:out,reservedPosition:position};
+ }
+ const GPT_TEST_VERSION=113;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
+ // The number grid owns its own input state, independent of secret keyboard typing.
+ let numberGridVisible=false,gridDigits='',gridGesture=null;
  // Experimental cold-start keyboard restore, independent of any magic state.
  // A normal user opening the keyboard opts in for subsequent launches.
  const KEYBOARD_RESTORE_KEY='joaninha-keyboard-start-open-v1';
@@ -1229,7 +1259,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   scroller.scrollTop=Math.max(0,scroller.scrollTop+targetRect.top-scrollRect.top-106);
  }
  // Cancel only superseded requests, never alter an active keyboard
- let replyToken=0;
+ let replyToken=0,activeGridList=null;
  function cancelReply(){
   replyToken++;
   stopAuto();
@@ -1246,8 +1276,62 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   target.appendChild(row);
   return row;
  }
+ // Move only the affected item slots; never rebuild rows or reset scrolling.
+ function applyGridForcePosition(position){
+  const active=activeGridList;
+  if(!active||!['list','end'].includes(scene)||active.token!==replyToken||
+     active.secondaryPosition!==null||active.quantity<31||
+     !Number.isInteger(position)||position<1||position>active.quantity||
+     !Number.isInteger(active.forcePosition))return false;
+  const q=active.quantity,ordered=active.ordered,items=active.items;
+  const moves=[{source:active.forcePosition-1,target:position-1}];
+  if(active.category==='animais'&&(!JoaninhaLists.hasCustomItems(active.category)||
+     (items.indexOf('Formiga 🐜')>0&&items.indexOf('Elefante 🐘')>0))){
+   const fi=ordered.indexOf('Formiga 🐜'),ei=ordered.indexOf('Elefante 🐘');
+   if(fi<0||ei<0)return false;
+   moves.push({source:fi,target:(position-2+q)%q},
+    {source:ei,target:position%q});
+  }
+  if(active.category==='familiareszoologicos'&&q===31&&items.length===31){
+   const companion=ordered.indexOf(items[1]);
+   if(companion<0)return false;
+   moves.push({source:companion,target:(position===20?21:20)-1});
+  }
+  const sources=new Set(moves.map(move=>move.source));
+  const targets=new Set(moves.map(move=>move.target));
+  if(sources.size!==moves.length||targets.size!==moves.length)return false;
+  const displaced=moves.filter(move=>!sources.has(move.target))
+   .map(move=>ordered[move.target]);
+  const vacant=moves.filter(move=>!targets.has(move.source))
+   .map(move=>move.source);
+  if(displaced.length!==vacant.length)return false;
+  const updated=ordered.slice();
+  for(const move of moves)updated[move.target]=ordered[move.source];
+  vacant.forEach((index,i)=>{updated[index]=displaced[i];});
+  const changed=[];
+  for(let i=0;i<q;i++){
+   if(ordered[i]!==updated[i])changed.push(i);
+   ordered[i]=updated[i];
+  }
+  active.forcePosition=position;
+  active.gridApplied=true;
+  for(const index of changed){
+   const row=list.children[index];
+   const word=row?.querySelector('.word');
+   if(word)word.textContent=ordered[index];
+  }
+  for(let i=0;i<list.children.length;i++){
+   if(i===position-1)list.children[i].dataset.forceIndex=String(position);
+   else delete list.children[i].dataset.forceIndex;
+  }
+  rememberReservedPosition(active.category,position);
+  if(scene==='end')rememberCompletedConversation();
+  diag.event('grid-force-moved',{position,changed:changed.length});
+  return true;
+ }
  async function startReply(message,forcedPosition=null,options=null,secondaryPosition=null){
   const token=++replyToken;
+  activeGridList=null;gridDigits='';
   stopAuto();
   closeAnswerOptions();
   archiveCurrentTurn();
@@ -1274,13 +1358,19 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
       secondaryPosition<1||secondaryPosition>resolved.quantity||
       forcedPosition===null||secondaryPosition===forcedPosition))
     throw new Error('Segunda posição secreta inválida');
-   const normal=forcedPosition===null?
+   const gridPrepared=forcedPosition===null&&numberGridVisible&&resolved.quantity>=31;
+   const prepared=gridPrepared?
+    prepareGridList(resolved.items,resolved.quantity,resolved.file):null;
+   const normal=forcedPosition===null&&!gridPrepared?
     shuffleNormalList(resolved.items,resolved.quantity,resolved.file):null;
-   const ordered=normal?normal.ordered:secondaryPosition!==null?
+   const ordered=prepared?prepared.ordered:normal?normal.ordered:secondaryPosition!==null?
     arrangeDouble(resolved.items,forcedPosition,secondaryPosition,resolved.quantity,resolved.file):
     arrange(resolved.items,forcedPosition,resolved.quantity,resolved.file);
-   rememberReservedPosition(resolved.file,
-    forcedPosition===null?normal.reservedPosition:forcedPosition);
+   const initialPosition=forcedPosition??prepared?.reservedPosition??normal?.reservedPosition??null;
+   activeGridList={token,items:resolved.items,ordered,category:resolved.file,
+    quantity:resolved.quantity,forcePosition:initialPosition,
+    secondaryPosition,gridApplied:forcedPosition!==null};
+   rememberReservedPosition(resolved.file,initialPosition);
    intro.textContent=introForRequest(request,resolved,ordered);
    showScene('list');
    generating=true;updateComposer();
@@ -1292,7 +1382,9 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
      rememberCompletedConversation();
      return;
     }
-    appendReplyRow(ordered[count],count,forcedPosition);
+    const active=activeGridList?.token===token?activeGridList:null;
+    appendReplyRow(ordered[count],count,
+     active?.gridApplied?active.forcePosition:forcedPosition);
     count++;refreshJump();
     if(count<ordered.length)timer=setTimeout(emit,76+(count%7===0?90:0));
     else{timer=null;showScene('end');generating=false;updateComposer();refreshJump();rememberCompletedConversation();}
@@ -1347,7 +1439,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   caretPos=Math.max(0,Math.min(draft.length,caretPos));
   beforeSpan.textContent=draft.slice(0,caretPos);
   afterSpan.textContent=draft.slice(caretPos);
-  placeholder.textContent=temporaryChat?(secretMode?'Chat temporário.':'Chat temporário'):(secretMode?'Perguntar ao ChatGPT.':'Perguntar ao ChatGPT');
+  placeholder.textContent=temporaryChat?(secretMode||numberGridVisible?'Chat temporário.':'Chat temporário'):(secretMode||numberGridVisible?'Perguntar ao ChatGPT.':'Perguntar ao ChatGPT');
   placeholder.hidden=!!draft;
   syncNativeInput();
   const newLines=Math.min(4,Math.max(1,draft.split('\n').length));
@@ -1588,6 +1680,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
  }
  function setDoubleForceEnabled(enabled){
   const next=Boolean(enabled);
+  if(next&&numberGridVisible)return false;
   if(next===doubleForceEnabled)return true;
   if(next&&(draft.length>2||(!secretMode&&draft.length)))return false;
   // Direct activation also arms the secret input on an empty composer.
@@ -1780,6 +1873,23 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
    secretPeekTimer=null;diag.event('secret-peek-hide');
   },5000);
  }
+ // Identical five-second Peek, but digits originate in the touch grid.
+ function showGridPeek(){
+  clearSecretPeek();
+  if(!gridDigits)return;
+  const shown=gridDigits==='00'?'100':gridDigits;
+  secretPeek.textContent=shown;
+  secretPeek.classList.toggle('peek-three-digits',shown==='100');
+  secretPeek.classList.remove('peek-four-digits');
+  secretPeek.classList.add('visible');
+  if(quickPeekPointer!==null)return;
+  diag.event('grid-peek-show',{digitCount:shown.length});
+  secretPeekTimer=setTimeout(()=>{
+   secretPeek.classList.remove('visible','peek-three-digits','peek-four-digits');
+   secretPeek.textContent='';secretPeekTimer=null;
+   diag.event('grid-peek-hide');
+  },5000);
+ }
  function setSecretMode(enabled){
   if(enabled&&draft.length)return false;
   secretMode=!!enabled;secretDigits=[];secondSecretDigits=[];dualTypedKeys=[];clearSecretPeek();
@@ -1820,7 +1930,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
  }
  function showScene(next,options){
   if(!['home','thinking','list','end'].includes(next))return;
-  if(next==='home')cancelReply();
+  if(next==='home'){cancelReply();activeGridList=null;gridDigits='';}
   if(next==='home'&&temporaryChat)setTemporaryChat(false);
   diag.event('scene-change',{from:scene,to:next});
   stopAuto();scene=next;
@@ -2278,7 +2388,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   return classifyPromptSide(x);
  }
  function applyPromptTouch(intent,reason){
-  if(!draft&&intent)setSecretMode(intent==='secret');
+  if(!numberGridVisible&&!draft&&intent)setSecretMode(intent==='secret');
   setKeyboard(true,reason);
  }
  field.addEventListener('pointerdown',e=>{
@@ -2310,7 +2420,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   // Apply the ORIGINAL region only after the finger lifts.
   // A possible focus/layout shift cannot turn a secret tap into a normal one.
   if(touch&&!touch.handled){
-   if(!draft)setSecretMode(touch.intent==='secret');
+   if(!numberGridVisible&&!draft)setSecretMode(touch.intent==='secret');
    touch.handled=true;
   }
  });
@@ -2328,7 +2438,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
    (!Number.isFinite(e.pointerId)||e.pointerId===0||e.pointerId===cached.id);
   if(matchingPointer){
    // A delayed or canceled pointer click keeps its original side.
-   if(!cached.handled&&!draft)setSecretMode(cached.intent==='secret');
+   if(!numberGridVisible&&!cached.handled&&!draft)setSecretMode(cached.intent==='secret');
    setKeyboard(true,'prompt-click');
    return;
   }
@@ -2372,7 +2482,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   // A drag, long hold or sideways movement is not a selection.
   if(Math.hypot(dx,dy)>12||performance.now()-gesture.time>650)return;
   if(draft)return;
-  setSecretMode(gesture.intent==='secret');
+  if(!numberGridVisible)setSecretMode(gesture.intent==='secret');
   if(document.activeElement!==nativeInput)nativeInput.focus({preventScroll:true});
   diag.event('lower-prompt-mode',{mode:gesture.intent});
  }
@@ -2422,13 +2532,22 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
  // Simple + taps are inert. Holding for 3 seconds toggles the grid
  // only when the native keyboard is closed; diagnostics are no longer opened.
  const plus=$('add'),numberGridOverlay=$('numberGridOverlay');
- let plusTimer=null,plusPress=null,numberGridVisible=false;
+ let plusTimer=null,plusPress=null;
  function stopPlusHold(){
   clearTimeout(plusTimer);plusTimer=null;plusPress=null;
  }
  function toggleNumberGrid(){
   numberGridVisible=!numberGridVisible;
+  gridDigits='';
+  if(numberGridVisible){
+   // Do not make normal spectator typing act as a secret keyboard code.
+   setSecretMode(false);setDoubleForceEnabled(false);
+  }else{
+   stopGridGesture();
+   clearSecretPeek();
+  }
   numberGridOverlay.classList.toggle('visible',numberGridVisible);
+  updateComposer();
   diag.event('number-grid-toggle',{visible:numberGridVisible});
  }
  plus.addEventListener('pointerdown',e=>{
@@ -2457,6 +2576,84 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   plus.addEventListener(ev,stopPlusHold);
  plus.addEventListener('contextmenu',e=>e.preventDefault());
  plus.addEventListener('click',e=>{e.preventDefault();e.stopPropagation();});
+ // The guide is non-interactive CSS; capture the underlying page touch start.
+ // One contact equals exactly one digit, regardless of later finger movement.
+ function stopGridGesture(){
+  if(!gridGesture)return;
+  clearTimeout(gridGesture.resetTimer);
+  gridGesture=null;
+ }
+ function gridDigitAt(x,y){
+  for(const tile of numberGridOverlay.children){
+   const digit=tile.textContent.trim();
+   if(!digit)continue;
+   const bounds=tile.getBoundingClientRect();
+   if(x>=bounds.left&&x<bounds.right&&y>=bounds.top&&y<bounds.bottom)
+    return digit;
+  }
+  return null;
+ }
+ function gridInputAllowed(e){
+  if(!numberGridVisible||keyboard||drawer||!['list','end'].includes(scene)||
+     !activeGridList||activeGridList.token!==replyToken||
+     activeGridList.quantity<31||activeGridList.secondaryPosition!==null)return false;
+  const target=e.target;
+  if(target?.closest?.('#header,#composer,#jump,#peekPanel,#workForcePicker,#drawer,#themePicker,#jdPanel'))return false;
+  return true;
+ }
+ function beginGridGesture(digit,id){
+  if(gridGesture)return false;
+  const gesture={id,resetTimer:null};
+  gridGesture=gesture;
+  if(gridDigits.length===2){
+   // A completed code is locked until the magician holds a tile for 2s.
+   gesture.resetTimer=setTimeout(()=>{
+    if(gridGesture!==gesture||!numberGridVisible||keyboard)return;
+    gridDigits=digit;
+    showGridPeek();
+    diag.event('grid-code-restarted',{firstDigit:digit});
+   },2000);
+  }else{
+   gridDigits+=digit;
+   showGridPeek();
+   if(gridDigits.length===2){
+    const position=gridDigits==='00'?100:Number(gridDigits);
+    if(applyGridForcePosition(position))rememberLastSecretPeek(
+     position===100?'100':gridDigits);
+    else diag.event('grid-code-not-applied',{position});
+   }
+  }
+  return true;
+ }
+ page.addEventListener('pointerdown',e=>{
+  if(!e.isPrimary||(e.pointerType==='mouse'&&e.button!==0)||
+     !gridInputAllowed(e))return;
+  const digit=gridDigitAt(e.clientX,e.clientY);
+  if(digit!==null)beginGridGesture(digit,e.pointerId);
+ },{capture:true,passive:true});
+ page.addEventListener('pointerup',e=>{
+  if(gridGesture?.id===e.pointerId)stopGridGesture();
+ },{capture:true,passive:true});
+ page.addEventListener('pointercancel',e=>{
+  if(gridGesture?.id===e.pointerId)stopGridGesture();
+ },{capture:true,passive:true});
+ // Fallback for a WebKit touch sequence without Pointer Events.
+ page.addEventListener('touchstart',e=>{
+  if(gridGesture||e.touches.length!==1||e.changedTouches.length!==1||
+     !gridInputAllowed(e))return;
+  const touch=e.changedTouches[0];
+  const digit=gridDigitAt(touch.clientX,touch.clientY);
+  if(digit!==null)beginGridGesture(digit,'touch-'+touch.identifier);
+ },{capture:true,passive:true});
+ for(const name of ['touchend','touchcancel'])page.addEventListener(name,e=>{
+  if(typeof gridGesture?.id!=='string')return;
+  if(Array.from(e.changedTouches).some(t=>gridGesture.id==='touch-'+t.identifier))
+   stopGridGesture();
+ },{capture:true,passive:true});
+ window.addEventListener('blur',stopGridGesture);
+ document.addEventListener('visibilitychange',()=>{
+  if(document.hidden)stopGridGesture();
+ });
  // The circular meter now toggles the optional second force only.
  let meterPointerId=null;
  const secondForceMeter=$('typingMeter');
@@ -3263,6 +3460,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   }catch(error){diag.event('recent-conversation-save-failed');}
  }
  function restoreLatestConversation(){
+  activeGridList=null;gridDigits='';
   const saved=lastSavedConversation;
   if(!saved||!saved.turns.length)return false;
   cancelReply();
