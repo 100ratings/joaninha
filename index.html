@@ -1078,7 +1078,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   return {ordered:indices.map(i=>items[i]),
    reservedPosition:finalIndex<0?null:finalIndex+1};
  }
- const GPT_TEST_VERSION=107;
+ const GPT_TEST_VERSION=108;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // Experimental cold-start keyboard restore, independent of any magic state.
  // A normal user opening the keyboard opts in for subsequent launches.
@@ -2414,13 +2414,12 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   setKeyboard(true,'plus-tap');
  });
  // The circular meter now toggles the optional second force only.
- let lastMeterPointer=-Infinity,meterPointerId=null;
+ let meterPointerId=null;
  const secondForceMeter=$('typingMeter');
  secondForceMeter.addEventListener('pointerdown',e=>{
   if(!keyboard||!e.isPrimary||(e.pointerType==='mouse'&&e.button!==0))return;
   e.preventDefault();e.stopPropagation();
   meterPointerId=e.pointerId;
-  lastMeterPointer=performance.now();
   setDoubleForceEnabled(!doubleForceEnabled);
  });
  // iOS can blur the transparent native input on a touch even if
@@ -2442,7 +2441,13 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
  secondForceMeter.addEventListener('pointercancel',()=>{meterPointerId=null;});
  secondForceMeter.addEventListener('click',e=>{
   e.preventDefault();e.stopPropagation();
-  if(!keyboard||performance.now()-lastMeterPointer<700)return;
+  // Pointerdown already handles touch, mouse and pen. Never handle their
+  // follow-up click a second time, regardless of how long the press lasted.
+  // A detail=0 click without a pointer source is an accessibility fallback.
+  const pointerClick=e.detail>0||
+   (typeof e.pointerType==='string'&&e.pointerType!=='')||
+   e.sourceCapabilities?.firesTouchEvents===true;
+  if(!keyboard||pointerClick)return;
   setDoubleForceEnabled(!doubleForceEnabled);
  });
  secondForceMeter.addEventListener('keydown',e=>{
