@@ -187,12 +187,6 @@ border-radius:10px;background:rgba(29,29,32,.84);color:#a9a9af;font-size:10.5px}
 .archived-turn{padding-bottom:28px}
 #actions button,.archived-actions button{height:29px;min-width:18px;display:grid;place-items:center;padding:0;background:transparent;border:0;color:#d4d4d7}
 #actions svg,.archived-actions svg{width:19px;height:19px}
-/* Independent first-dot timing cue and middle-dot completion confirmation */
-#more.reveal-cue-hidden svg circle:first-child{visibility:hidden}
-#more.reveal-confirm-hidden svg circle:nth-child(2){visibility:hidden}
-/* The reserved emoji disappears without affecting the item's text or spacing */
-#list .force-emoji,.archived-list .force-emoji{opacity:1}
-#list .force-emoji.hidden,.archived-list .force-emoji.hidden{opacity:0;visibility:hidden}
 #actions #feedback,.archived-actions .archived-feedback{gap:1px;display:flex}
 #actions #feedback svg,.archived-actions .archived-feedback svg{width:15px;height:19px}
 #app.scene-thinking #thinking{display:block}
@@ -1054,7 +1048,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   return {ordered:indices.map(i=>items[i]),
    reservedPosition:finalIndex<0?null:finalIndex+1};
  }
- const GPT_TEST_VERSION=95;
+ const GPT_TEST_VERSION=96;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // Experimental cold-start keyboard restore, independent of any magic state.
  // A normal user opening the keyboard opts in for subsequent launches.
@@ -1156,87 +1150,6 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   requestAnimationFrame(()=>diag.snapshot('keyboard-after-change',true));
   return true;
  }
- // The first dot is the private timing cue and the middle dot confirms completion
- // 0s: first hides, 5s: first restores, 6s: fade begins, 7s: emoji hidden
- // 7s: middle hides only after emoji fully hidden, 8s: middle restores
- let revealTimer=null,revealFadeTimer=null,revealFadeAnimation=null,revealFrame=null,revealConfirmTimer=null;
- let revealPending=false,revealEmojiTarget=null,forceEmojiSpan=null;
- function cancelLadybugReveal(){
-  if(revealTimer!==null)clearTimeout(revealTimer);
-  if(revealFadeTimer!==null)clearTimeout(revealFadeTimer);
-  if(revealConfirmTimer!==null)clearTimeout(revealConfirmTimer);
-  if(revealFrame!==null)cancelAnimationFrame(revealFrame);
-  if(revealFadeAnimation){revealFadeAnimation.cancel();revealFadeAnimation=null;}
-  revealTimer=null;revealFadeTimer=null;revealFadeAnimation=null;revealFrame=null;revealConfirmTimer=null;
-  $('more').classList.remove('reveal-cue-hidden');
-  $('more').classList.remove('reveal-confirm-hidden');
-  if(revealEmojiTarget&&!revealEmojiTarget.classList.contains('hidden')){
-   revealEmojiTarget.style.opacity='';revealEmojiTarget.style.transition='';
-  }
-  revealEmojiTarget=null;revealPending=false;forceEmojiSpan=null;
- }
- function splitForceEmoji(text){
- const match=/\p{Extended_Pictographic}(?:\uFE0F|\u200D|\p{Emoji_Modifier}|\p{Extended_Pictographic})*/u.exec(text);
- if(!match)return null;
- return {before:text.slice(0,match.index),emoji:match[0],after:text.slice(match.index+match[0].length)};
-}
- function armLadybugReveal(){
-  if(scene!=='end'||generating||!forceEmojiSpan||!forceEmojiSpan.isConnected)return false;
-  if(revealPending||forceEmojiSpan.classList.contains('hidden'))return true;
-  const emoji=forceEmojiSpan;
-  const row=emoji.closest('.row');
-  if(!row||!row.isConnected)return false;
-  revealPending=true;revealEmojiTarget=emoji;
-  $('more').classList.add('reveal-cue-hidden');
-  diag.event('ladybug-reveal-armed',{cueMs:5000,pauseMs:1000,fadeMs:1000});
-  revealTimer=setTimeout(()=>{
-   revealTimer=null;
-   // The first dot must be visually restored before the full pause starts
-   $('more').classList.remove('reveal-cue-hidden');
-   if(!emoji.isConnected||!row.isConnected){cancelLadybugReveal();return;}
-   diag.event('ladybug-reveal-cue-restored');
-   // Two paint frames ensure iOS Safari actually draws the restored dot
-   // before beginning the spectator-visible one-second pause
-   revealFrame=requestAnimationFrame(()=>{
-    revealFrame=requestAnimationFrame(()=>{
-     revealFrame=null;
-     if(!revealPending||!emoji.isConnected||!row.isConnected){cancelLadybugReveal();return;}
-     diag.event('ladybug-reveal-pause-start',{pauseMs:1000});
-     revealTimer=setTimeout(()=>{
-      revealTimer=null;
-      if(!revealPending||!emoji.isConnected||!row.isConnected){cancelLadybugReveal();return;}
-      diag.event('ladybug-reveal-fade-start');
-      if(typeof emoji.animate==='function'){
-       revealFadeAnimation=emoji.animate([{opacity:1},{opacity:0}],{
-        duration:1000,easing:'linear',fill:'forwards'
-       });
-      }else{
-       emoji.style.transition='opacity 1000ms linear';
-       void emoji.offsetWidth;
-       emoji.style.opacity='0';
-      }
-      revealFadeTimer=setTimeout(()=>{
-       revealFadeTimer=null;
-       emoji.classList.add('hidden');
-       if(revealFadeAnimation){revealFadeAnimation.cancel();revealFadeAnimation=null;}
-       emoji.style.opacity='';emoji.style.transition='';
-       revealFadeAnimation=null;revealPending=false;revealEmojiTarget=null;
-       // The confirmation starts only after the emoji is completely hidden
-       $('more').classList.add('reveal-confirm-hidden');
-       diag.event('ladybug-reveal-complete');
-       revealConfirmTimer=setTimeout(()=>{
-        revealConfirmTimer=null;
-        $('more').classList.remove('reveal-confirm-hidden');
-        diag.event('ladybug-confirm-cue-restored');
-       },1000);
-       rememberCompletedConversation();
-      },1000);
-     },1000);
-    });
-   });
-  },5000);
-  return true;
- }
  // Completed turns stay in the same scrollable conversation
  const historyHost=$('turnHistory');
  function archiveCurrentTurn(){
@@ -1273,7 +1186,6 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
  function cancelReply(){
   replyToken++;
   stopAuto();
-  cancelLadybugReveal();
  }
  function appendReplyRow(item,index,forcedPosition,target=list){
   const row=document.createElement('div');row.className='row';
@@ -1282,24 +1194,14 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   const word=document.createElement('span');word.className='word';
   word.textContent=item;
   row.append(number,word);
-  if(forcedPosition!==null&&index===forcedPosition-1){
+  if(forcedPosition!==null&&index===forcedPosition-1)
    row.dataset.forceIndex=String(forcedPosition);
-   const split=splitForceEmoji(item);
-   if(split){
-    const emoji=document.createElement('span');
-    emoji.className='force-emoji';emoji.textContent=split.emoji;
-    word.replaceChildren(document.createTextNode(split.before),emoji);
-    if(split.after)word.appendChild(document.createTextNode(split.after));
-    if(target===list)forceEmojiSpan=emoji;
-   }
-  }
   target.appendChild(row);
   return row;
  }
  async function startReply(message,forcedPosition=null,options=null){
   const token=++replyToken;
   stopAuto();
-  cancelLadybugReveal();
   closeAnswerOptions();
   archiveCurrentTurn();
   resetAnswerInteractions();
@@ -2414,8 +2316,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   e.preventDefault();
   // Send arrow and stop square retain their existing behavior.
   if(scene==='thinking'||scene==='list'||draft.trim()){sendDraft();return;}
-  // The blue voice symbol is exclusively the ladybug reveal trigger.
-  armLadybugReveal();
+  // Voice icon has no reveal action; send and stop remain unchanged.
  });
  // Native copy action for the currently visible assistant answer.
  // Work on the response DOM, not the secret digits or source data.
@@ -2428,10 +2329,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
    const number=row.querySelector('.number')?.textContent.trim()||String(index+1)+'.';
    const word=row.querySelector('.word');
    if(!word)return '';
-   // Copy exactly what spectators can see, including any hidden-emoji reveal.
-   const readable=word.cloneNode(true);
-   readable.querySelectorAll('.force-emoji.hidden').forEach(emoji=>emoji.remove());
-   return number+' '+(readable.textContent||'').trim();
+   return number+' '+(word.textContent||'').trim();
   }).filter(Boolean);
   return [intro,rows.join('\n')].filter(Boolean).join('\n\n');
  }
@@ -2481,7 +2379,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
  answerCopyButton?.addEventListener('click',copyVisibleReply);
 
  // Real feedback, speech, native sharing and bottom response menu.
- // These controls never call any ladybug/force/reveal routines.
+ // These controls are independent of the list forcing logic.
  const voteGroup=$('feedback');
  const speakButton=$('actions').querySelector('[data-answer-speak]');
  const shareButton=$('actions').querySelector('[data-answer-share]');
@@ -3036,8 +2934,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
     if(typeof row?.text!=='string'||row.text.length>500)return null;
     rows.push({text:row.text,
      forceIndex:Number.isInteger(row.forceIndex)&&row.forceIndex>=1&&
-      row.forceIndex<=turn.rows.length?row.forceIndex:null,
-     emojiHidden:row.emojiHidden===true});
+      row.forceIndex<=turn.rows.length?row.forceIndex:null});
    }
    turns.push({message:turn.message,intro:turn.intro,rows});
   }
@@ -3054,8 +2951,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   const message=bubble.textContent?.trim()||'';
   const rows=Array.from(listNode.querySelectorAll('.row')).map(row=>({
    text:row.querySelector('.word')?.textContent||'',
-   forceIndex:Number(row.dataset.forceIndex)||null,
-   emojiHidden:!!row.querySelector('.force-emoji.hidden')
+   forceIndex:Number(row.dataset.forceIndex)||null
   }));
   return message&&rows.length?{message,intro:intro?.textContent||'',rows}:null;
  }
@@ -3090,7 +2986,6 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   refreshLetterLabels();updateComposer();
   // Restoring conversation history must not dismiss the native keyboard.
   historyHost.replaceChildren();
-  forceEmojiSpan=null;
   for(let t=0;t<saved.turns.length;t++){
    const turn=saved.turns[t];
    let target;
@@ -3118,8 +3013,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
     target=list;
    }
    turn.rows.forEach((row,index)=>{
-    const node=appendReplyRow(row.text,index,row.forceIndex,target);
-    if(row.emojiHidden)node.querySelector('.force-emoji')?.classList.add('hidden');
+    appendReplyRow(row.text,index,row.forceIndex,target);
    });
   }
   // Restoring a normal conversation must not clear a newer secret code.
