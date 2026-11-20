@@ -187,6 +187,8 @@ border-radius:10px;background:rgba(29,29,32,.84);color:#a9a9af;font-size:10.5px}
 .archived-turn{padding-bottom:28px}
 #actions button,.archived-actions button{height:29px;min-width:18px;display:grid;place-items:center;padding:0;background:transparent;border:0;color:#d4d4d7}
 #actions svg,.archived-actions svg{width:19px;height:19px}
+/* Second-force mode marker, without the old reveal sequence */
+#app.double-force-on #more svg circle:first-child{visibility:hidden}
 #actions #feedback,.archived-actions .archived-feedback{gap:1px;display:flex}
 #actions #feedback svg,.archived-actions .archived-feedback svg{width:15px;height:19px}
 #app.scene-thinking #thinking{display:block}
@@ -698,7 +700,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   <div id="composer" aria-label="Campo de mensagem de demonstração">
    <button id="add" aria-label="Adicionar"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M12 2v20M2 12h20"/></svg></button>
    <div id="text-field" role="button" tabindex="0" aria-label="Toque para usar o teclado do iPhone">Perguntar ao ChatGPT</div>
-   <span id="typingMeter" aria-hidden="true"></span>
+   <span id="typingMeter" role="button" tabindex="0" aria-label="Ativar segunda força" aria-pressed="false"></span>
    <button id="secretHotspot" type="button" tabindex="-1" aria-hidden="true"></button>
    <button id="mic" aria-label="Microfone"><svg viewBox="0 0 24 24" fill="none" stroke="#f8f8fa" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="3" width="6" height="12" rx="3"/><path d="M5.5 11.5a6.5 6.5 0 0 0 13 0M12 18v4m-4 0h8"/></svg></button>
    <button id="sendVoice" aria-label="Enviar ou voz"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
@@ -1003,6 +1005,28 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   ordered.splice(position-1,0,items[0]);
   return ordered;
  }
+ // Place the secondary item only where it cannot disturb fixed companions.
+ function arrangeDouble(items,primary,secondary,quantity,category){
+  if(!Number.isInteger(primary)||!Number.isInteger(secondary)||
+     primary<1||secondary<1||primary>quantity||secondary>quantity||
+     primary===secondary||quantity<2||items.length<2)
+   throw Error('Posições das duas forças inválidas');
+  const ordered=arrange(items,primary,quantity,category);
+  const current=ordered.indexOf(items[1]),target=secondary-1;
+  if(current<0)throw Error('Segunda força não está na lista');
+  if(current===target)return ordered;
+  if(category==='familiareszoologicos'&&quantity===31&&items.length===31)
+   throw Error('Segunda força conflita com a posição fixa do familiar');
+  if(category==='animais'&&
+     (!JoaninhaLists.hasCustomItems(category)||
+      (items.indexOf('Formiga 🐜')>0&&items.indexOf('Elefante 🐘')>0))){
+   const before=(primary-2+quantity)%quantity,after=primary%quantity;
+   if(current===before||current===after||target===before||target===after)
+    throw Error('Segunda força conflita com acompanhantes dos animais');
+  }
+  [ordered[current],ordered[target]]=[ordered[target],ordered[current]];
+  return ordered;
+ }
  // Keep the latest visible position of the reserved TXT item per category.
  const LAST_RESERVED_POSITIONS_KEY='joaninha-last-reserved-position-by-category-v1';
  const lastReservedPositions=Object.create(null);
@@ -1063,6 +1087,9 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
  let keyboardMode='letters',shiftNext=true,capsLocked=false,caretPos=0;
  // Exact letter-to-digit secret map from Joaninha main v48
  const SECRET_KEY_VALUES=Object.freeze({i:1,o:2,p:3,j:4,k:5,l:6,b:7,n:8,m:9});
+ const SECOND_SECRET_KEY_VALUES=Object.freeze({q:1,w:2,e:3,a:4,s:5,d:6,z:7,x:8,c:9});
+ const FIRST_DIGIT_KEY=['q','i','o','p','j','k','l','b','n','m'];
+ let doubleForceEnabled=false,secondSecretDigits=[],dualTypedKeys=[];
  let secretMode=false,secretDigits=[],secretPeekTimer=null,lastSecretPosition=null;
  let lastSecretPeekCode=null,quickPeekPointer=null;
  // Retain the last COMPLETE secret code across ordinary chats, navigation,
@@ -1502,6 +1529,56 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   const letter=key.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
   return SECRET_KEY_VALUES[letter]??0;
  }
+ function secondSecretDigit(key){
+  const letter=key.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  return SECOND_SECRET_KEY_VALUES[letter]??0;
+ }
+ // Physical keystrokes are retained separately from their visible "List" mask.
+ function transformDualSecretInput(old,incoming,keys,inputCaret){
+  let head=0;
+  while(head<old.length&&head<incoming.length&&old[head]===incoming[head])head++;
+  let tail=0;
+  while(tail<old.length-head&&tail<incoming.length-head&&
+    old[old.length-1-tail]===incoming[incoming.length-1-tail])tail++;
+  const removed=old.slice(head,old.length-tail);
+  const inserted=incoming.slice(head,incoming.length-tail);
+  const updated=keys.slice();
+  if(head<4)updated.splice(head,Math.min(removed.length,4-head));
+  let replacement='',position=head;
+  for(const ch of Array.from(inserted)){
+   if(position<4){
+    if(!/^\p{L}$/u.test(ch))continue;
+    updated.splice(position,0,ch);
+    replacement+='List'[position++];
+   }else if(updated.length>=4){
+    replacement+=ch;position+=ch.length;
+   }
+  }
+  const codes=updated.slice(0,4);
+  const provisional=old.slice(0,head)+replacement+old.slice(old.length-tail);
+  const text='List'.slice(0,codes.length)+provisional.slice(codes.length);
+  const caret=Math.max(0,Math.min(text.length,head+replacement.length+
+    (inputCaret-(head+inserted.length))));
+  return {text,keys:codes,caret};
+ }
+ function setDoubleForceEnabled(enabled){
+  const next=Boolean(enabled);
+  if(next===doubleForceEnabled)return true;
+  if(next&&(draft.length>2||(!secretMode&&draft.length)))return false;
+  doubleForceEnabled=next;
+  if(next&&secretMode)
+   dualTypedKeys=secretDigits.map(digit=>FIRST_DIGIT_KEY[digit]);
+  else{
+   dualTypedKeys=[];
+   secondSecretDigits=[];
+  }
+  app.classList.toggle('double-force-on',next);
+  $('typingMeter').setAttribute('aria-pressed',String(next));
+  $('typingMeter').setAttribute('aria-label',next?'Desativar segunda força':'Ativar segunda força');
+  updateComposer();
+  diag.event('double-force-mode',{enabled:next});
+  return true;
+ }
  // Keep the iPhone's autocorrection, predictions and spellchecking enabled.
  // Only a deliberate edit/deletion of the two visible prefix characters may
  // change the two hidden digits. A suggestion or replacement cannot do so.
@@ -1607,6 +1684,10 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
  function forcedSecretPosition(){
   if(secretDigits.length!==2)return null;
   return (secretDigits[0]*10+secretDigits[1])||100;
+ }
+ function forcedSecondPosition(){
+  if(!doubleForceEnabled||secondSecretDigits.length!==2)return null;
+  return (secondSecretDigits[0]*10+secondSecretDigits[1])||100;
  }
  function clearSecretPeek(){
   if(secretPeekTimer!==null){clearTimeout(secretPeekTimer);secretPeekTimer=null;}
