@@ -1643,6 +1643,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   if(secretDigits.length<2&&replacementEvent){
    // No prediction/autocorrection may invent or overwrite a code digit.
    nativeInput.value=old;caretPos=Math.min(caretPos,old.length);
+   nativeInput.setSelectionRange(caretPos,caretPos);
    updateComposer();return;
   }
   if(secretDigits.length===2&&(replacementEvent||suggestionReplacingWord)){
@@ -1651,6 +1652,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
    // For the common Liate -> Liste change, no DOM rewrite is necessary.
    if(incoming.length<2){
     nativeInput.value=old;caretPos=Math.min(caretPos,old.length);
+    nativeInput.setSelectionRange(caretPos,caretPos);
    }else{
     draft=incoming.startsWith('Li')?incoming:'Li'+incoming.slice(2);
     caretPos=Math.max(0,Math.min(draft.length,inputCaret));
