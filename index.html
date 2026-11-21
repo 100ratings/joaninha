@@ -227,13 +227,14 @@ border-radius:10px;background:rgba(29,29,32,.84);color:#a9a9af;font-size:10.5px}
 #gridSettingsClose{border:0;background:transparent;color:inherit;font-size:24px;
  font-weight:300;width:30px;height:30px;display:grid;place-items:center}
 #gridSettings .grid-settings-row{display:flex;align-items:center;justify-content:space-between;gap:14px}
+#gridSettings .grid-settings-row+.grid-settings-row{margin-top:13px}
 #gridSettings .grid-settings-label{font-size:15px;font-weight:550}
 #gridSettings .grid-settings-label small{display:block;margin-top:4px;font-size:12px;
  font-weight:400;color:#a4a4ac}
-#gridTrainingSwitch{display:flex;align-items:center;justify-content:flex-start;flex:none;
+#gridEnabledSwitch,#gridTrainingSwitch{display:flex;align-items:center;justify-content:flex-start;flex:none;
  width:51px;height:31px;padding:3px;border:0;border-radius:20px;background:#65656b}
-#gridTrainingSwitch[aria-checked="true"]{background:#35b963;justify-content:flex-end}
-#gridTrainingSwitch .grid-settings-thumb{background:white;border-radius:50%;
+#gridEnabledSwitch[aria-checked="true"],#gridTrainingSwitch[aria-checked="true"]{background:#35b963;justify-content:flex-end}
+#gridEnabledSwitch .grid-settings-thumb,#gridTrainingSwitch .grid-settings-thumb{background:white;border-radius:50%;
  width:25px;height:25px;box-shadow:0 1px 3px rgba(0,0,0,.23)}
 #gridTrainingNote{font-size:11.5px;line-height:1.45;color:#b4b4be;
  margin:12px 0 0;padding-top:10px;border-top:1px solid rgba(255,255,255,.08)}
@@ -774,6 +775,11 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
    <div class="grid-settings-head"><strong id="gridSettingsTitle">Configurações</strong>
     <button id="gridSettingsClose" type="button" aria-label="Fechar configurações">×</button></div>
    <div class="grid-settings-row">
+    <div class="grid-settings-label">Ativar Grid<small>Permitir ativação pelo botão +</small></div>
+    <button id="gridEnabledSwitch" type="button" role="switch" aria-checked="true" aria-label="Ativar Grid">
+     <span class="grid-settings-thumb" aria-hidden="true"></span></button>
+   </div>
+   <div class="grid-settings-row">
     <div class="grid-settings-label">Modo treino<small>Exibir os números na tela</small></div>
     <button id="gridTrainingSwitch" type="button" role="switch" aria-checked="false" aria-label="Modo treino">
      <span class="grid-settings-thumb" aria-hidden="true"></span></button>
@@ -1295,14 +1301,18 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   if(out.some(item=>item===undefined))throw Error('lista preparada incompleta');
   return {ordered:out,reservedPosition:position};
  }
- const GPT_TEST_VERSION=128;
+ const GPT_TEST_VERSION=129;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // The number grid owns its own input state, independent of secret keyboard typing.
  let numberGridVisible=false,gridDigits='',gridGesture=null;
  // Visual training preference persists; the numeric input mode never depends on it.
  const GRID_TRAINING_KEY='joaninha-number-grid-training-v1';
- let numberGridTraining=false,gridSettingsOpen=false;
- try{numberGridTraining=localStorage.getItem(GRID_TRAINING_KEY)==='1';}catch(error){}
+ const GRID_ENABLED_KEY='joaninha-number-grid-enabled-v1';
+ let numberGridEnabled=true,numberGridTraining=false,gridSettingsOpen=false;
+ try{
+  numberGridEnabled=localStorage.getItem(GRID_ENABLED_KEY)!=='0';
+  numberGridTraining=localStorage.getItem(GRID_TRAINING_KEY)==='1';
+ }catch(error){}
  // Experimental cold-start keyboard restore, independent of any magic state.
  // A normal user opening the keyboard opts in for subsequent launches.
  const KEYBOARD_RESTORE_KEY='joaninha-keyboard-start-open-v1';
@@ -1537,7 +1547,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
       secondaryPosition<1||secondaryPosition>resolved.quantity||
       forcedPosition===null||secondaryPosition===forcedPosition))
     throw new Error('Segunda posição secreta inválida');
-   const gridPrepared=forcedPosition===null&&numberGridVisible&&resolved.quantity>=31;
+   const gridPrepared=forcedPosition===null&&numberGridEnabled&&numberGridVisible&&resolved.quantity>=31;
    const prepared=gridPrepared?
     prepareGridList(resolved.items,resolved.quantity,resolved.file):null;
    const normal=forcedPosition===null&&!gridPrepared?
@@ -2760,13 +2770,16 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
  // without changing the mode. Training changes visibility, never touch regions.
  const plus=$('add'),numberGridOverlay=$('numberGridOverlay');
  const gridSettings=$('gridSettings'),gridSettingsShade=$('gridSettingsShade');
+ const gridEnabledSwitch=$('gridEnabledSwitch');
  const gridTrainingSwitch=$('gridTrainingSwitch'),gridTrainingNote=$('gridTrainingNote');
  let plusTimer=null,plusPress=null,lastPlusPointerAt=-Infinity;
  function updateGridVisual(){
-  numberGridOverlay.classList.toggle('visible',numberGridVisible&&numberGridTraining);
+  numberGridOverlay.classList.toggle('visible',numberGridEnabled&&numberGridVisible&&numberGridTraining);
+  gridEnabledSwitch.setAttribute('aria-checked',String(numberGridEnabled));
   gridTrainingSwitch.setAttribute('aria-checked',String(numberGridTraining));
-  gridTrainingNote.textContent=numberGridTraining?
-   'A grade aparece quando o modo secreto está ativado':
+  gridTrainingNote.textContent=!numberGridEnabled?
+   'Grid desativado: o botão + não ativa esse modo':
+   numberGridTraining?'A grade aparece quando o modo secreto está ativado':
    'Os números funcionam mesmo com a grade invisível';
   plus.setAttribute('aria-pressed',String(numberGridVisible));
  }
@@ -2776,6 +2789,20 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   gridSettingsShade.hidden=!gridSettingsOpen;
   diag.event('grid-settings-toggle',{open:gridSettingsOpen});
  }
+ gridEnabledSwitch.addEventListener('click',e=>{
+  e.preventDefault();e.stopPropagation();
+  numberGridEnabled=!numberGridEnabled;
+  try{localStorage.setItem(GRID_ENABLED_KEY,numberGridEnabled?'1':'0');}catch(error){}
+  if(!numberGridEnabled&&numberGridVisible){
+   numberGridVisible=false;
+   gridDigits='';
+   stopGridGesture();
+   clearSecretPeek();
+   updateComposer();
+  }
+  updateGridVisual();
+  diag.event('grid-enabled-toggle',{enabled:numberGridEnabled});
+ });
  gridTrainingSwitch.addEventListener('click',e=>{
   e.preventDefault();e.stopPropagation();
   numberGridTraining=!numberGridTraining;
@@ -2789,6 +2816,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   clearTimeout(plusTimer);plusTimer=null;plusPress=null;
  }
  function toggleNumberGrid(){
+  if(!numberGridEnabled)return;
   if(gridSettingsOpen)setGridSettings(false);
   numberGridVisible=!numberGridVisible;
   gridDigits='';
@@ -2861,7 +2889,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   return null;
  }
  function gridInputAllowed(e){
-  if(!numberGridVisible||gridSettingsOpen||keyboard||drawer||!['list','end'].includes(scene)||
+  if(!numberGridEnabled||!numberGridVisible||gridSettingsOpen||keyboard||drawer||!['list','end'].includes(scene)||
      !activeGridList||activeGridList.token!==replyToken||
      activeGridList.quantity<31||activeGridList.secondaryPosition!==null)return false;
   const target=e.target;
