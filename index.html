@@ -1033,6 +1033,24 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   }
   return reordered;
  }
+ // Use the same Brazilian Portuguese title case for every Inject marker.
+ // Keep accents unchanged; lowercase Portuguese particles except at the start.
+ function titleCasePtBR(text){
+  const particles=new Set([
+   'a','as','o','os','e','de','da','do','das','dos','em',
+   'no','na','nos','nas','ao','aos','à','às','por','para',
+   'com','sem','pelo','pela','pelos','pelas'
+  ]);
+  let position=0;
+  return text.trim().replace(/\\p{L}[\\p{L}\\p{M}]*/gu,word=>{
+   const lower=word.toLocaleLowerCase('pt-BR');
+   if(position++>0&&particles.has(lower))return lower;
+   // Preserve explicitly uppercase Roman numerals such as Pedro II.
+   if(word===word.toLocaleUpperCase('pt-BR')&&
+      /^[IVX]{2,6}$/.test(word))return word;
+   return lower.charAt(0).toLocaleUpperCase('pt-BR')+lower.slice(1);
+  });
+ }
  // Inject remains idle until a requested list contains the $$$ marker.
  // One read per list request, no polling, no count comparison and no stored value.
  async function replaceInjectMarkers(items,category){
@@ -1043,11 +1061,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   const selection=await response.json();
   if(typeof selection?.value!=='string'||!selection.value.trim())
    throw Error('Value do Inject inválido');
-  let value=selection.value;
-  if(['personalizada3','nomesfemininosbebes','nomesmasculinosbebes'].includes(category)){
-   value=value.trim().toLocaleLowerCase('pt-BR');
-   value=value.charAt(0).toLocaleUpperCase('pt-BR')+value.slice(1);
-  }
+  const value=titleCasePtBR(selection.value);
   return items.map(item=>item.includes('$$$')?
    item.replace(/\$\$\$/g,()=>value):item);
  }
@@ -1281,7 +1295,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   if(out.some(item=>item===undefined))throw Error('lista preparada incompleta');
   return {ordered:out,reservedPosition:position};
  }
- const GPT_TEST_VERSION=127;
+ const GPT_TEST_VERSION=128;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // The number grid owns its own input state, independent of secret keyboard typing.
  let numberGridVisible=false,gridDigits='',gridGesture=null;
