@@ -1125,10 +1125,15 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   ];
   return styles[introVariantIndex++%styles.length];
  }
+ // Both animal catalogs use the same circular Formiga / force / Elefante arrangement.
+ function hasAnimalCompanions(category,items){
+  return (category==='animais'||category==='animaisaleatorios')&&
+   (!JoaninhaLists.hasCustomItems(category)||
+    (items.indexOf('Formiga 🐜')>0&&items.indexOf('Elefante 🐘')>0));
+ }
  function arrange(items,position,quantity,category){
   if(!Number.isInteger(position)||position<1||position>quantity)throw Error('codigo fora da lista');
-  if(category==='animais'&&(!JoaninhaLists.hasCustomItems(category)||
-     (items.indexOf('Formiga 🐜')>0&&items.indexOf('Elefante 🐘')>0))){
+  if(hasAnimalCompanions(category,items)){
    // Circular triple: Formiga immediately before the force, Elefante after it.
    // 1 -> Formiga at 100; 100 -> Elefante at 1 (when quantity is 100).
    const formiga=items.indexOf('Formiga 🐜'),elefante=items.indexOf('Elefante 🐘');
@@ -1176,9 +1181,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   if(current===target)return ordered;
   if(category==='familiareszoologicos'&&quantity===31&&items.length===31)
    throw Error('Segunda força conflita com a posição fixa do familiar');
-  if(category==='animais'&&
-     (!JoaninhaLists.hasCustomItems(category)||
-      (items.indexOf('Formiga 🐜')>0&&items.indexOf('Elefante 🐘')>0))){
+  if(hasAnimalCompanions(category,items)){
    const before=(primary-2+quantity)%quantity,after=primary%quantity;
    if(current===before||current===after||target===before||target===after)
     throw Error('Segunda força conflita com acompanhantes dos animais');
@@ -1228,6 +1231,24 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
    [indices[reservedIndex],indices[target]]=[indices[target],indices[reservedIndex]];
   }
   const finalIndex=indices.indexOf(0);
+  if(finalIndex>=0&&quantity>=3&&hasAnimalCompanions(category,items)){
+   const fi=items.indexOf('Formiga 🐜'),ei=items.indexOf('Elefante 🐘');
+   if(fi<1||ei<1||fi===ei)throw Error('animais incompletos');
+   const locked=new Set([0,fi,ei]);
+   const sources=indices.filter(i=>!locked.has(i));
+   const used=new Set([...locked,...sources]);
+   for(let i=1;i<items.length&&sources.length<quantity-3;i++){
+    if(!used.has(i)){sources.push(i);used.add(i);}
+   }
+   if(sources.length<quantity-3)throw Error('animais insuficientes');
+   const out=Array(quantity);
+   out[finalIndex]=items[0];
+   out[(finalIndex-1+quantity)%quantity]=items[fi];
+   out[(finalIndex+1)%quantity]=items[ei];
+   let cursor=0;
+   for(let i=0;i<quantity;i++)if(out[i]===undefined)out[i]=items[sources[cursor++]];
+   return {ordered:out,reservedPosition:finalIndex+1};
+  }
   return {ordered:indices.map(i=>items[i]),
    reservedPosition:finalIndex<0?null:finalIndex+1};
  }
@@ -1236,8 +1257,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
  function prepareGridList(items,quantity,category){
   const position=31+Math.floor(Math.random()*(quantity-30));
   const locked=[{target:position-1,source:0}];
-  if(category==='animais'&&(!JoaninhaLists.hasCustomItems(category)||
-     (items.indexOf('Formiga 🐜')>0&&items.indexOf('Elefante 🐘')>0))){
+  if(hasAnimalCompanions(category,items)){
    const formiga=items.indexOf('Formiga 🐜'),elefante=items.indexOf('Elefante 🐘');
    if(formiga<1||elefante<1||formiga===elefante)throw Error('animais incompletos');
    locked.push({target:(position-2+quantity)%quantity,source:formiga},
@@ -1429,8 +1449,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
      !Number.isInteger(active.forcePosition))return false;
   const q=active.quantity,ordered=active.ordered,items=active.items;
   const moves=[{source:active.forcePosition-1,target:position-1}];
-  if(active.category==='animais'&&(!JoaninhaLists.hasCustomItems(active.category)||
-     (items.indexOf('Formiga 🐜')>0&&items.indexOf('Elefante 🐘')>0))){
+  if(hasAnimalCompanions(active.category,items)){
    const fi=ordered.indexOf('Formiga 🐜'),ei=ordered.indexOf('Elefante 🐘');
    if(fi<0||ei<0)return false;
    moves.push({source:fi,target:(position-2+q)%q},
