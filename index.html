@@ -898,7 +898,9 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   {file:'pontosturisticos',label:'pontos turísticos',terms:['ponto turistico','pontos turisticos','atracoes turisticas','atracao turistica','monumento','monumentos','lugares famosos','lugares para visitar']},
   {file:'aura',label:'auras',terms:['aura','auras','cores da aura','cores das auras']},
   {file:'familiareszoologicos',label:'familiares zoológicos',terms:['familiar','familiares','familiares zoologicos','animais espirituais','animal espiritual','animal de poder','animais de poder']},
-  {file:'contatoespiritual',label:'perguntas para contato espiritual',terms:['espirito','espiritos','espiritual','espirituais','espiritualidade','contato espiritual','comunicacao espiritual']}
+  {file:'contatoespiritual',label:'perguntas para contato espiritual',terms:['espirito','espiritos','espiritual','espirituais','espiritualidade','contato espiritual','comunicacao espiritual']},
+  {file:'personalizada2',label:'origamis',terms:['origâmi','origâmis']},
+  {file:'personalizada3',label:'nomes p/ bebês',terms:['bebês','bebê']}
  ],fetchListFile,()=>{invalidateWorkChoices();});
  const LIST_REQUEST_INTENT=/\b(?:liste|listar|lista|listas|cite|citar|enumere|enumerar|mostre|mostrar|me de|me diga|me fale|diga|quero|gostaria|preciso|poderia|pode|quais|quantas|quantos|nomes|exemplos|sugira|sugestoes|relacione|faca uma lista)\b/;
  // “Por que os insetos voam?” is informational, not a list request.
@@ -1217,7 +1219,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   if(out.some(item=>item===undefined))throw Error('lista preparada incompleta');
   return {ordered:out,reservedPosition:position};
  }
- const GPT_TEST_VERSION=119;
+ const GPT_TEST_VERSION=120;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // The number grid owns its own input state, independent of secret keyboard typing.
  let numberGridVisible=false,gridDigits='',gridGesture=null;
