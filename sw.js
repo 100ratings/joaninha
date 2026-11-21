@@ -11,7 +11,7 @@ const SHELL=absolute('index.html');
 const LIST_NAMES=[
  'aleatorias','animais','aura','celebridades','cervejas','contatoespiritual',
  'familiareszoologicos','filmes','hobbies','insetos','musicas',
- 'perguntas','pontosturisticos'
+ 'perguntas','pontosturisticos','personalizada2','personalizada3'
 ];
 const FILES=[
  'index.html','chat-test-gpt-2-diag.js','joaninha-list-manager.js','joaninha-work-config.js','manifest.webmanifest',
