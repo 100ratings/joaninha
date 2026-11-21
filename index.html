@@ -1040,7 +1040,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   if(typeof selection?.value!=='string'||!selection.value.trim())
    throw Error('Value do Inject inválido');
   let value=selection.value;
-  if(category==='personalizada3'){
+  if(['personalizada3','nomesfemininosbebes','nomesmasculinosbebes'].includes(category)){
    value=value.trim().toLocaleLowerCase('pt-BR');
    value=value.charAt(0).toLocaleUpperCase('pt-BR')+value.slice(1);
   }
@@ -1257,7 +1257,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   if(out.some(item=>item===undefined))throw Error('lista preparada incompleta');
   return {ordered:out,reservedPosition:position};
  }
- const GPT_TEST_VERSION=123;
+ const GPT_TEST_VERSION=124;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // The number grid owns its own input state, independent of secret keyboard typing.
  let numberGridVisible=false,gridDigits='',gridGesture=null;
