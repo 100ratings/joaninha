@@ -1066,7 +1066,9 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
    aura:'cor de aura',familiareszoologicos:'familiar zoológico',
    contatoespiritual:'pergunta para contato espiritual'
   };
-  const noun=q===1?(singular[resolved.file]||resolved.label):resolved.label;
+  const noun=resolved.file==='personalizada3'?
+   (q===1?'nome para bebê':'nomes para bebês'):
+   q===1?(singular[resolved.file]||resolved.label):resolved.label;
   if(q===1)return 'Aqui está um exemplo de '+noun+':';
 
   // Build the description exclusively from properties the displayed data supports.
@@ -1239,7 +1241,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   if(out.some(item=>item===undefined))throw Error('lista preparada incompleta');
   return {ordered:out,reservedPosition:position};
  }
- const GPT_TEST_VERSION=121;
+ const GPT_TEST_VERSION=122;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // The number grid owns its own input state, independent of secret keyboard typing.
  let numberGridVisible=false,gridDigits='',gridGesture=null;
