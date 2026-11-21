@@ -890,6 +890,8 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   {file:'animaisaleatorios',label:'animais aleatórios',
    terms:['animais aleatórios','animal aleatório','bichos aleatórios','bicho aleatório','animais ao acaso','bichos ao acaso','lista aleatória de animais','lista aleatória de bichos']},
   {file:'celebridades',label:'celebridades',terms:['celebridade','celebridades','famoso','famosos','famosa','famosas','pessoas famosas','pessoa famosa','personalidades','ator','atores','atriz','atrizes','artista','artistas','estrelas de hollywood']},
+  {file:'celebridadesaleatorias',label:'celebridades aleatórias',
+   terms:['celebridades aleatórias','celebridade aleatória','famosos aleatórios','famosas aleatórias','artistas aleatórios','artistas aleatórias','celebridades ao acaso','famosos ao acaso','lista aleatória de celebridades']},
   {file:'filmes',label:'filmes',terms:['filme','filmes','cinema','longa metragem','longas metragens','classicos do cinema']},
   {file:'musicas',label:'músicas',terms:['musica','musicas','cancao','cancoes','hits','sucessos musicais','faixas']},
   {file:'aleatorias',label:'músicas aleatórias',terms:['aleatoria','aleatorias']},
@@ -1279,7 +1281,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   if(out.some(item=>item===undefined))throw Error('lista preparada incompleta');
   return {ordered:out,reservedPosition:position};
  }
- const GPT_TEST_VERSION=126;
+ const GPT_TEST_VERSION=127;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // The number grid owns its own input state, independent of secret keyboard typing.
  let numberGridVisible=false,gridDigits='',gridGesture=null;
