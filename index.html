@@ -900,7 +900,11 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   {file:'familiareszoologicos',label:'familiares zoológicos',terms:['familiar','familiares','familiares zoologicos','animais espirituais','animal espiritual','animal de poder','animais de poder']},
   {file:'contatoespiritual',label:'perguntas para contato espiritual',terms:['espirito','espiritos','espiritual','espirituais','espiritualidade','contato espiritual','comunicacao espiritual']},
   {file:'personalizada2',label:'origamis',terms:['origâmi','origâmis']},
-  {file:'personalizada3',label:'nomes p/ bebês',terms:['bebês','bebê']}
+  {file:'personalizada3',label:'nomes p/ bebês',terms:['bebês','bebê']},
+  {file:'nomesfemininosbebes',label:'nomes femininos para bebês',
+   terms:['nomes femininos para bebês','nomes femininos para bebê','nomes femininos','nome feminino','nomes de menina','nomes de meninas','meninas','menina','bebê feminino','bebês femininos','sexo feminino']},
+  {file:'nomesmasculinosbebes',label:'nomes masculinos para bebês',
+   terms:['nomes masculinos para bebês','nomes masculinos para bebê','nomes masculinos','nome masculino','nomes de menino','nomes de meninos','meninos','menino','bebê masculino','bebês masculinos','sexo masculino']}
  ],fetchListFile,()=>{invalidateWorkChoices();});
  const LIST_REQUEST_INTENT=/\b(?:liste|listar|lista|listas|cite|citar|enumere|enumerar|mostre|mostrar|me de|me diga|me fale|diga|quero|gostaria|preciso|poderia|pode|quais|quantas|quantos|nomes|exemplos|sugira|sugestoes|relacione|faca uma lista)\b/;
  // “Por que os insetos voam?” is informational, not a list request.
@@ -927,6 +931,14 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
    if(index!==Infinity)matched.push({...category,index,matchLen});
   }
   if(!matched.length)return null;
+  // A requested gender takes precedence over the generic baby-name category.
+  const babyGender=matched.filter(c=>
+   c.file==='nomesfemininosbebes'||c.file==='nomesmasculinosbebes');
+  if(babyGender.length===1)return babyGender[0];
+  if(babyGender.length===2){
+   babyGender.sort((a,b)=>a.index-b.index||b.matchLen-a.matchLen);
+   return babyGender[0];
+  }
   // A specific spiritual request wins over the generic "perguntas" keyword.
   const spiritual=matched.find(c=>c.file==='contatoespiritual');
   const family=matched.find(c=>c.file==='familiareszoologicos');
@@ -1066,8 +1078,12 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
    aura:'cor de aura',familiareszoologicos:'familiar zoológico',
    contatoespiritual:'pergunta para contato espiritual'
   };
-  const noun=resolved.file==='personalizada3'?
-   (q===1?'nome para bebê':'nomes para bebês'):
+  const babyNouns={
+   personalizada3:['nome para bebê','nomes para bebês'],
+   nomesfemininosbebes:['nome feminino para bebê','nomes femininos para bebês'],
+   nomesmasculinosbebes:['nome masculino para bebê','nomes masculinos para bebês']
+  };
+  const noun=babyNouns[resolved.file]?babyNouns[resolved.file][q===1?0:1]:
    q===1?(singular[resolved.file]||resolved.label):resolved.label;
   if(q===1)return 'Aqui está um exemplo de '+noun+':';
 
@@ -1241,7 +1257,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   if(out.some(item=>item===undefined))throw Error('lista preparada incompleta');
   return {ordered:out,reservedPosition:position};
  }
- const GPT_TEST_VERSION=122;
+ const GPT_TEST_VERSION=123;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // The number grid owns its own input state, independent of secret keyboard typing.
  let numberGridVisible=false,gridDigits='',gridGesture=null;
