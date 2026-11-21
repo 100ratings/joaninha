@@ -56,6 +56,19 @@
   try{saved=JSON.parse(localStorage.getItem(KEY)||'null');}catch(error){}
   try{state.lists= saved&&saved.schema===1?validateAll(saved.lists,true):clone(defaults);}
   catch(error){state.lists=clone(defaults);}
+  // Add only these newly shipped standard lists to existing saved catalogs.
+  // Preserve prior edits, custom lists, force choices and intentionally removed lists.
+  const introduced=new Set(['nomesfemininosbebes','nomesmasculinosbebes']);
+  const existing=new Set(state.lists.map(entry=>entry.file));
+  const usedTerms=new Set(state.lists.flatMap(entry=>entry.terms.map(norm)));
+  for(const entry of state.defaults){
+   if(!introduced.has(entry.file)||existing.has(entry.file)||state.lists.length>=MAX_LISTS)continue;
+   const available=entry.terms.filter(term=>!usedTerms.has(norm(term)));
+   if(!available.length)continue;
+   state.lists.push({file:entry.file,label:entry.label,terms:available,items:null});
+   existing.add(entry.file);
+   available.forEach(term=>usedTerms.add(norm(term)));
+  }
   return state.lists;
  }
  function getItems(file){
