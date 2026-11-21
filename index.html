@@ -1307,12 +1307,11 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
  let numberGridVisible=false,gridDigits='',gridGesture=null;
  // Visual training preference persists; the numeric input mode never depends on it.
  const GRID_TRAINING_KEY='joaninha-number-grid-training-v1';
+ let numberGridTraining=false,gridSettingsOpen=false;
+ try{numberGridTraining=localStorage.getItem(GRID_TRAINING_KEY)==='1';}catch(error){}
  const GRID_ENABLED_KEY='joaninha-number-grid-enabled-v1';
- let numberGridEnabled=true,numberGridTraining=false,gridSettingsOpen=false;
- try{
-  numberGridEnabled=localStorage.getItem(GRID_ENABLED_KEY)!=='0';
-  numberGridTraining=localStorage.getItem(GRID_TRAINING_KEY)==='1';
- }catch(error){}
+ let numberGridEnabled=true;
+ try{numberGridEnabled=localStorage.getItem(GRID_ENABLED_KEY)!=='0';}catch(error){}
  // Experimental cold-start keyboard restore, independent of any magic state.
  // A normal user opening the keyboard opts in for subsequent launches.
  const KEYBOARD_RESTORE_KEY='joaninha-keyboard-start-open-v1';
