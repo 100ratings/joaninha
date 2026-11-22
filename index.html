@@ -1551,6 +1551,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   }else if(document.activeElement===nativeInput)nativeInput.blur();
   applyViewport();
   updateComposer();
+  if(peekPanelOpen&&activeSettingsTab==='activation')scheduleActivationPreview();
   setTimeout(refreshJump,40);
   requestAnimationFrame(()=>diag.snapshot('keyboard-after-change',true));
   return true;
@@ -1826,7 +1827,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
  function paintActivationBand(id,left,right,top,height,divider){
   const box=$(id);
   if(!(right>left+6&&height>6)){box.style.display='none';return;}
-  box.style.display='block';
+  box.style.display='';
   const pageRect=page.getBoundingClientRect();
   box.style.left=(left-pageRect.left)+'px';
   box.style.top=(top-pageRect.top)+'px';
@@ -2114,6 +2115,64 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   else if(y!==null)editPeek({y:peekSettings.y+Number(y)*peekStep});
   else if(font!==null)editPeek({font:peekSettings.font+Number(font)});
   else if(opacity!==null)editPeek({opacity:peekSettings.opacity+Number(opacity)});
+ });
+
+ // Editing a button must not steal focus from the native iOS text field.
+ // Switches, step controls and close stay operable with keyboard on screen.
+ $('peekPanel').addEventListener('pointerdown',e=>{
+  if(keyboard&&e.cancelable&&e.target.closest('button'))e.preventDefault();
+ },true);
+ $('peekTabActivation').addEventListener('click',e=>{
+  const mode=e.target.closest('[data-activation-keyboard]');
+  if(mode){
+   const requested=mode.dataset.activationKeyboard==='open';
+   if(requested!==keyboard)setKeyboard(requested,'activation-preview');
+   else if(requested&&document.activeElement!==nativeInput)
+    nativeInput.focus({preventScroll:true});
+   peekKeyboardBefore=keyboard;
+   scheduleActivationPreview();
+   requestAnimationFrame(scheduleActivationPreview);
+   return;
+  }
+  const adjust=e.target.closest('[data-activation-delta]');
+  if(adjust)changeActivationDivider(activationGeometry().divider+Number(adjust.dataset.activationDelta));
+ });
+ const activationTrack=$('activationTrack');
+ let activationDragId=null;
+ function moveActivationTrack(x){
+  const track=activationTrack.getBoundingClientRect();
+  const ratio=Math.max(0,Math.min(1,(x-track.left)/track.width));
+  const rect=activationGeometry().rect;
+  changeActivationDivider(rect.left+ratio*rect.width);
+ }
+ activationTrack.addEventListener('pointerdown',e=>{
+  if(!e.isPrimary||(e.pointerType==='mouse'&&e.button!==0))return;
+  e.preventDefault();
+  activationDragId=e.pointerId;
+  try{activationTrack.setPointerCapture(e.pointerId);}catch(error){}
+  moveActivationTrack(e.clientX);
+ });
+ activationTrack.addEventListener('pointermove',e=>{
+  if(e.pointerId!==activationDragId)return;
+  e.preventDefault();moveActivationTrack(e.clientX);
+ });
+ for(const type of ['pointerup','pointercancel','lostpointercapture'])
+  activationTrack.addEventListener(type,e=>{
+   if(e.pointerId!==activationDragId)return;
+   if(type==='pointerup')moveActivationTrack(e.clientX);
+   activationDragId=null;
+  });
+ activationTrack.addEventListener('keydown',e=>{
+  const step=e.shiftKey?10:1;
+  if(e.key==='ArrowLeft'||e.key==='ArrowDown'){
+   e.preventDefault();changeActivationDivider(activationGeometry().divider-step);
+  }else if(e.key==='ArrowRight'||e.key==='ArrowUp'){
+   e.preventDefault();changeActivationDivider(activationGeometry().divider+step);
+  }else if(e.key==='Home'){
+   e.preventDefault();changeActivationDivider(activationGeometry().min);
+  }else if(e.key==='End'){
+   e.preventDefault();changeActivationDivider(activationGeometry().max);
+  }
  });
  $('peekFont').addEventListener('input',e=>editPeek({font:Number(e.target.value)}));
  $('peekOpacity').addEventListener('input',e=>editPeek({opacity:Number(e.target.value)}));
