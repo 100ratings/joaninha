@@ -670,6 +670,53 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
  width:var(--answer-icon-speak,20px);
  height:var(--answer-icon-speak,20px);
 }
+
+/* V132: iPhone landscape layout. Portrait dimensions and magic input remain unchanged.
+   Use the native iOS keyboard; the simulated keyboard stays hidden. */
+@media (orientation: landscape) and (max-height: 650px){
+ :root{
+  --safe-top:max(17px,env(safe-area-inset-top,0px));
+  --safe-bottom:max(12px,env(safe-area-inset-bottom,0px));
+ }
+ #header{
+  left:max(16px,env(safe-area-inset-left,0px));
+  right:max(16px,env(safe-area-inset-right,0px));
+ }
+ #composer,#app.keyboard-on #composer{
+  left:50%;right:auto;
+  width:min(704px,calc(100% - max(24px,env(safe-area-inset-left,0px)) - max(24px,env(safe-area-inset-right,0px))));
+  transform:translateX(-50%);
+ }
+ /* 12px breathing room between the composer and native landscape keyboard. */
+ #app.keyboard-on{--composer-vertical-offset:34px}
+ #app.keyboard-on #composer{
+  bottom:calc(var(--kbd-effective) + 12px + var(--composer-vertical-offset));
+ }
+ #thread-inner,#app.scene-thinking #thread-inner,
+ #app.scene-list #thread-inner,#app.scene-end #thread-inner{
+  padding-top:calc(var(--safe-top) + 56px);
+ }
+ /* The Work picker keeps all ten choices visible on a shorter display. */
+ #workForcePicker .work-force-heading{height:25px}
+ #workForcePicker .work-force-choice{
+  height:clamp(21px,calc((var(--app-h) - var(--safe-top) - 115px)/10),30px);
+ }
+ /* Secret panels stay accessible without moving the native keyboard. */
+ #peekPanel{
+  max-height:calc(var(--app-h) - var(--safe-top) - var(--safe-bottom) - 85px);
+ }
+ #gridSettings,#app.keyboard-on #gridSettings{
+  top:calc(var(--safe-top) + 54px);bottom:auto;
+  max-height:calc(var(--app-h) - var(--kbd-h) - var(--safe-top) - 70px);
+  overflow-y:auto;
+ }
+ /* The training overlay and its hit rectangles use the same rotated geometry. */
+ #numberGridOverlay{
+  inset:calc(var(--safe-top) + 18px) max(12px,env(safe-area-inset-right,0px)) 18px max(12px,env(safe-area-inset-left,0px));
+  row-gap:6px;column-gap:8px;
+ }
+ #numberGridOverlay .number-grid-cell{font-size:clamp(24px,6vh,40px)}
+}
 </style>
 </head>
 <body>
@@ -1301,7 +1348,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   if(out.some(item=>item===undefined))throw Error('lista preparada incompleta');
   return {ordered:out,reservedPosition:position};
  }
- const GPT_TEST_VERSION=131;
+ const GPT_TEST_VERSION=132;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // The number grid owns its own input state, independent of secret keyboard typing.
  let numberGridVisible=false,gridDigits='',gridGesture=null;
@@ -1353,13 +1400,25 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
    draftLength:draft.length,caretPos,shiftNext,capsLocked,secretMode,secretCount:secretDigits.length,temporaryChat,standalone,generating})
  });
  if(!isIOS)app.classList.add('desktop-preview');
- // Preserve the original screen geometry when iOS shrinks visualViewport.
- let baseAppHeight=0;
+ // Keep the full layout viewport stable under the native iOS keyboard.
+ // Portrait uses the established sizing; landscape must have its own height.
+ let baseAppHeight=0,lastViewportOrientation=null;
  function applyViewport(){
-  const fullScreen=isIOS&&standalone&&screen.height>screen.width;
+  const landscape=window.matchMedia('(orientation: landscape)').matches;
+  const orientation=landscape?'landscape':'portrait';
+  if(lastViewportOrientation!==orientation){
+   baseAppHeight=0;
+   lastViewportOrientation=orientation;
+  }
   const inner=window.innerHeight||document.documentElement.clientHeight;
-  const proposed=fullScreen?Math.max(screen.height,inner):inner;
-  if(!keyboard||!baseAppHeight)baseAppHeight=Math.max(baseAppHeight,Math.max(380,Math.round(proposed)));
+  const deviceHeight=landscape?Math.min(screen.width,screen.height):
+   Math.max(screen.width,screen.height);
+  const proposed=isIOS&&standalone?Math.max(inner,deviceHeight):inner;
+  // A landscape keyboard can leave less than 380px visible. Never force
+  // the portrait minimum height onto a rotated iPhone.
+  const minimum=landscape?240:380;
+  if(!keyboard||!baseAppHeight)
+   baseAppHeight=Math.max(baseAppHeight,Math.max(minimum,Math.round(proposed)));
   document.documentElement.style.setProperty('--app-h',baseAppHeight+'px');
   const vv=window.visualViewport;
   const visibleBottom=vv?vv.offsetTop+vv.height:inner;
@@ -1374,7 +1433,11 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
  window.addEventListener('resize',()=>{applyViewport();refreshJump();},{passive:true});
  window.visualViewport?.addEventListener('resize',()=>{applyViewport();refreshJump();},{passive:true});
  window.visualViewport?.addEventListener('scroll',applyViewport,{passive:true});
- window.addEventListener('orientationchange',()=>{baseAppHeight=0;setTimeout(applyViewport,250);},{passive:true});
+ window.addEventListener('orientationchange',()=>{
+  baseAppHeight=0;
+  applyViewport();
+  setTimeout(()=>{baseAppHeight=0;applyViewport();refreshJump();},250);
+ },{passive:true});
  function stopAuto(){if(timer!==null){clearTimeout(timer);timer=null;}generating=false;}
  function setDrawer(open){
   // WebKit exposes no control to slide the native keyboard with the drawer.
