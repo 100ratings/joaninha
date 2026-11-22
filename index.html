@@ -712,7 +712,9 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
  }
  /* The training overlay and its hit rectangles use the same rotated geometry. */
  #numberGridOverlay{
-  inset:calc(var(--safe-top) + 18px) max(12px,env(safe-area-inset-right,0px)) 18px max(12px,env(safe-area-inset-left,0px));
+  /* Keep every number between the header and the closed composer. */
+  inset:calc(var(--safe-top) + 58px) max(12px,env(safe-area-inset-right,0px))
+   calc(var(--composer-bottom) + 56px) max(12px,env(safe-area-inset-left,0px));
   row-gap:6px;column-gap:8px;
  }
  #numberGridOverlay .number-grid-cell{font-size:clamp(24px,6vh,40px)}
