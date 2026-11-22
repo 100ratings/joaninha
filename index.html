@@ -2067,7 +2067,9 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   peekPanelOpen=true;
   peekKeyboardBefore=keyboard;
   peekVisibleBefore=secretPeek.classList.contains('visible');
-  // The editor must not close the real iOS keyboard when opened.
+  // Preserve the real iOS keyboard and restore its focus when possible.
+  if(peekKeyboardBefore&&document.activeElement!==nativeInput)
+   nativeInput.focus({preventScroll:true});
   clearSecretPeek();
   app.classList.add('peek-panel-on');
   $('peekPanel').setAttribute('aria-hidden','false');
@@ -2124,7 +2126,10 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
  // Editing a button must not steal focus from the native iOS text field.
  // Switches, step controls and close stay operable with keyboard on screen.
  $('peekPanel').addEventListener('pointerdown',e=>{
-  if(keyboard&&e.cancelable&&e.target.closest('button'))e.preventDefault();
+  if(!keyboard||!e.cancelable)return;
+  const nativeControl=e.target.closest('input,textarea,select');
+  if(!nativeControl&&(activeSettingsTab==='activation'||e.target.closest('button')))
+   e.preventDefault();
  },true);
  $('peekTabActivation').addEventListener('click',e=>{
   const mode=e.target.closest('[data-activation-keyboard]');
