@@ -131,7 +131,7 @@ svg{display:block}
 #home-tabs{position:absolute;top:0;left:50%;transform:translateX(-50%);height:44px;border-radius:24px;display:flex;align-items:center;padding:3px;width:158px}
 #home-tabs button{height:38px;width:50%;border:0;background:transparent;border-radius:23px;font-weight:400;font-size:16px;letter-spacing:-.25px}
 #home-tabs button.active{background:rgba(105,105,109,.36)}
-/* Work hold 1s: fixed 10x3 selector with no scrolling */
+/* Work hold 0.5s: fixed 10x3 selector with no scrolling */
 #tabWork,#tabChat{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 #workForcePicker{display:none;position:absolute;z-index:45;top:calc(var(--safe-top) + 51px);left:50%;
 transform:translateX(-50%);width:min(540px,calc(100% - 12px));padding:7px;
@@ -701,7 +701,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
  </aside>
  <main id="page">
   <header id="header">
-   <button class="glass glass-circle" id="top-menu" aria-label="Abrir menu, segure por 3 segundos para alterar a aparência">
+   <button class="glass glass-circle" id="top-menu" aria-label="Abrir menu, segure por 1,5 segundo para alterar a aparência">
     <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M3 8.5h18M3 15.5h11"/></svg>
    </button>
    <div id="home-tabs" class="glass" role="group" aria-label="Chat e Work">
@@ -1301,7 +1301,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   if(out.some(item=>item===undefined))throw Error('lista preparada incompleta');
   return {ordered:out,reservedPosition:position};
  }
- const GPT_TEST_VERSION=129;
+ const GPT_TEST_VERSION=130;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // The number grid owns its own input state, independent of secret keyboard typing.
  let numberGridVisible=false,gridDigits='',gridGesture=null;
@@ -2273,7 +2273,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
    if(!themeHoldPoint)return;
    themeHoldPoint=null;wasLong=true;
    showThemePicker();
-  },3000);
+  },1500);
  });
  themeButton.addEventListener('pointermove',e=>{
   if(!themeHoldPoint||themeHoldPoint.id!==e.pointerId)return;
@@ -2304,14 +2304,14 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
    peekHoldPoint=null;
    peekHoldOpenedAt=performance.now();
    openPeekPanel();
-  },3000);
+  },1500);
  });
  tempChatButton.addEventListener('pointermove',e=>{
   if(peekHoldPoint&&peekHoldPoint.id===e.pointerId&&Math.hypot(e.clientX-peekHoldPoint.x,e.clientY-peekHoldPoint.y)>14)cancelPeekHold();
  });
  for(const ev of ['pointerup','pointercancel','pointerleave'])tempChatButton.addEventListener(ev,cancelPeekHold);
  tempChatButton.addEventListener('contextmenu',e=>e.preventDefault());
- // Hold new-chat for 3 seconds during a conversation to adjust visible fonts
+ // Hold new-chat for 1.5 seconds during a conversation to adjust visible fonts
  const threadNewChat=$('newChat');
  let threadHoldTimer=null,threadHoldPoint=null,threadHoldOpenedAt=-Infinity;
  function cancelThreadHold(){clearTimeout(threadHoldTimer);threadHoldTimer=null;threadHoldPoint=null;}
@@ -2325,7 +2325,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
    threadHoldPoint=null;
    threadHoldOpenedAt=performance.now();
    openPeekPanel();
-  },3000);
+  },1500);
  });
  threadNewChat.addEventListener('pointermove',e=>{
   if(threadHoldPoint&&threadHoldPoint.id===e.pointerId&&
@@ -2340,7 +2340,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   setTemporaryChat(!temporaryChat);
   setKeyboard(true,'temporary-chat-toggle');
  });
- // Three configurable columns, preserving the original 1-second hold-and-slide gesture.
+ // Three configurable columns, preserving the 0.5-second hold-and-slide gesture.
  const workTab=$('tabWork'),workPicker=$('workForcePicker');
  const workMusicChoices=$('workMusicChoices'),workCelebChoices=$('workCelebChoices'),workAnimalChoices=$('workAnimalChoices');
  let WORK_COLUMNS=[['musicas',workMusicChoices],['celebridades',workCelebChoices],['animais',workAnimalChoices]];
@@ -2507,7 +2507,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
    workPicker.classList.add('visible');
    workPicker.setAttribute('aria-hidden','false');
    showWorkChoices();
-  },1000);
+  },500);
  });
  workTab.addEventListener('pointermove',e=>{
   if(!workGesture||workGesture.id!==e.pointerId)return;
@@ -2536,7 +2536,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   if(performance.now()-workHoldOpenedAt<1000){e.preventDefault();return;}
   $('tabChat').classList.remove('active');workTab.classList.add('active');
  });
- // V86: Chat's one-second hold opens the list editor; a tap still switches tabs.
+ // Chat's half-second hold opens the list editor; a tap still switches tabs.
  const chatTab=$('tabChat');
  let chatHoldTimer=null,chatHoldGesture=null,chatHoldOpenedAt=-Infinity,chatHoldHandled=false;
  function cancelChatHold(){clearTimeout(chatHoldTimer);chatHoldTimer=null;chatHoldGesture=null;}
@@ -2553,7 +2553,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
    if(keyboard)setKeyboard(false,'list-manager');
    JoaninhaLists.open();
    cancelChatHold();
-  },1000);
+  },500);
  });
  chatTab.addEventListener('pointermove',e=>{
   if(chatHoldGesture&&chatHoldGesture.id===e.pointerId&&
@@ -2765,7 +2765,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
  composer.addEventListener('touchcancel',()=>{
   lowerTouchGesture=null;lowerPointerGesture=null;
  });
- // Short + tap toggles the numeric magic mode. A 3s hold opens settings
+ // Short + tap toggles the numeric magic mode. A 1.5s hold opens settings
  // without changing the mode. Training changes visibility, never touch regions.
  const plus=$('add'),numberGridOverlay=$('numberGridOverlay');
  const gridSettings=$('gridSettings'),gridSettingsShade=$('gridSettingsShade');
@@ -2841,7 +2841,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
    if(plusPress!==gesture)return;
    plusPress=null;
    setGridSettings(true);
-  },3000);
+  },1500);
  });
  plus.addEventListener('touchstart',e=>{
   if(e.cancelable)e.preventDefault();
@@ -2900,13 +2900,13 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   const gesture={id,resetTimer:null};
   gridGesture=gesture;
   if(gridDigits.length===2){
-   // A completed code is locked until the magician holds a tile for 1s.
+   // A completed code is locked until the magician holds a tile for 0.5s.
    gesture.resetTimer=setTimeout(()=>{
     if(gridGesture!==gesture||!numberGridVisible||keyboard)return;
     gridDigits=digit;
     showGridPeek();
     diag.event('grid-code-restarted',{firstDigit:digit});
-   },1000);
+   },500);
   }else{
    gridDigits+=digit;
    showGridPeek();
