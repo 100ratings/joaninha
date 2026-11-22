@@ -58,7 +58,7 @@
   catch(error){state.lists=clone(defaults);}
   // Add only these newly shipped standard lists to existing saved catalogs.
   // Preserve prior edits, custom lists, force choices and intentionally removed lists.
-  const introduced=new Set(['nomesfemininosbebes','nomesmasculinosbebes','animaisaleatorios','celebridadesaleatorias']);
+  const introduced=new Set(['nomesfemininosbebes','nomesmasculinosbebes','animaisaleatorios','celebridadesaleatorias','pareidolia']);
   const existing=new Set(state.lists.map(entry=>entry.file));
   const usedTerms=new Set(state.lists.flatMap(entry=>entry.terms.map(norm)));
   for(const entry of state.defaults){
