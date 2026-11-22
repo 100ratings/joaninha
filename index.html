@@ -1301,7 +1301,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   if(out.some(item=>item===undefined))throw Error('lista preparada incompleta');
   return {ordered:out,reservedPosition:position};
  }
- const GPT_TEST_VERSION=130;
+ const GPT_TEST_VERSION=131;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // The number grid owns its own input state, independent of secret keyboard typing.
  let numberGridVisible=false,gridDigits='',gridGesture=null;
@@ -2536,7 +2536,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   if(performance.now()-workHoldOpenedAt<1000){e.preventDefault();return;}
   $('tabChat').classList.remove('active');workTab.classList.add('active');
  });
- // Chat's half-second hold opens the list editor; a tap still switches tabs.
+ // Chat's 1.5-second hold opens the list editor; a tap still switches tabs.
  const chatTab=$('tabChat');
  let chatHoldTimer=null,chatHoldGesture=null,chatHoldOpenedAt=-Infinity,chatHoldHandled=false;
  function cancelChatHold(){clearTimeout(chatHoldTimer);chatHoldTimer=null;chatHoldGesture=null;}
@@ -2553,7 +2553,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
    if(keyboard)setKeyboard(false,'list-manager');
    JoaninhaLists.open();
    cancelChatHold();
-  },500);
+  },1500);
  });
  chatTab.addEventListener('pointermove',e=>{
   if(chatHoldGesture&&chatHoldGesture.id===e.pointerId&&
