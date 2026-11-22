@@ -719,6 +719,59 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
  }
  #numberGridOverlay .number-grid-cell{font-size:clamp(24px,6vh,40px)}
 }
+
+/* V134: live, pixel-precise activation editor */
+.peek-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}
+#peekTabActivation[hidden]{display:none!important}
+#app.activation-editor-on #peekPanel{max-height:var(--activation-panel-room,calc(100% - 175px))}
+.activation-help,.activation-note{font-size:12px;line-height:1.45;color:#bcbec7;margin:8px 0}
+.activation-status{font-size:12px;color:#b8b9c4;margin:7px 0}
+.activation-modes{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:4px;border-radius:12px;background:rgba(140,140,150,.16)}
+.activation-modes button{border:0;border-radius:9px;background:transparent;height:34px;font-size:12px;font-weight:650}
+.activation-modes button[aria-pressed="true"]{background:rgba(95,125,185,.36)}
+.activation-legend{display:flex;gap:15px;flex-wrap:wrap;font-size:12px;margin:10px 0 8px}
+.activation-legend span{display:inline-flex;align-items:center;gap:6px}
+.activation-legend span:before{content:"";width:11px;height:11px;border-radius:3px;background:#ee6269}
+.activation-legend .activation-secret:before{background:#3cca7b}
+#activationTrack{height:44px;border-radius:10px;position:relative;border:1px solid #72727b;
+ background:linear-gradient(to right,rgba(223,67,79,.40) var(--activation-split,50%),rgba(33,180,99,.40) var(--activation-split,50%));
+ touch-action:none;cursor:ew-resize;outline-offset:3px}
+#activationTrack:before,#activationTrack:after{position:absolute;top:14px;font-size:10px;font-weight:750;pointer-events:none}
+#activationTrack:before{content:"NORMAL";left:9px}
+#activationTrack:after{content:"SECRETO";right:9px}
+#activationTrack .activation-thumb{position:absolute;left:var(--activation-split,50%);
+ top:-3px;bottom:-3px;width:4px;transform:translateX(-50%);background:#fff;box-shadow:0 0 0 3px #ffffff25;pointer-events:none}
+.activation-controls{display:flex;align-items:center;justify-content:space-between;gap:5px;margin-top:9px}
+.activation-controls button{height:36px;min-width:42px;border:1px solid #666670;border-radius:9px;background:#383841;font-size:12px;font-weight:650}
+.activation-controls output{min-width:65px;text-align:center;flex:1;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
+#activationPreviewUpper,#activationPreviewLower{display:none;position:absolute;z-index:110;pointer-events:none;border-radius:8px}
+#app.activation-editor-on #activationPreviewUpper,#app.activation-editor-on.keyboard-on #activationPreviewLower{display:block}
+.activation-red,.activation-green{position:absolute;top:0;bottom:0;display:flex;align-items:center;justify-content:center;border:1px solid;overflow:hidden}
+.activation-red{left:0;background:rgba(236,55,66,.32);border-color:#ee737b;color:#ffd1d4;border-radius:8px 0 0 8px}
+.activation-green{right:0;background:rgba(32,182,98,.34);border-color:#69e3a0;color:#c4ffdf;border-radius:0 8px 8px 0}
+.activation-red span,.activation-green span{font-size:10px;font-weight:750;white-space:nowrap;text-shadow:0 1px 2px #000;padding:0 3px}
+.activation-boundary{position:absolute;top:-4px;bottom:-4px;width:2px;background:#fff;transform:translateX(-50%);box-shadow:0 0 5px #000}
+html[data-theme="light"] .activation-help,html[data-theme="light"] .activation-note,html[data-theme="light"] .activation-status{color:#606672}
+html[data-theme="light"] .activation-controls button{background:#e8ebf0;color:#30343e;border-color:#c7ccd4}
+html[data-theme="light"] .activation-modes button[aria-pressed="true"]{background:#dce7f6;color:#222b3d}
+#app.activation-editor-on.keyboard-on #peekPanel .peek-footer{display:none}
+@media(orientation:landscape) and (max-height:650px){
+ #app.activation-editor-on.keyboard-on #peekPanel{
+  top:calc(var(--safe-top) + 3px);left:max(15px,env(safe-area-inset-left,0px));
+  right:max(15px,env(safe-area-inset-right,0px));max-width:700px;padding:6px 11px}
+ #app.activation-editor-on.keyboard-on .peek-head strong{font-size:13px}
+ #app.activation-editor-on.keyboard-on .peek-tabs{padding:2px;margin:3px 0}
+ #app.activation-editor-on.keyboard-on .peek-tabs button{height:25px;font-size:11px}
+ #app.activation-editor-on.keyboard-on .activation-help,
+ #app.activation-editor-on.keyboard-on .activation-note,
+ #app.activation-editor-on.keyboard-on .activation-legend,
+ #app.activation-editor-on.keyboard-on #activationTrack{display:none}
+ #app.activation-editor-on.keyboard-on .activation-modes{padding:2px}
+ #app.activation-editor-on.keyboard-on .activation-modes button{height:25px}
+ #app.activation-editor-on.keyboard-on .activation-status{font-size:10px;margin:3px 0}
+ #app.activation-editor-on.keyboard-on .activation-controls{margin-top:3px}
+ #app.activation-editor-on.keyboard-on .activation-controls button{height:28px}
+}
 </style>
 </head>
 <body>
@@ -848,12 +901,15 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
     <g id="sendPath"><path d="M12 19V5m0 0-6 6m6-6 6 6"/></g>
    </svg><span id="secretPeek" aria-hidden="true"></span></button>
   </div>
+  <div id="activationPreviewUpper" aria-hidden="true"><div class="activation-red"><span>NORMAL</span></div><div class="activation-green"><span>SECRETO</span></div><div class="activation-boundary"></div></div>
+  <div id="activationPreviewLower" aria-hidden="true"><div class="activation-red"><span>NORMAL</span></div><div class="activation-green"><span>SECRETO</span></div><div class="activation-boundary"></div></div>
   <div id="peekShade" aria-hidden="true"></div>
   <section id="peekPanel" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="peekTitle">
    <div class="peek-head"><strong id="peekTitle">Ajustes da Joaninha</strong><button id="peekClose" type="button" aria-label="Fechar ajustes">×</button></div>
    <div class="peek-tabs" role="tablist" aria-label="Tipo de ajuste">
     <button id="peekTabPeekButton" type="button" class="selected" role="tab" aria-controls="peekTabPeek" aria-selected="true">Peek</button>
     <button id="peekTabFontsButton" type="button" role="tab" aria-controls="peekTabFonts" aria-selected="false">Fontes</button>
+    <button id="peekTabActivationButton" type="button" role="tab" aria-controls="peekTabActivation" aria-selected="false">Ativação</button>
    </div>
    <div id="peekTabPeek" role="tabpanel" aria-labelledby="peekTabPeekButton">
    <p class="peek-hint">Prévia 23 no campo de mensagem, ajustes salvos automaticamente</p>
@@ -905,6 +961,24 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
     <p class="peek-font-legend">Os dois textos aumentam ou diminuem juntos, mantendo a proporção original</p>
     <div class="peek-label">Espaçamento <output id="listSpacingLabel">0 px</output></div>
     <div class="peek-adjust"><button type="button" data-list-spacing-delta="-1" aria-label="Diminuir espaçamento entre itens">−</button><input id="listSpacingRange" type="range" min="-6" max="24" step="1" value="0" aria-label="Espaçamento vertical entre itens da lista"><button type="button" data-list-spacing-delta="1" aria-label="Aumentar espaçamento entre itens">+</button></div>
+   </div>
+   <div id="peekTabActivation" role="tabpanel" aria-labelledby="peekTabActivationButton" hidden>
+    <p class="activation-help">Veja diretamente na barra onde começa o modo secreto, ajuste a posição com precisão</p>
+    <div class="activation-modes" role="group" aria-label="Estado do teclado">
+     <button type="button" data-activation-keyboard="closed" aria-pressed="true">Teclado fechado</button>
+     <button type="button" data-activation-keyboard="open" aria-pressed="false">Teclado aberto</button>
+    </div>
+    <div id="activationStatus" class="activation-status" role="status">Vertical · Teclado fechado</div>
+    <div class="activation-legend"><span>Vermelho: normal</span><span class="activation-secret">Verde: secreto</span></div>
+    <div id="activationTrack" role="slider" tabindex="0" aria-label="Divisão de ativação" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50" style="--activation-split:50%"><div class="activation-thumb"></div></div>
+    <div class="activation-controls" role="group" aria-label="Mover ponto de ativação">
+     <button type="button" data-activation-delta="-10" aria-label="10 pixels para a esquerda">−10</button>
+     <button type="button" data-activation-delta="-1" aria-label="1 pixel para a esquerda">−1</button>
+     <output id="activationValue" aria-live="polite">204 px</output>
+     <button type="button" data-activation-delta="1" aria-label="1 pixel para a direita">+1</button>
+     <button type="button" data-activation-delta="10" aria-label="10 pixels para a direita">+10</button>
+    </div>
+    <p class="activation-note">Arraste a régua ou use os botões, ajustes independentes para vertical e horizontal, aberto e fechado, salvos automaticamente</p>
    </div>
    <div class="peek-footer"><button id="peekReset" type="button">Restaurar peek</button><button id="peekSave" type="button">Salvar e fechar</button></div>
    <div id="peekStorageStatus" role="status">Salvo automaticamente neste aparelho</div>
@@ -1350,7 +1424,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   if(out.some(item=>item===undefined))throw Error('lista preparada incompleta');
   return {ordered:out,reservedPosition:position};
  }
- const GPT_TEST_VERSION=133;
+ const GPT_TEST_VERSION=134;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // The number grid owns its own input state, independent of secret keyboard typing.
  let numberGridVisible=false,gridDigits='',gridGesture=null;
