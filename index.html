@@ -1793,7 +1793,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
  const ACTIVATION_KEY='joaninha-activation-divider-v1';
  const ACTIVATION_PROFILES=['portraitClosed','portraitOpen','landscapeClosed','landscapeOpen'];
  let activationOffsets={portraitClosed:0,portraitOpen:0,landscapeClosed:0,landscapeOpen:0};
- let activationStoreOK=true,activationPreviewScheduled=false;
+ let activationStoreOK=true,activationPreviewScheduled=false,activationLastTouch=null;
  try{
   const stored=JSON.parse(localStorage.getItem(ACTIVATION_KEY)||'null');
   if(stored&&typeof stored==='object'){
@@ -1890,7 +1890,10 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   for(const button of $('peekTabActivation').querySelectorAll('[data-activation-keyboard]'))
    button.setAttribute('aria-pressed',String(button.dataset.activationKeyboard===(keyboard?'open':'closed')));
   const title=(g.landscape?'Horizontal':'Vertical')+' · Teclado '+(keyboard?'aberto':'fechado');
-  $('activationStatus').textContent=title+(activationStoreOK?'':' · Não foi possível salvar');
+  const touchNote=activationLastTouch&&activationLastTouch.profile===g.key?
+   ' · Último toque: '+(activationLastTouch.intent==='secret'?'secreto':'normal'):'';
+  $('activationStatus').textContent=title+touchNote+
+   (activationStoreOK?'':' · Não foi possível salvar');
   const position=Math.round(g.divider-g.pageRect.left);
   $('activationValue').textContent=position+' px';
   const percent=100*(g.divider-g.bandLeft)/(g.bandRight-g.bandLeft);
@@ -3087,6 +3090,10 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   // keyboard focus/layout change while the gesture is completing.
   portraitGapHandledAt=performance.now();
   applyPromptTouch(gesture.intent,'portrait-gap-touch');
+  if(peekPanelOpen&&activeSettingsTab==='activation'){
+   activationLastTouch={profile:activationProfile(),intent:gesture.intent};
+   refreshActivationPreview();
+  }
   diag.event('portrait-gap-activated',{intent:gesture.intent});
   return true;
  }
@@ -3144,6 +3151,10 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   if(!intent)return;
   if(performance.now()-portraitGapHandledAt<900)return;
   applyPromptTouch(intent,'portrait-gap-click');
+  if(peekPanelOpen&&activeSettingsTab==='activation'){
+   activationLastTouch={profile:activationProfile(),intent};
+   refreshActivationPreview();
+  }
  });
  // The empty LOWER composer row uses the very same left/right
  // classifier as the upper field, plus its downward swipe-to-dismiss.
