@@ -10,7 +10,7 @@ const META_URL=absolute('__joaninha_offline_state__');
 const SHELL=absolute('index.html');
 const LIST_NAMES=[
  'aleatorias','animais','animaisaleatorios','aura','celebridades','celebridadesaleatorias','cervejas','contatoespiritual',
- 'familiareszoologicos','filmes','hobbies','insetos','musicas',
+ 'familiareszoologicos','filmes','hobbies','insetos','musicas','pareidolia',
  'perguntas','pontosturisticos','personalizada2','personalizada3',
  'nomesfemininosbebes','nomesmasculinosbebes'
 ];
