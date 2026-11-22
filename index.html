@@ -1795,7 +1795,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   if(stored&&typeof stored==='object'){
    for(const key of ACTIVATION_PROFILES){
     const n=Number(stored[key]);
-    if(Number.isInteger(n)&&Math.abs(n)<=1500)activationOffsets[key]=n;
+    if(Number.isFinite(n)&&Math.abs(n)<=1500)activationOffsets[key]=n;
    }
   }
  }catch(error){activationStoreOK=false;}
@@ -1819,8 +1819,8 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
  }
  function changeActivationDivider(target){
   const g=activationGeometry();
-  const value=Math.min(g.max,Math.max(g.min,Math.round(target)));
-  activationOffsets[g.key]=Math.round(value-g.baseline);
+  const value=Math.min(g.max,Math.max(g.min,Number(target)));
+  activationOffsets[g.key]=Number((value-g.baseline).toFixed(3));
   storeActivation();refreshActivationPreview();
   diag.event('activation-divider-change',{profile:g.key,offset:activationOffsets[g.key]});
  }
