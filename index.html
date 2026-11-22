@@ -719,6 +719,63 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
  }
  #numberGridOverlay .number-grid-cell{font-size:clamp(24px,6vh,40px)}
 }
+
+/* V134: live, pixel-precise activation editor */
+.peek-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}
+#peekTabActivation[hidden]{display:none!important}
+#app.activation-editor-on #peekPanel{max-height:var(--activation-panel-room,calc(100% - 175px))}
+.activation-help,.activation-note{font-size:12px;line-height:1.45;color:#bcbec7;margin:8px 0}
+.activation-status{font-size:12px;color:#b8b9c4;margin:7px 0}
+.activation-modes{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:4px;border-radius:12px;background:rgba(140,140,150,.16)}
+.activation-modes button{border:0;border-radius:9px;background:transparent;height:34px;font-size:12px;font-weight:650}
+.activation-modes button[aria-pressed="true"]{background:rgba(95,125,185,.36)}
+.activation-legend{display:flex;gap:15px;flex-wrap:wrap;font-size:12px;margin:10px 0 8px}
+.activation-legend span{display:inline-flex;align-items:center;gap:6px}
+.activation-legend span:before{content:"";width:11px;height:11px;border-radius:3px;background:#ee6269}
+.activation-legend .activation-secret:before{background:#3cca7b}
+#activationTrack{height:44px;border-radius:10px;position:relative;border:1px solid #72727b;
+ background:linear-gradient(to right,rgba(223,67,79,.40) var(--activation-split,50%),rgba(33,180,99,.40) var(--activation-split,50%));
+ touch-action:none;cursor:ew-resize;outline-offset:3px}
+#activationTrack:before,#activationTrack:after{position:absolute;top:14px;font-size:10px;font-weight:750;pointer-events:none}
+#activationTrack:before{content:"NORMAL";left:9px}
+#activationTrack:after{content:"SECRETO";right:9px}
+#activationTrack .activation-thumb{position:absolute;left:var(--activation-split,50%);
+ top:-3px;bottom:-3px;width:4px;transform:translateX(-50%);background:#fff;box-shadow:0 0 0 3px #ffffff25;pointer-events:none}
+.activation-controls{display:flex;align-items:center;justify-content:space-between;gap:5px;margin-top:9px}
+.activation-controls button{height:36px;min-width:42px;border:1px solid #666670;border-radius:9px;background:#383841;font-size:12px;font-weight:650}
+.activation-controls output{min-width:65px;text-align:center;flex:1;font-size:12px;font-weight:700;font-variant-numeric:tabular-nums}
+#activationPreviewUpper,#activationPreviewLower{display:none;position:absolute;z-index:110;pointer-events:none;border-radius:8px}
+#app.activation-editor-on #activationPreviewUpper,#app.activation-editor-on.keyboard-on #activationPreviewLower{display:block}
+.activation-red,.activation-green{position:absolute;top:0;bottom:0;display:flex;align-items:center;justify-content:center;border:1px solid;overflow:hidden}
+.activation-red{left:0;background:rgba(236,55,66,.32);border-color:#ee737b;color:#ffd1d4;border-radius:8px 0 0 8px}
+.activation-green{right:0;background:rgba(32,182,98,.34);border-color:#69e3a0;color:#c4ffdf;border-radius:0 8px 8px 0}
+.activation-red span,.activation-green span{font-size:10px;font-weight:750;white-space:nowrap;text-shadow:0 1px 2px #000;padding:0 3px}
+.activation-boundary{position:absolute;top:-4px;bottom:-4px;width:2px;background:#fff;transform:translateX(-50%);box-shadow:0 0 5px #000}
+html[data-theme="light"] .activation-help,html[data-theme="light"] .activation-note,html[data-theme="light"] .activation-status{color:#606672}
+html[data-theme="light"] .activation-controls button{background:#e8ebf0;color:#30343e;border-color:#c7ccd4}
+html[data-theme="light"] .activation-modes button[aria-pressed="true"]{background:#dce7f6;color:#222b3d}
+#app.activation-editor-on.keyboard-on #peekPanel .peek-footer{display:none}
+@media(orientation:landscape) and (max-height:650px){
+ #app.activation-editor-on.keyboard-on #peekPanel{
+  top:calc(var(--safe-top) + 3px);left:max(15px,env(safe-area-inset-left,0px));
+  right:max(15px,env(safe-area-inset-right,0px));max-width:700px;padding:6px 11px}
+ #app.activation-editor-on.keyboard-on .peek-head strong{font-size:13px}
+ #app.activation-editor-on.keyboard-on .peek-head #peekClose{width:23px;height:23px;font-size:18px}
+ #app.activation-editor-on.keyboard-on .peek-tabs{padding:2px;margin:3px 0}
+ #app.activation-editor-on.keyboard-on .peek-tabs button{height:25px;font-size:11px}
+ #app.activation-editor-on.keyboard-on .activation-help,
+ #app.activation-editor-on.keyboard-on .activation-note,
+ #app.activation-editor-on.keyboard-on .activation-legend,
+ #app.activation-editor-on.keyboard-on #activationTrack{display:none}
+ #app.activation-editor-on.keyboard-on .activation-modes{padding:2px}
+ #app.activation-editor-on.keyboard-on .activation-modes button{height:25px}
+ #app.activation-editor-on.keyboard-on .activation-status{font-size:10px;margin:3px 0}
+ #app.activation-editor-on.keyboard-on #peekStorageStatus{display:none}
+ #app.activation-editor-on.keyboard-on .activation-status{display:none}
+ #app.activation-editor-on.keyboard-on .activation-controls{margin-top:3px}
+ #app.activation-editor-on.keyboard-on .activation-controls button{height:28px}
+ #app.activation-editor-on.keyboard-on .activation-controls output{font-size:11px}
+}
 </style>
 </head>
 <body>
@@ -848,12 +905,15 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
     <g id="sendPath"><path d="M12 19V5m0 0-6 6m6-6 6 6"/></g>
    </svg><span id="secretPeek" aria-hidden="true"></span></button>
   </div>
+  <div id="activationPreviewUpper" aria-hidden="true"><div class="activation-red"><span>NORMAL</span></div><div class="activation-green"><span>SECRETO</span></div><div class="activation-boundary"></div></div>
+  <div id="activationPreviewLower" aria-hidden="true"><div class="activation-red"><span>NORMAL</span></div><div class="activation-green"><span>SECRETO</span></div><div class="activation-boundary"></div></div>
   <div id="peekShade" aria-hidden="true"></div>
   <section id="peekPanel" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="peekTitle">
    <div class="peek-head"><strong id="peekTitle">Ajustes da Joaninha</strong><button id="peekClose" type="button" aria-label="Fechar ajustes">×</button></div>
    <div class="peek-tabs" role="tablist" aria-label="Tipo de ajuste">
     <button id="peekTabPeekButton" type="button" class="selected" role="tab" aria-controls="peekTabPeek" aria-selected="true">Peek</button>
     <button id="peekTabFontsButton" type="button" role="tab" aria-controls="peekTabFonts" aria-selected="false">Fontes</button>
+    <button id="peekTabActivationButton" type="button" role="tab" aria-controls="peekTabActivation" aria-selected="false">Ativação</button>
    </div>
    <div id="peekTabPeek" role="tabpanel" aria-labelledby="peekTabPeekButton">
    <p class="peek-hint">Prévia 23 no campo de mensagem, ajustes salvos automaticamente</p>
@@ -905,6 +965,25 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
     <p class="peek-font-legend">Os dois textos aumentam ou diminuem juntos, mantendo a proporção original</p>
     <div class="peek-label">Espaçamento <output id="listSpacingLabel">0 px</output></div>
     <div class="peek-adjust"><button type="button" data-list-spacing-delta="-1" aria-label="Diminuir espaçamento entre itens">−</button><input id="listSpacingRange" type="range" min="-6" max="24" step="1" value="0" aria-label="Espaçamento vertical entre itens da lista"><button type="button" data-list-spacing-delta="1" aria-label="Aumentar espaçamento entre itens">+</button></div>
+   </div>
+   <div id="peekTabActivation" role="tabpanel" aria-labelledby="peekTabActivationButton" hidden>
+    <p class="activation-help">Veja diretamente na barra onde começa o modo secreto, ajuste a posição com precisão</p>
+    <div class="activation-modes" role="group" aria-label="Estado do teclado">
+     <button type="button" data-activation-keyboard="closed" aria-pressed="true">Teclado fechado</button>
+     <button type="button" data-activation-keyboard="open" aria-pressed="false">Teclado aberto</button>
+    </div>
+    <div id="activationStatus" class="activation-status" role="status">Vertical · Teclado fechado</div>
+    <div class="activation-legend"><span>Vermelho: normal</span><span class="activation-secret">Verde: secreto</span></div>
+    <div id="activationTrack" role="slider" tabindex="0" aria-label="Divisão de ativação" aria-valuemin="0" aria-valuemax="100" aria-valuenow="50" style="--activation-split:50%"><div class="activation-thumb"></div></div>
+    <div class="activation-controls" role="group" aria-label="Mover ponto de ativação">
+     <button type="button" data-activation-delta="-10" aria-label="10 pixels para a esquerda">−10</button>
+     <button type="button" data-activation-delta="-1" aria-label="1 pixel para a esquerda">−1</button>
+     <output id="activationValue" aria-live="polite">204 px</output>
+     <button type="button" data-activation-delta="1" aria-label="1 pixel para a direita">+1</button>
+     <button type="button" data-activation-delta="10" aria-label="10 pixels para a direita">+10</button>
+     <button type="button" data-activation-reset="true" aria-label="Restaurar divisão original desta posição" title="Restaurar divisão original">↺</button>
+    </div>
+    <p class="activation-note">Arraste a régua ou use os botões, ajustes independentes para vertical e horizontal, aberto e fechado, salvos automaticamente</p>
    </div>
    <div class="peek-footer"><button id="peekReset" type="button">Restaurar peek</button><button id="peekSave" type="button">Salvar e fechar</button></div>
    <div id="peekStorageStatus" role="status">Salvo automaticamente neste aparelho</div>
@@ -1350,7 +1429,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   if(out.some(item=>item===undefined))throw Error('lista preparada incompleta');
   return {ordered:out,reservedPosition:position};
  }
- const GPT_TEST_VERSION=133;
+ const GPT_TEST_VERSION=134;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // The number grid owns its own input state, independent of secret keyboard typing.
  let numberGridVisible=false,gridDigits='',gridGesture=null;
@@ -1454,7 +1533,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   // Otherwise the probe timeout could blur a keyboard opened by that user.
   if(next&&probingStartupKeyboard&&reason!=='startup-restore')
    probingStartupKeyboard=false;
-  if(!next&&keyboard&&!['prompt-swipe-down','conversation-tap','drawer-open','peek-panel','native-blur','message-sent','work-picker','list-manager'].includes(reason)){
+  if(!next&&keyboard&&!['prompt-swipe-down','conversation-tap','drawer-open','peek-panel','native-blur','message-sent','work-picker','list-manager','activation-preview'].includes(reason)){
    diag.event('keyboard-close-prevented',{reason});
    return false;
   }
@@ -1477,6 +1556,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   }else if(document.activeElement===nativeInput)nativeInput.blur();
   applyViewport();
   updateComposer();
+  if(peekPanelOpen&&activeSettingsTab==='activation')scheduleActivationPreview();
   setTimeout(refreshJump,40);
   requestAnimationFrame(()=>diag.snapshot('keyboard-after-change',true));
   return true;
@@ -1706,6 +1786,108 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
  const PEEK_STROKE={none:0,fine:0.4,medium:0.8,thick:1.2};
  const PEEK_OUTLINE_LABEL={none:'Sem contorno',fine:'Fino',medium:'Médio',thick:'Grosso'};
  const bounded=(value,min,max,fallback)=>{const n=Number(value);return Number.isFinite(n)?Math.max(min,Math.min(max,Math.round(n))):fallback};
+ // Four independent pixel offsets; zero exactly reproduces V133.
+ const ACTIVATION_KEY='joaninha-activation-divider-v1';
+ const ACTIVATION_PROFILES=['portraitClosed','portraitOpen','landscapeClosed','landscapeOpen'];
+ let activationOffsets={portraitClosed:0,portraitOpen:0,landscapeClosed:0,landscapeOpen:0};
+ let activationStoreOK=true,activationPreviewScheduled=false;
+ try{
+  const stored=JSON.parse(localStorage.getItem(ACTIVATION_KEY)||'null');
+  if(stored&&typeof stored==='object'){
+   for(const key of ACTIVATION_PROFILES){
+    const n=Number(stored[key]);
+    if(Number.isFinite(n)&&Math.abs(n)<=1500)activationOffsets[key]=n;
+   }
+  }
+ }catch(error){activationStoreOK=false;}
+ function activationProfile(){
+  return (window.matchMedia('(orientation: landscape)').matches?'landscape':'portrait')+
+   (keyboard?'Open':'Closed');
+ }
+ function activationGeometry(){
+  const rect=field.getBoundingClientRect(),pageRect=page.getBoundingClientRect();
+  const landscape=window.matchMedia('(orientation: landscape)').matches;
+  const baseline=landscape?rect.left+rect.width*.5:
+   pageRect.left+Math.min(204,pageRect.width*.55);
+  const min=rect.left+27,max=rect.right-27;
+  const key=activationProfile();
+  const divider=Math.min(max,Math.max(min,baseline+activationOffsets[key]));
+  return {key,rect,pageRect,baseline,min,max,divider,landscape};
+ }
+ function storeActivation(){
+  try{localStorage.setItem(ACTIVATION_KEY,JSON.stringify(activationOffsets));activationStoreOK=true;}
+  catch(error){activationStoreOK=false;}
+ }
+ function changeActivationDivider(target){
+  const g=activationGeometry();
+  const value=Math.min(g.max,Math.max(g.min,Number(target)));
+  activationOffsets[g.key]=Number((value-g.baseline).toFixed(3));
+  storeActivation();refreshActivationPreview();
+  diag.event('activation-divider-change',{profile:g.key,offset:activationOffsets[g.key]});
+ }
+ function resetActivationDivider(){
+  activationOffsets[activationProfile()]=0;
+  storeActivation();refreshActivationPreview();
+ }
+ function paintActivationBand(id,left,right,top,height,divider){
+  const box=$(id);
+  if(!(right>left+6&&height>6)){box.style.display='none';return;}
+  box.style.display='';
+  const pageRect=page.getBoundingClientRect();
+  box.style.left=(left-pageRect.left)+'px';
+  box.style.top=(top-pageRect.top)+'px';
+  box.style.width=(right-left)+'px';
+  box.style.height=height+'px';
+  const red=Math.max(0,Math.min(right-left,divider-left));
+  const green=right-left-red;
+  const normal=box.querySelector('.activation-red'),secret=box.querySelector('.activation-green');
+  normal.style.width=red+'px';secret.style.width=green+'px';
+  normal.querySelector('span').hidden=red<64;
+  secret.querySelector('span').hidden=green<64;
+  const line=box.querySelector('.activation-boundary');
+  line.style.display=red>0&&green>0?'block':'none';
+  line.style.left=red+'px';
+ }
+ function refreshActivationPreview(){
+  if(!peekPanelOpen||activeSettingsTab!=='activation')return;
+  const g=activationGeometry(),r=g.rect;
+  for(const button of $('peekTabActivation').querySelectorAll('[data-activation-keyboard]'))
+   button.setAttribute('aria-pressed',String(button.dataset.activationKeyboard===(keyboard?'open':'closed')));
+  const title=(g.landscape?'Horizontal':'Vertical')+' · Teclado '+(keyboard?'aberto':'fechado');
+  $('activationStatus').textContent=title+(activationStoreOK?'':' · Não foi possível salvar');
+  const position=Math.round(g.divider-g.pageRect.left);
+  $('activationValue').textContent=position+' px';
+  const percent=100*(g.divider-r.left)/r.width;
+  const track=$('activationTrack');
+  track.style.setProperty('--activation-split',percent.toFixed(3)+'%');
+  track.setAttribute('aria-valuemin',String(Math.round(g.min-r.left)));
+  track.setAttribute('aria-valuemax',String(Math.round(g.max-r.left)));
+  track.setAttribute('aria-valuenow',String(Math.round(g.divider-r.left)));
+  track.setAttribute('aria-valuetext',position+' pixels da esquerda da tela, '+title);
+  paintActivationBand('activationPreviewUpper',r.left,r.right-4,r.top,r.height,g.divider);
+  if(keyboard){
+   const add=$('add').getBoundingClientRect(),meter=$('typingMeter').getBoundingClientRect();
+   paintActivationBand('activationPreviewLower',add.right+6,meter.left-6,add.top,add.height,g.divider);
+  }else $('activationPreviewLower').style.display='none';
+  // Never let the editor obscure the real colored input strip.
+  const panel=$('peekPanel');
+  const room=Math.max(68,Math.floor(r.top-panel.getBoundingClientRect().top-9));
+  panel.style.setProperty('--activation-panel-room',room+'px');
+ }
+ function scheduleActivationPreview(){
+  if(activationPreviewScheduled)return;
+  activationPreviewScheduled=true;
+  requestAnimationFrame(()=>{
+   activationPreviewScheduled=false;refreshActivationPreview();
+  });
+ }
+ window.addEventListener('resize',scheduleActivationPreview,{passive:true});
+ window.visualViewport?.addEventListener('resize',scheduleActivationPreview,{passive:true});
+ window.visualViewport?.addEventListener('scroll',scheduleActivationPreview,{passive:true});
+ window.addEventListener('orientationchange',()=>{
+  scheduleActivationPreview();setTimeout(scheduleActivationPreview,280);
+ },{passive:true});
+
  function normalisePeekHex(value){
   if(typeof value!=='string')return null;
   const hex=value.trim().toUpperCase(),short=/^#([0-9A-F]{3})$/.exec(hex);
@@ -1810,20 +1992,28 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   diag.event('font-adjust',{scale:fontScale,question:fonts.question,answer:fonts.answer});
  }
  function selectSettingsTab(value){
-  activeSettingsTab=value==='fonts'?'fonts':'peek';
-  const isPeek=activeSettingsTab==='peek';
-  $('peekTabPeek').hidden=!isPeek;
-  $('peekTabFonts').hidden=isPeek;
-  $('peekTabPeekButton').classList.toggle('selected',isPeek);
-  $('peekTabFontsButton').classList.toggle('selected',!isPeek);
-  $('peekTabPeekButton').setAttribute('aria-selected',String(isPeek));
-  $('peekTabFontsButton').setAttribute('aria-selected',String(!isPeek));
-  $('peekReset').textContent=isPeek?'Restaurar peek':'Restaurar ajustes';
+  activeSettingsTab=['peek','fonts','activation'].includes(value)?value:'peek';
+  const isPeek=activeSettingsTab==='peek',isActivation=activeSettingsTab==='activation';
+  for(const [name,panel,button] of [
+   ['peek','peekTabPeek','peekTabPeekButton'],
+   ['fonts','peekTabFonts','peekTabFontsButton'],
+   ['activation','peekTabActivation','peekTabActivationButton']
+  ]){
+   const chosen=name===activeSettingsTab;
+   $(panel).hidden=!chosen;
+   $(button).classList.toggle('selected',chosen);
+   $(button).setAttribute('aria-selected',String(chosen));
+  }
+  app.classList.toggle('activation-editor-on',peekPanelOpen&&isActivation);
+  $('peekReset').textContent=isPeek?'Restaurar peek':
+   isActivation?'Restaurar divisão':'Restaurar ajustes';
+  if(!isActivation)$('peekPanel').style.removeProperty('--activation-panel-room');
   if(peekPanelOpen){
    clearSecretPeek();
    if(isPeek){secretPeek.textContent='23';secretPeek.classList.add('visible');}
   }
   refreshPeekPanel();
+  if(isActivation)scheduleActivationPreview();
  }
  function applyPeek(){
   composer.style.setProperty('--peek-x',peekSettings.x+'px');
@@ -1862,7 +2052,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   $('peekShadowToggle').textContent=peekSettings.shadow?'Ativada':'Desativada';
   refreshFontControls();
   refreshListSpacingControls();
-  $('peekStorageStatus').textContent=peekStoreOK&&fontStoreOK&&listSpacingStoreOK?'Salvo automaticamente neste aparelho':'Falha ao salvar no navegador';
+  $('peekStorageStatus').textContent=peekStoreOK&&fontStoreOK&&listSpacingStoreOK&&activationStoreOK?'Salvo automaticamente neste aparelho':'Falha ao salvar no navegador';
  }
  function persistPeek(){
   try{localStorage.setItem(PEEK_KEY,JSON.stringify(peekSettings));peekStoreOK=true;}
@@ -1878,7 +2068,9 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   peekPanelOpen=true;
   peekKeyboardBefore=keyboard;
   peekVisibleBefore=secretPeek.classList.contains('visible');
-  setKeyboard(false,'peek-panel');
+  // Preserve the real iOS keyboard and restore its focus when possible.
+  if(peekKeyboardBefore&&document.activeElement!==nativeInput)
+   nativeInput.focus({preventScroll:true});
   clearSecretPeek();
   app.classList.add('peek-panel-on');
   $('peekPanel').setAttribute('aria-hidden','false');
@@ -1888,7 +2080,10 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
  function closePeekPanel(){
   if(!peekPanelOpen)return;
   peekPanelOpen=false;
-  app.classList.remove('peek-panel-on');
+  app.classList.remove('peek-panel-on','activation-editor-on');
+  $('peekPanel').style.removeProperty('--activation-panel-room');
+  $('activationPreviewUpper').style.display='none';
+  $('activationPreviewLower').style.display='none';
   $('peekPanel').setAttribute('aria-hidden','true');
   clearSecretPeek();
   if(peekVisibleBefore&&secretMode&&secretDigits.length)showSecretPeek();
@@ -1900,11 +2095,13 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
  applyListSpacing();
  $('peekTabPeekButton').addEventListener('click',()=>selectSettingsTab('peek'));
  $('peekTabFontsButton').addEventListener('click',()=>selectSettingsTab('fonts'));
+ $('peekTabActivationButton').addEventListener('click',()=>selectSettingsTab('activation'));
  $('peekClose').addEventListener('click',closePeekPanel);
  $('peekShade').addEventListener('click',closePeekPanel);
  $('peekSave').addEventListener('click',()=>{persistPeek();persistFonts();persistListSpacing();refreshPeekPanel();closePeekPanel();});
  $('peekReset').addEventListener('click',()=>{
   if(activeSettingsTab==='peek')editPeek({...PEEK_DEFAULT});
+  else if(activeSettingsTab==='activation')resetActivationDivider();
   else{editFontScale(109);editListSpacing(0);}
  });
  $('peekStep').addEventListener('click',()=>{peekStep=peekStep===1?5:1;refreshPeekPanel();});
@@ -1925,6 +2122,68 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   else if(y!==null)editPeek({y:peekSettings.y+Number(y)*peekStep});
   else if(font!==null)editPeek({font:peekSettings.font+Number(font)});
   else if(opacity!==null)editPeek({opacity:peekSettings.opacity+Number(opacity)});
+ });
+
+ // Editing a button must not steal focus from the native iOS text field.
+ // Switches, step controls and close stay operable with keyboard on screen.
+ $('peekPanel').addEventListener('pointerdown',e=>{
+  if(!keyboard||!e.cancelable)return;
+  const nativeControl=e.target.closest('input,textarea,select');
+  if(!nativeControl&&(activeSettingsTab==='activation'||e.target.closest('button')))
+   e.preventDefault();
+ },true);
+ $('peekTabActivation').addEventListener('click',e=>{
+  const mode=e.target.closest('[data-activation-keyboard]');
+  if(mode){
+   const requested=mode.dataset.activationKeyboard==='open';
+   if(requested!==keyboard)setKeyboard(requested,'activation-preview');
+   else if(requested&&document.activeElement!==nativeInput)
+    nativeInput.focus({preventScroll:true});
+   peekKeyboardBefore=keyboard;
+   scheduleActivationPreview();
+   requestAnimationFrame(scheduleActivationPreview);
+   return;
+  }
+  const adjust=e.target.closest('[data-activation-delta]');
+  if(adjust)changeActivationDivider(activationGeometry().divider+Number(adjust.dataset.activationDelta));
+  if(e.target.closest('[data-activation-reset]'))resetActivationDivider();
+ });
+ const activationTrack=$('activationTrack');
+ let activationDragId=null;
+ function moveActivationTrack(x){
+  const track=activationTrack.getBoundingClientRect();
+  const ratio=Math.max(0,Math.min(1,(x-track.left)/track.width));
+  const rect=activationGeometry().rect;
+  changeActivationDivider(rect.left+ratio*rect.width);
+ }
+ activationTrack.addEventListener('pointerdown',e=>{
+  if(!e.isPrimary||(e.pointerType==='mouse'&&e.button!==0))return;
+  e.preventDefault();
+  activationDragId=e.pointerId;
+  try{activationTrack.setPointerCapture(e.pointerId);}catch(error){}
+  moveActivationTrack(e.clientX);
+ });
+ activationTrack.addEventListener('pointermove',e=>{
+  if(e.pointerId!==activationDragId)return;
+  e.preventDefault();moveActivationTrack(e.clientX);
+ });
+ for(const type of ['pointerup','pointercancel','lostpointercapture'])
+  activationTrack.addEventListener(type,e=>{
+   if(e.pointerId!==activationDragId)return;
+   if(type==='pointerup')moveActivationTrack(e.clientX);
+   activationDragId=null;
+  });
+ activationTrack.addEventListener('keydown',e=>{
+  const step=e.shiftKey?10:1;
+  if(e.key==='ArrowLeft'||e.key==='ArrowDown'){
+   e.preventDefault();changeActivationDivider(activationGeometry().divider-step);
+  }else if(e.key==='ArrowRight'||e.key==='ArrowUp'){
+   e.preventDefault();changeActivationDivider(activationGeometry().divider+step);
+  }else if(e.key==='Home'){
+   e.preventDefault();changeActivationDivider(activationGeometry().min);
+  }else if(e.key==='End'){
+   e.preventDefault();changeActivationDivider(activationGeometry().max);
+  }
  });
  $('peekFont').addEventListener('input',e=>editPeek({font:Number(e.target.value)}));
  $('peekOpacity').addEventListener('input',e=>editPeek({opacity:Number(e.target.value)}));
@@ -2361,6 +2620,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
  function cancelPeekHold(){clearTimeout(peekHoldTimer);peekHoldTimer=null;peekHoldPoint=null;}
  tempChatButton.addEventListener('pointerdown',e=>{
   if(!e.isPrimary||e.button!==0)return;
+  if(keyboard&&e.cancelable)e.preventDefault();
   cancelPeekHold();
   peekHoldPoint={id:e.pointerId,x:e.clientX,y:e.clientY};
   peekHoldTimer=setTimeout(()=>{
@@ -2382,6 +2642,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
  function cancelThreadHold(){clearTimeout(threadHoldTimer);threadHoldTimer=null;threadHoldPoint=null;}
  threadNewChat.addEventListener('pointerdown',e=>{
   if(!e.isPrimary||e.button!==0)return;
+  if(keyboard&&e.cancelable)e.preventDefault();
   cancelThreadHold();
   threadHoldPoint={id:e.pointerId,x:e.clientX,y:e.clientY};
   threadHoldTimer=setTimeout(()=>{
@@ -2673,18 +2934,9 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
  let fieldGesture=null,promptPointerIntent=null;
  // One shared left/right boundary for both rows of the composer.
  function classifyPromptSide(x){
-  const fieldRect=field.getBoundingClientRect();
-  const pageRect=page.getBoundingClientRect();
-  // One fixed screen-space divider for open and closed keyboards.
-  // 204px preserves the existing open-keyboard behavior on full-size iPhones.
-  // Scale on narrow screens and keep a 27px secret target in narrow fields.
-  // Portrait keeps its original 204px screen divider. In landscape
-  // the centered, wider composer needs a divider relative to the input.
-  const landscape=window.matchMedia('(orientation: landscape)').matches;
-  const stableDivider=landscape?fieldRect.left+fieldRect.width*.5:
-   pageRect.left+Math.min(204,pageRect.width*.55);
-  const activationLeft=Math.min(fieldRect.right-27,Math.max(fieldRect.left+27,stableDivider));
-  return x>activationLeft&&x<fieldRect.right-4?'secret':'normal';
+  // The live preview and both real touch rows share one computed boundary.
+  const g=activationGeometry();
+  return x>g.divider&&x<g.rect.right-4?'secret':'normal';
  }
  function classifyPromptTouch(x,y){
   if(draft)return null;
