@@ -1350,7 +1350,7 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   if(out.some(item=>item===undefined))throw Error('lista preparada incompleta');
   return {ordered:out,reservedPosition:position};
  }
- const GPT_TEST_VERSION=132;
+ const GPT_TEST_VERSION=133;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // The number grid owns its own input state, independent of secret keyboard typing.
  let numberGridVisible=false,gridDigits='',gridGesture=null;
@@ -2678,7 +2678,11 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
   // One fixed screen-space divider for open and closed keyboards.
   // 204px preserves the existing open-keyboard behavior on full-size iPhones.
   // Scale on narrow screens and keep a 27px secret target in narrow fields.
-  const stableDivider=pageRect.left+Math.min(204,pageRect.width*.55);
+  // Portrait keeps its original 204px screen divider. In landscape
+  // the centered, wider composer needs a divider relative to the input.
+  const landscape=window.matchMedia('(orientation: landscape)').matches;
+  const stableDivider=landscape?fieldRect.left+fieldRect.width*.5:
+   pageRect.left+Math.min(204,pageRect.width*.55);
   const activationLeft=Math.min(fieldRect.right-27,Math.max(fieldRect.left+27,stableDivider));
   return x>activationLeft&&x<fieldRect.right-4?'secret':'normal';
  }
