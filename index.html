@@ -1528,7 +1528,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   // Otherwise the probe timeout could blur a keyboard opened by that user.
   if(next&&probingStartupKeyboard&&reason!=='startup-restore')
    probingStartupKeyboard=false;
-  if(!next&&keyboard&&!['prompt-swipe-down','conversation-tap','drawer-open','peek-panel','native-blur','message-sent','work-picker','list-manager'].includes(reason)){
+  if(!next&&keyboard&&!['prompt-swipe-down','conversation-tap','drawer-open','peek-panel','native-blur','message-sent','work-picker','list-manager','activation-preview'].includes(reason)){
    diag.event('keyboard-close-prevented',{reason});
    return false;
   }
@@ -1986,20 +1986,28 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   diag.event('font-adjust',{scale:fontScale,question:fonts.question,answer:fonts.answer});
  }
  function selectSettingsTab(value){
-  activeSettingsTab=value==='fonts'?'fonts':'peek';
-  const isPeek=activeSettingsTab==='peek';
-  $('peekTabPeek').hidden=!isPeek;
-  $('peekTabFonts').hidden=isPeek;
-  $('peekTabPeekButton').classList.toggle('selected',isPeek);
-  $('peekTabFontsButton').classList.toggle('selected',!isPeek);
-  $('peekTabPeekButton').setAttribute('aria-selected',String(isPeek));
-  $('peekTabFontsButton').setAttribute('aria-selected',String(!isPeek));
-  $('peekReset').textContent=isPeek?'Restaurar peek':'Restaurar ajustes';
+  activeSettingsTab=['peek','fonts','activation'].includes(value)?value:'peek';
+  const isPeek=activeSettingsTab==='peek',isActivation=activeSettingsTab==='activation';
+  for(const [name,panel,button] of [
+   ['peek','peekTabPeek','peekTabPeekButton'],
+   ['fonts','peekTabFonts','peekTabFontsButton'],
+   ['activation','peekTabActivation','peekTabActivationButton']
+  ]){
+   const chosen=name===activeSettingsTab;
+   $(panel).hidden=!chosen;
+   $(button).classList.toggle('selected',chosen);
+   $(button).setAttribute('aria-selected',String(chosen));
+  }
+  app.classList.toggle('activation-editor-on',peekPanelOpen&&isActivation);
+  $('peekReset').textContent=isPeek?'Restaurar peek':
+   isActivation?'Restaurar divisão':'Restaurar ajustes';
+  if(!isActivation)$('peekPanel').style.removeProperty('--activation-panel-room');
   if(peekPanelOpen){
    clearSecretPeek();
    if(isPeek){secretPeek.textContent='23';secretPeek.classList.add('visible');}
   }
   refreshPeekPanel();
+  if(isActivation)scheduleActivationPreview();
  }
  function applyPeek(){
   composer.style.setProperty('--peek-x',peekSettings.x+'px');
@@ -2038,7 +2046,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   $('peekShadowToggle').textContent=peekSettings.shadow?'Ativada':'Desativada';
   refreshFontControls();
   refreshListSpacingControls();
-  $('peekStorageStatus').textContent=peekStoreOK&&fontStoreOK&&listSpacingStoreOK?'Salvo automaticamente neste aparelho':'Falha ao salvar no navegador';
+  $('peekStorageStatus').textContent=peekStoreOK&&fontStoreOK&&listSpacingStoreOK&&activationStoreOK?'Salvo automaticamente neste aparelho':'Falha ao salvar no navegador';
  }
  function persistPeek(){
   try{localStorage.setItem(PEEK_KEY,JSON.stringify(peekSettings));peekStoreOK=true;}
@@ -2054,7 +2062,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   peekPanelOpen=true;
   peekKeyboardBefore=keyboard;
   peekVisibleBefore=secretPeek.classList.contains('visible');
-  setKeyboard(false,'peek-panel');
+  // The editor must not close the real iOS keyboard when opened.
   clearSecretPeek();
   app.classList.add('peek-panel-on');
   $('peekPanel').setAttribute('aria-hidden','false');
@@ -2064,7 +2072,10 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
  function closePeekPanel(){
   if(!peekPanelOpen)return;
   peekPanelOpen=false;
-  app.classList.remove('peek-panel-on');
+  app.classList.remove('peek-panel-on','activation-editor-on');
+  $('peekPanel').style.removeProperty('--activation-panel-room');
+  $('activationPreviewUpper').style.display='none';
+  $('activationPreviewLower').style.display='none';
   $('peekPanel').setAttribute('aria-hidden','true');
   clearSecretPeek();
   if(peekVisibleBefore&&secretMode&&secretDigits.length)showSecretPeek();
@@ -2076,11 +2087,13 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
  applyListSpacing();
  $('peekTabPeekButton').addEventListener('click',()=>selectSettingsTab('peek'));
  $('peekTabFontsButton').addEventListener('click',()=>selectSettingsTab('fonts'));
+ $('peekTabActivationButton').addEventListener('click',()=>selectSettingsTab('activation'));
  $('peekClose').addEventListener('click',closePeekPanel);
  $('peekShade').addEventListener('click',closePeekPanel);
  $('peekSave').addEventListener('click',()=>{persistPeek();persistFonts();persistListSpacing();refreshPeekPanel();closePeekPanel();});
  $('peekReset').addEventListener('click',()=>{
   if(activeSettingsTab==='peek')editPeek({...PEEK_DEFAULT});
+  else if(activeSettingsTab==='activation')resetActivationDivider();
   else{editFontScale(109);editListSpacing(0);}
  });
  $('peekStep').addEventListener('click',()=>{peekStep=peekStep===1?5:1;refreshPeekPanel();});
@@ -2537,6 +2550,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
  function cancelPeekHold(){clearTimeout(peekHoldTimer);peekHoldTimer=null;peekHoldPoint=null;}
  tempChatButton.addEventListener('pointerdown',e=>{
   if(!e.isPrimary||e.button!==0)return;
+  if(keyboard&&e.cancelable)e.preventDefault();
   cancelPeekHold();
   peekHoldPoint={id:e.pointerId,x:e.clientX,y:e.clientY};
   peekHoldTimer=setTimeout(()=>{
@@ -2558,6 +2572,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
  function cancelThreadHold(){clearTimeout(threadHoldTimer);threadHoldTimer=null;threadHoldPoint=null;}
  threadNewChat.addEventListener('pointerdown',e=>{
   if(!e.isPrimary||e.button!==0)return;
+  if(keyboard&&e.cancelable)e.preventDefault();
   cancelThreadHold();
   threadHoldPoint={id:e.pointerId,x:e.clientX,y:e.clientY};
   threadHoldTimer=setTimeout(()=>{
@@ -2849,18 +2864,9 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
  let fieldGesture=null,promptPointerIntent=null;
  // One shared left/right boundary for both rows of the composer.
  function classifyPromptSide(x){
-  const fieldRect=field.getBoundingClientRect();
-  const pageRect=page.getBoundingClientRect();
-  // One fixed screen-space divider for open and closed keyboards.
-  // 204px preserves the existing open-keyboard behavior on full-size iPhones.
-  // Scale on narrow screens and keep a 27px secret target in narrow fields.
-  // Portrait keeps its original 204px screen divider. In landscape
-  // the centered, wider composer needs a divider relative to the input.
-  const landscape=window.matchMedia('(orientation: landscape)').matches;
-  const stableDivider=landscape?fieldRect.left+fieldRect.width*.5:
-   pageRect.left+Math.min(204,pageRect.width*.55);
-  const activationLeft=Math.min(fieldRect.right-27,Math.max(fieldRect.left+27,stableDivider));
-  return x>activationLeft&&x<fieldRect.right-4?'secret':'normal';
+  // The live preview and both real touch rows share one computed boundary.
+  const g=activationGeometry();
+  return x>g.divider&&x<g.rect.right-4?'secret':'normal';
  }
  function classifyPromptTouch(x,y){
   if(draft)return null;
