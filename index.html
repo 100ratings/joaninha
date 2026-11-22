@@ -1429,7 +1429,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   if(out.some(item=>item===undefined))throw Error('lista preparada incompleta');
   return {ordered:out,reservedPosition:position};
  }
- const GPT_TEST_VERSION=135;
+ const GPT_TEST_VERSION=136;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // The number grid owns its own input state, independent of secret keyboard typing.
  let numberGridVisible=false,gridDigits='',gridGesture=null;
@@ -1824,6 +1824,29 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   const divider=Math.min(max,Math.max(min,baseline+activationOffsets[key]));
   return {key,rect,pageRect,baseline,min,max,divider,landscape,expanded,bandLeft,bandRight};
  }
+ // Portrait-only vertical touch regions. Keep 2 CSS px between the
+ // colored/touchable strips and the physical composer edges and buttons.
+ // Layout stays untouched. The horizontal orientation remains exactly V135.
+ function portraitActivationBands(g){
+  const bar=composer.getBoundingClientRect();
+  const left=g.bandLeft;
+  const right=g.expanded?g.bandRight:g.rect.right-4;
+  const top=bar.top+2,bottom=bar.bottom-2;
+  if(!keyboard)return {upper:{left,right,top,bottom},lower:null};
+  const controlsTop=Math.min(
+   $('add').getBoundingClientRect().top,
+   $('typingMeter').getBoundingClientRect().top,
+   $('mic').getBoundingClientRect().top,
+   $('sendVoice').getBoundingClientRect().top
+  );
+  const split=Math.max(top,Math.min(bottom,controlsTop-2));
+  const add=$('add').getBoundingClientRect();
+  const meter=$('typingMeter').getBoundingClientRect();
+  return {
+   upper:{left,right,top,bottom:split},
+   lower:{left:add.right+2,right:meter.left-2,top:split,bottom}
+  };
+ }
  function storeActivation(){
   try{localStorage.setItem(ACTIVATION_KEY,JSON.stringify(activationOffsets));activationStoreOK=true;}
   catch(error){activationStoreOK=false;}
@@ -1874,17 +1897,29 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   track.setAttribute('aria-valuemax',String(Math.round(g.max-g.bandLeft)));
   track.setAttribute('aria-valuenow',String(Math.round(g.divider-g.bandLeft)));
   track.setAttribute('aria-valuetext',position+' pixels da esquerda da tela, '+title);
-  paintActivationBand('activationPreviewUpper',g.bandLeft,
-   g.expanded?g.bandRight:r.right-4,r.top,r.height,g.divider);
-  if(keyboard){
-   const add=$('add').getBoundingClientRect(),meter=$('typingMeter').getBoundingClientRect();
-   const margin=g.landscape?6:2;
-   paintActivationBand('activationPreviewLower',add.right+margin,
-    meter.left-margin,add.top,add.height,g.divider);
-  }else $('activationPreviewLower').style.display='none';
-  // Never let the editor obscure the real colored input strip.
+  const portrait=g.landscape?null:portraitActivationBands(g);
+  if(portrait){
+   const upper=portrait.upper;
+   paintActivationBand('activationPreviewUpper',upper.left,upper.right,
+    upper.top,upper.bottom-upper.top,g.divider);
+   if(portrait.lower){
+    const lower=portrait.lower;
+    paintActivationBand('activationPreviewLower',lower.left,lower.right,
+     lower.top,lower.bottom-lower.top,g.divider);
+   }else $('activationPreviewLower').style.display='none';
+  }else{
+   // No horizontal changes: retain the original V135 paint dimensions.
+   paintActivationBand('activationPreviewUpper',g.bandLeft,r.right-4,r.top,r.height,g.divider);
+   if(keyboard){
+    const add=$('add').getBoundingClientRect(),meter=$('typingMeter').getBoundingClientRect();
+    paintActivationBand('activationPreviewLower',add.right+6,
+     meter.left-6,add.top,add.height,g.divider);
+   }else $('activationPreviewLower').style.display='none';
+  }
+  // Keep the editor above the now taller colored region.
   const panel=$('peekPanel');
-  const room=Math.max(68,Math.floor(r.top-panel.getBoundingClientRect().top-9));
+  const safeTop=portrait?portrait.upper.top:r.top;
+  const room=Math.max(68,Math.floor(safeTop-panel.getBoundingClientRect().top-9));
   panel.style.setProperty('--activation-panel-room',room+'px');
  }
  function scheduleActivationPreview(){
@@ -3027,18 +3062,19 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   else setKeyboard(true,'prompt-click');
  });
  $('text-field').addEventListener('keydown',e=>{if(e.target===field&&(e.key==='Enter'||e.key===' ')){e.preventDefault();setKeyboard(true,'prompt-accessibility');}});
- // Use the empty side gaps only in closed portrait mode. Actual button
- // clicks and field clicks retain their original event handlers.
- function classifyClosedPortraitGap(x,y,target){
-  if(keyboard||draft||target!==composer||
+ // Complete the upper portrait strip around the field, including the
+ // small top and bottom gaps. Buttons never enter this band.
+ function classifyPortraitUpperGap(x,y,target){
+  if(draft||target!==composer||
      window.matchMedia('(orientation: landscape)').matches)return null;
-  const g=activationGeometry();
-  if(x<g.bandLeft||x>=g.bandRight||y<g.rect.top||y>g.rect.bottom||
-     (x>=g.rect.left&&x<g.rect.right))return null;
+  const g=activationGeometry(),upper=portraitActivationBands(g).upper;
+  if(x<upper.left||x>=upper.right||y<upper.top||y>=upper.bottom||
+     (x>=g.rect.left&&x<g.rect.right&&y>=g.rect.top&&y<g.rect.bottom))
+   return null;
   return classifyPromptSide(x);
  }
  composer.addEventListener('click',e=>{
-  const intent=classifyClosedPortraitGap(e.clientX,e.clientY,e.target);
+  const intent=classifyPortraitUpperGap(e.clientX,e.clientY,e.target);
   if(intent)applyPromptTouch(intent,'portrait-gap-click');
  });
  // The empty LOWER composer row uses the very same left/right
@@ -3050,9 +3086,15 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   if(!keyboard||draft||target!==composer)return null;
   const addRect=$('add').getBoundingClientRect();
   const meterRect=lowerModeMeter.getBoundingClientRect();
-  const margin=window.matchMedia('(orientation: landscape)').matches?6:2;
-  if(y<addRect.top||y>addRect.bottom||
-     x<=addRect.right+margin||x>=meterRect.left-margin)return null;
+  if(window.matchMedia('(orientation: landscape)').matches){
+   // Keep the existing horizontal behavior unchanged.
+   if(y<addRect.top||y>addRect.bottom||
+      x<=addRect.right+6||x>=meterRect.left-6)return null;
+  }else{
+   const lower=portraitActivationBands(activationGeometry()).lower;
+   if(!lower||x<=lower.left||x>=lower.right||
+      y<lower.top||y>=lower.bottom)return null;
+  }
   return classifyPromptSide(x);
  }
  let lowerPointerGesture=null,lowerTouchGesture=null;
