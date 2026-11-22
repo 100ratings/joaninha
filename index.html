@@ -3079,14 +3079,13 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   return classifyPromptSide(x);
  }
  let portraitGapPointer=null,portraitGapTouch=null;
- let portraitGapHandledAt=-Infinity,portraitGapHandledX=NaN,portraitGapHandledY=NaN;
+ let portraitGapHandledAt=-Infinity;
  function finishPortraitGap(gesture,x,y){
   if(!gesture||draft||Math.hypot(x-gesture.x,y-gesture.y)>12||
      performance.now()-gesture.time>700)return false;
   // The side is determined when the finger first lands, never after a
   // keyboard focus/layout change while the gesture is completing.
   portraitGapHandledAt=performance.now();
-  portraitGapHandledX=gesture.x;portraitGapHandledY=gesture.y;
   applyPromptTouch(gesture.intent,'portrait-gap-touch');
   diag.event('portrait-gap-activated',{intent:gesture.intent});
   return true;
@@ -3103,11 +3102,16 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
  composer.addEventListener('pointerup',e=>{
   if(!portraitGapPointer||portraitGapPointer.id!==e.pointerId)return;
   const gesture=portraitGapPointer;portraitGapPointer=null;
+  // A following synthetic click must not revive a canceled swipe or hold.
+  portraitGapHandledAt=performance.now();
   if(portraitGapTouch)portraitGapTouch.handled=true;
   if(finishPortraitGap(gesture,e.clientX,e.clientY)&&e.cancelable)
    e.preventDefault();
  });
- composer.addEventListener('pointercancel',()=>{portraitGapPointer=null;});
+ composer.addEventListener('pointercancel',()=>{
+  if(portraitGapPointer)portraitGapHandledAt=performance.now();
+  portraitGapPointer=null;
+ });
  composer.addEventListener('touchstart',e=>{
   portraitGapTouch=null;
   if(e.touches.length!==1||e.changedTouches.length!==1)return;
@@ -3124,19 +3128,21 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   if(!t)return;
   portraitGapTouch=null;
   if(gesture.handled)return;
+  portraitGapHandledAt=performance.now();
   portraitGapPointer=null;
   if(finishPortraitGap(gesture,t.clientX,t.clientY)&&e.cancelable)
    e.preventDefault();
  },{passive:false});
- composer.addEventListener('touchcancel',()=>{portraitGapTouch=null;portraitGapPointer=null;});
+ composer.addEventListener('touchcancel',()=>{
+  if(portraitGapTouch)portraitGapHandledAt=performance.now();
+  portraitGapTouch=null;portraitGapPointer=null;
+ });
  // Fallback for mice and older WebKit click delivery, never reapply a
  // pointer/touch gesture that has already activated a mode.
  composer.addEventListener('click',e=>{
   const intent=classifyPortraitUpperGap(e.clientX,e.clientY,e.target);
   if(!intent)return;
-  if(performance.now()-portraitGapHandledAt<900&&
-     Math.hypot(e.clientX-portraitGapHandledX,e.clientY-portraitGapHandledY)<25)
-   return;
+  if(performance.now()-portraitGapHandledAt<900)return;
   applyPromptTouch(intent,'portrait-gap-click');
  });
  // The empty LOWER composer row uses the very same left/right
