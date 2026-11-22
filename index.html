@@ -760,6 +760,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   top:calc(var(--safe-top) + 3px);left:max(15px,env(safe-area-inset-left,0px));
   right:max(15px,env(safe-area-inset-right,0px));max-width:700px;padding:6px 11px}
  #app.activation-editor-on.keyboard-on .peek-head strong{font-size:13px}
+ #app.activation-editor-on.keyboard-on .peek-head #peekClose{width:23px;height:23px;font-size:18px}
  #app.activation-editor-on.keyboard-on .peek-tabs{padding:2px;margin:3px 0}
  #app.activation-editor-on.keyboard-on .peek-tabs button{height:25px;font-size:11px}
  #app.activation-editor-on.keyboard-on .activation-help,
@@ -769,8 +770,10 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
  #app.activation-editor-on.keyboard-on .activation-modes{padding:2px}
  #app.activation-editor-on.keyboard-on .activation-modes button{height:25px}
  #app.activation-editor-on.keyboard-on .activation-status{font-size:10px;margin:3px 0}
+ #app.activation-editor-on.keyboard-on #peekStorageStatus{display:none}
  #app.activation-editor-on.keyboard-on .activation-controls{margin-top:3px}
  #app.activation-editor-on.keyboard-on .activation-controls button{height:28px}
+ #app.activation-editor-on.keyboard-on .activation-controls output{font-size:11px}
 }
 </style>
 </head>
@@ -977,6 +980,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
      <output id="activationValue" aria-live="polite">204 px</output>
      <button type="button" data-activation-delta="1" aria-label="1 pixel para a direita">+1</button>
      <button type="button" data-activation-delta="10" aria-label="10 pixels para a direita">+10</button>
+     <button type="button" data-activation-reset="true" aria-label="Restaurar divisão original desta posição" title="Restaurar divisão original">↺</button>
     </div>
     <p class="activation-note">Arraste a régua ou use os botões, ajustes independentes para vertical e horizontal, aberto e fechado, salvos automaticamente</p>
    </div>
@@ -2136,6 +2140,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   }
   const adjust=e.target.closest('[data-activation-delta]');
   if(adjust)changeActivationDivider(activationGeometry().divider+Number(adjust.dataset.activationDelta));
+  if(e.target.closest('[data-activation-reset]'))resetActivationDivider();
  });
  const activationTrack=$('activationTrack');
  let activationDragId=null;
