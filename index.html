@@ -203,9 +203,8 @@ border-radius:10px;background:rgba(29,29,32,.84);color:#a9a9af;font-size:10.5px}
 .words-content{font-size:var(--answer-font,17.2px);line-height:calc(var(--answer-font,17.2px)*1.24 + var(--list-item-spacing,0px));letter-spacing:-.17px;white-space:pre;overflow:hidden;overflow-anchor:none}
 #wordListArmZone{position:absolute;left:50%;transform:translateX(-50%);top:0;width:min(112px,28%);height:44px;touch-action:manipulation;background:transparent;pointer-events:auto}
 #wordListArmZone[hidden]{display:none!important}
-/* V144: one hidden SVG dot per active word-list phase. */
-#more[data-word-list-state="force"] circle:first-child,
-#more[data-word-list-state="ready"] circle:last-child{visibility:hidden}
+/* V146: one hidden dot throughout the entire active effect. */
+#more[data-word-list-state="force"] circle:first-child{visibility:hidden}
 #app.word-list-mode #numberGridOverlay{display:none!important}
 #actions,.archived-actions{display:none;align-items:center;gap:13px;margin-top:12px;padding-bottom:8px}
 .archived-actions{display:flex;pointer-events:none}
@@ -1478,7 +1477,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   if(out.some(item=>item===undefined))throw Error('lista preparada incompleta');
   return {ordered:out,reservedPosition:position};
  }
- const GPT_TEST_VERSION=145;
+ const GPT_TEST_VERSION=146;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // The number grid owns its own input state, independent of secret keyboard typing.
  let numberGridVisible=false,gridDigits='',gridGesture=null;
@@ -1645,9 +1644,9 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
  let replyToken=0,activeGridList=null,activeWordList=null,openingWordList=null,wordCorpusPromise=null;
  function setWordListIndicator(state){
   const more=$('more');
-  if(state==='armed'||state==='running')more.dataset.wordListState='force';
-  else if(state==='ready')more.dataset.wordListState='ready';
-  else delete more.dataset.wordListState;
+  if(state==='armed'||state==='running'||state==='ready'){
+   if(more.dataset.wordListState!=='force')more.dataset.wordListState='force';
+  }else delete more.dataset.wordListState;
  }
  function disposeWordList(clean=true){
   if(openingWordList){openingWordList.dispose();openingWordList=null;}
