@@ -199,6 +199,11 @@ border-radius:10px;background:rgba(29,29,32,.84);color:#a9a9af;font-size:10.5px}
 #list .row + .row,.archived-list .row + .row{margin-top:var(--list-item-spacing,0px)}
 #list .number,.archived-list .number{width:calc(42px + var(--answer-number-extra,0px));margin-left:-20px;text-align:right;font-variant-numeric:tabular-nums;font-feature-settings:"tnum";white-space:nowrap}
 #list .word,.archived-list .word{min-width:0}
+/* V142: a long, fixed-height bullet list, independent of normal numbered rows. */
+.words-content{font-size:var(--answer-font,17.2px);line-height:calc(var(--answer-font,17.2px)*1.24 + var(--list-item-spacing,0px));letter-spacing:-.17px;white-space:pre;overflow:hidden;overflow-anchor:none}
+#wordListArmZone{position:absolute;left:50%;transform:translateX(-50%);top:0;width:min(112px,28%);height:44px;touch-action:manipulation;background:transparent;pointer-events:auto}
+#wordListArmZone[hidden]{display:none!important}
+#app.word-list-mode #numberGridOverlay{display:none!important}
 #actions,.archived-actions{display:none;align-items:center;gap:13px;margin-top:12px;padding-bottom:8px}
 .archived-actions{display:flex;pointer-events:none}
 .archived-turn{padding-bottom:28px}
@@ -835,6 +840,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
     <svg class="temp-bubble" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.212 7.436 A10.8 10.8 0 0 1 10.871 1.259 M14.245 1.436 A10.8 10.8 0 0 1 22.479 9.387 M22.774 12.753 A10.8 10.8 0 0 1 16.220 21.941 M12.941 22.759 A10.8 10.8 0 0 1 4.773 20.026 M2.293 16.734 A10.8 10.8 0 0 1 1.259 10.871 M3.6 17.28 L2.4 23.28 L7.68 21.12"/></svg>
     <svg class="temp-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.212 7.436 A10.8 10.8 0 0 1 10.871 1.259 M14.245 1.436 A10.8 10.8 0 0 1 22.479 9.387 M22.774 12.753 A10.8 10.8 0 0 1 16.220 21.941 M12.941 22.759 A10.8 10.8 0 0 1 4.773 20.026 M2.293 16.734 A10.8 10.8 0 0 1 1.259 10.871 M3.6 17.28 L2.4 23.28 L7.68 21.12"/><path d="m8.4 12.2 2.5 2.5 5-5"/></svg>
    </button>
+   <div id="wordListArmZone" hidden aria-hidden="true"></div>
    <div id="thread-actions" class="glass">
     <button id="newChat" aria-label="Nova conversa">
      <svg viewBox="0 0 26 26" fill="none" stroke="#f8f8fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4H6a3 3 0 0 0-3 3v13a3 3 0 0 0 3 3h13a3 3 0 0 0 3-3v-8"/><path d="m12 15 10-10a2 2 0 0 0-3-3L9 12l-1 5z"/></svg>
@@ -1029,6 +1035,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
 <script src="./chat-test-gpt-2-diag.js?v=9"></script>
 <script src="./joaninha-list-manager.js?v=140"></script>
 <script src="./joaninha-work-config.js?v=90"></script>
+<script src="./joaninha-palavras.js?v=142"></script>
 <script>
 (function(){
  'use strict';
@@ -1128,7 +1135,13 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
  }
  function parseRequest(question){
   const plain=normalise(question).trim();
-  if(!plain||!hasListIntent(plain))return null;
+  if(!plain)return null;
+  // Dynamic words are a dedicated engine, not a normal list with reserve positions.
+  if(!EXPLANATORY_QUESTION.test(plain)&&JoaninhaWords.matches(plain)){
+   return {quantity:JoaninhaWords.parseQuantity(plain),
+    candidates:[{file:'palavrasaleatorias',label:'palavras aleatórias'}],plain};
+  }
+  if(!hasListIntent(plain))return null;
   const category=matchCategory(plain);
   if(!category)return null;
   const countMatch=plain.match(/\b\d{1,5}\b/);
@@ -1261,7 +1274,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
    aleatorias:'música aleatória',insetos:'inseto',cervejas:'cerveja',
    hobbies:'hobby',perguntas:'pergunta',pontosturisticos:'ponto turístico',
    aura:'cor de aura',familiareszoologicos:'familiar zoológico',
-   contatoespiritual:'pergunta para contato espiritual'
+   contatoespiritual:'pergunta para contato espiritual',palavrasaleatorias:'palavra aleatória'
   };
   const babyNouns={
    personalizada3:['nome para bebê','nomes para bebês'],
@@ -1273,7 +1286,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   if(q===1)return 'Aqui está um exemplo de '+noun+':';
 
   // Build the description exclusively from properties the displayed data supports.
-  let subject=q+' '+noun;
+  let subject=(resolved.file==='palavrasaleatorias'?q.toLocaleString('pt-BR'):q)+' '+noun;
   if(resolved.file==='contatoespiritual'){
    if(/\b(?:falar|conversar|comunicar|dialogar)\b.*\b(?:espirito|espiritos)\b/.test(plain))
     subject=q+' perguntas para falar com '+(plain.includes('espiritos')?'espíritos':'espírito');
@@ -1462,7 +1475,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   if(out.some(item=>item===undefined))throw Error('lista preparada incompleta');
   return {ordered:out,reservedPosition:position};
  }
- const GPT_TEST_VERSION=141;
+ const GPT_TEST_VERSION=142;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // The number grid owns its own input state, independent of secret keyboard typing.
  let numberGridVisible=false,gridDigits='',gridGesture=null;
@@ -1626,9 +1639,38 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   scroller.scrollTop=Math.max(0,scroller.scrollTop+targetRect.top-scrollRect.top-106);
  }
  // Cancel only superseded requests, never alter an active keyboard
- let replyToken=0,activeGridList=null;
+ let replyToken=0,activeGridList=null,activeWordList=null,wordCorpusPromise=null;
+ function disposeWordList(clean=true){
+  if(activeWordList){activeWordList.dispose(clean);activeWordList=null;}
+  app.classList.remove('word-list-mode');
+ }
+ async function loadWordCorpus(){
+  if(!wordCorpusPromise){
+   wordCorpusPromise=(async()=>{
+    if(navigator.onLine===false&&!navigator.serviceWorker?.controller)
+     throw Error('Vocabulário offline indisponível');
+    const response=await fetch('./joaninha-palavras-ptbr.txt?v=142');
+    if(!response.ok)throw Error('Vocabulário indisponível');
+    return JoaninhaWords.cleanWords(await response.text());
+   })().catch(error=>{wordCorpusPromise=null;throw error;});
+  }
+  return wordCorpusPromise;
+ }
+ async function resolveWordList(request,position,secondary){
+  if(secondary!==null)throw Error('A lista de palavras usa uma única posição');
+  if(position!==null&&(!Number.isInteger(position)||position<1||position>JoaninhaWords.MAX_POSITION))
+   throw Error('Posição de letra inválida');
+  const manualSnapshot=pendingManualInject;
+  const corpus=await loadWordCorpus();
+  // Normal requests stay fully random; without a code, never read Inject or consume $$$.
+  const secret=position===null?null:
+   (await replaceInjectMarkers(['$$$'],'palavrasaleatorias',manualSnapshot))[0];
+  const prepared=JoaninhaWords.prepare(corpus,request.quantity,secret,position);
+  return {prepared,manualVersion:position!==null&&manualSnapshot!==null?manualSnapshot.version:null};
+ }
  function cancelReply(){
   replyToken++;
+  disposeWordList();
   stopAuto();
  }
  function appendReplyRow(item,index,forcedPosition,target=list){
@@ -1700,6 +1742,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   activeGridList=null;gridDigits='';
   stopAuto();
   closeAnswerOptions();
+  disposeWordList();
   archiveCurrentTurn();
   resetAnswerInteractions();
   draft='';caretPos=0;capsLocked=false;shiftNext=true;
@@ -1714,6 +1757,33 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   const thinkingFinished=new Promise(resolve=>setTimeout(resolve,1500));
   try{
    const request=parseRequest(message);
+   if(request?.candidates[0].file==='palavrasaleatorias'){
+    const result=await resolveWordList(request,forcedPosition,secondaryPosition);
+    await thinkingFinished;
+    if(token!==replyToken)return;
+    app.classList.add('word-list-mode');
+    const resolved={file:'palavrasaleatorias',label:'palavras aleatórias',quantity:request.quantity};
+    intro.textContent=introForRequest(request,resolved,[]);
+    showScene('list');
+    generating=true;updateComposer();
+    // Show the first screen rapidly and then complete all 10,000 real lines.
+    // A full sequential stream would take many minutes.
+    const preview=document.createElement('div');preview.className='words-content';
+    preview.textContent=result.prepared.original.split('\n').slice(0,32).join('\n');
+    list.replaceChildren(preview);
+    timer=setTimeout(()=>{
+     if(token!==replyToken)return;
+     activeWordList=JoaninhaWords.mount({prepared:result.prepared,scroller,target:list,
+      armZone:$('wordListArmZone'),allowed:()=>token===replyToken&&scene==='end'&&
+       !keyboard&&!drawer&&!document.hidden&&!peekPanelOpen&&themePicker.hidden&&
+       !document.body.classList.contains('jlm-open')});
+     if(result.manualVersion!==null&&pendingManualInject?.version===result.manualVersion)
+      pendingManualInject=null;
+     timer=null;showScene('end');generating=false;updateComposer();refreshJump();
+     rememberCompletedConversation();
+    },420);
+    return;
+   }
    const resolved=await resolveList(request);
    await thinkingFinished;
    if(token!==replyToken)return;
@@ -3638,6 +3708,8 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
  let answerCopyFeedbackTimer=null;
  function visibleReplyText(){
   const intro=$('answerIntro').textContent.trim();
+  const words=list.querySelector('.words-content');
+  if(words)return [intro,words.textContent].filter(Boolean).join('\n\n');
   const rows=Array.from(list.querySelectorAll('.row')).map((row,index)=>{
    const number=row.querySelector('.number')?.textContent.trim()||String(index+1)+'.';
    const word=row.querySelector('.word');
@@ -4270,7 +4342,15 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   for(const turn of raw.turns){
    if(typeof turn?.message!=='string'||!turn.message.trim()||
     turn.message.length>2000||typeof turn.intro!=='string'||
-    turn.intro.length>5000||!Array.isArray(turn.rows)||turn.rows.length>250)return null;
+    turn.intro.length>5000)return null;
+   if(typeof turn.words==='string'){
+    if(turn.words.length>250000)return null;
+    const lines=turn.words.split('\n');
+    if(lines.length>10000||lines.some(line=>!/^•  [\p{L}]{3,16}$/u.test(line)))return null;
+    turns.push({message:turn.message,intro:turn.intro,rows:[],words:turn.words});
+    continue;
+   }
+   if(!Array.isArray(turn.rows)||turn.rows.length>250)return null;
    const rows=[];
    for(const row of turn.rows){
     if(typeof row?.text!=='string'||row.text.length>500)return null;
@@ -4291,6 +4371,9 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
  function captureRecentTurn(bubble,intro,listNode){
   if(!bubble||!listNode)return null;
   const message=bubble.textContent?.trim()||'';
+  const words=listNode.querySelector('.words-content');
+  if(message&&words)return {message,intro:intro?.textContent||'',rows:[],
+   words:listNode===list&&activeWordList?activeWordList.original:words.textContent};
   const rows=Array.from(listNode.querySelectorAll('.row')).map(row=>({
    text:row.querySelector('.word')?.textContent||'',
    forceIndex:Number(row.dataset.forceIndex)||null
@@ -4307,9 +4390,11 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   const current=captureRecentTurn(
    $('bubble-row').querySelector('.bubble'),$('answerIntro'),list);
   if(!current)return;
-  const saved=cleanRecentConversation({
-   format:'joaninha-single-recent-v1',turns:archived.slice(-39).concat(current)
-  });
+  const turns=archived.slice(-39).concat(current);
+  // Bound only the added long-list payload; do not change the normal 40-turn rule.
+  let wordsSize=turns.reduce((n,turn)=>n+(turn.words?.length||0),0);
+  while(wordsSize>1200000&&turns.length>1)wordsSize-=turns.shift().words?.length||0;
+  const saved=cleanRecentConversation({format:'joaninha-single-recent-v1',turns});
   if(!saved)return;
   try{
    localStorage.setItem(RECENT_CONVERSATION_KEY,JSON.stringify(saved));
@@ -4355,7 +4440,10 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
     list.replaceChildren();
     target=list;
    }
-   turn.rows.forEach((row,index)=>{
+   if(typeof turn.words==='string'){
+    const content=document.createElement('div');content.className='words-content';
+    content.textContent=turn.words;target.appendChild(content);
+   }else turn.rows.forEach((row,index)=>{
     appendReplyRow(row.text,index,row.forceIndex,target);
    });
   }

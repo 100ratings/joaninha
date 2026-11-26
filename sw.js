@@ -15,7 +15,7 @@ const LIST_NAMES=[
  'nomesfemininosbebes','nomesmasculinosbebes'
 ];
 const FILES=[
- 'index.html','chat-test-gpt-2-diag.js','joaninha-list-manager.js','joaninha-work-config.js','manifest.webmanifest',
+ 'index.html','chat-test-gpt-2-diag.js','joaninha-list-manager.js','joaninha-work-config.js','joaninha-palavras.js','joaninha-palavras-ptbr.txt','manifest.webmanifest',
  'icon-192.png','icon-512.png',
  ...LIST_NAMES.map(name=>'chat-test-gpt-2-listas/'+name+'.txt')
 ];
@@ -214,7 +214,7 @@ self.addEventListener('fetch',event=>{
   event.respondWith(listResponse(request,path,event));
   return;
  }
- if(['chat-test-gpt-2-diag.js','joaninha-list-manager.js','joaninha-work-config.js','manifest.webmanifest','icon-192.png','icon-512.png'].includes(path)){
+ if(['chat-test-gpt-2-diag.js','joaninha-list-manager.js','joaninha-work-config.js','joaninha-palavras.js','joaninha-palavras-ptbr.txt','manifest.webmanifest','icon-192.png','icon-512.png'].includes(path)){
   event.respondWith(staticResponse(request,path,event));
   return;
  }
