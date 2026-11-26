@@ -74,20 +74,27 @@ test('mount: real gestures, both directions, stationary pause, no automatic chan
     global.performance={now:()=>now};
     global.setTimeout=(fn,ms)=>{tasks.set(++seq,{fn,at:now+ms});return seq;};
     global.clearTimeout=id=>tasks.delete(id);
-    const scroller=new Element(),target=new Element(),armZone=new Element();
+    const scroller=new Element(),target=new Element();
     const prepared={original:'random',phases:['phase a','phase b'],clean:'finished'};
     let completes=0;
     const states=[],readyForRandom=[];
-    const mounted=W.mount({prepared,scroller,target,armZone,onComplete:()=>completes++,onStateChange:(state,finalPause)=>{
+    const mounted=W.mount({prepared,scroller,target,onComplete:()=>completes++,onStateChange:(state,finalPause)=>{
       states.push(state);if(state==='ready')readyForRandom.push(finalPause);
     }});
     const text=()=>target.children[0].children[0].data;
     const scroll=delta=>{scroller.scrollTop+=delta;scroller.emit('scroll');};
     const wheel=delta=>{scroller.emit('wheel');scroll(delta);};
-    const tap=()=>{const e={isPrimary:true,button:0,pointerId:1,clientX:100,clientY:50};armZone.emit('pointerdown',e);armZone.emit('pointerup',e);};
     assert.equal(text(),'random');assert.deepEqual(states,['preview']);
-    wheel(30);tick(4000);wheel(-10);assert.equal(text(),'random');
-    tap();tick(100);tap(); assert.equal(mounted.state,'armed'); assert.equal(armZone.hidden,true);
+    tick(15000);assert.equal(mounted.state,'preview'); // no movement
+    scroll(30);tick(4000);assert.equal(mounted.state,'preview'); // programmatic only
+    scroller.emit('touchstart',{touches:[{}]});
+    scroller.emit('touchend',{touches:[]});tick(4000);
+    assert.equal(mounted.state,'preview'); // tap without actual movement
+    scroller.emit('touchstart',{touches:[{}]});scroll(30);
+    tick(5000);assert.equal(mounted.state,'preview'); // finger still down
+    scroller.emit('touchend',{touches:[]});tick(1000);wheel(-10);
+    tick(2999);assert.equal(mounted.state,'preview');assert.equal(text(),'random');
+    tick(1);assert.equal(mounted.state,'armed');assert.equal(text(),'random');
     assert.deepEqual(states,['preview','armed']);
     tick(2000);scroll(2);assert.equal(text(),'random');
     scroller.emit('touchstart',{touches:[{}]});scroll(3);
@@ -103,13 +110,23 @@ test('mount: real gestures, both directions, stationary pause, no automatic chan
     assert.deepEqual(states,['preview','armed','running','ready','running','ready','complete']);
     tick(5000);wheel(-10);assert.equal(text(),'finished');assert.equal(completes,1);
     mounted.dispose();assert.equal(states.at(-1),'preview');for(const list of scroller.handlers.values())assert.equal(list.length,0);
-    const other=W.mount({prepared,scroller,target,armZone,onStateChange:state=>states.push(state)});
-    tap();tick(100);tap();wheel(10);assert.equal(text(),'phase a');
+    const other=W.mount({prepared,scroller,target,onStateChange:state=>states.push(state)});
+    wheel(10);tick(3000);assert.equal(other.state,'armed');assert.equal(text(),'random');
+    wheel(10);assert.equal(text(),'phase a');
     other.dispose();assert.equal(text(),'random');assert.equal(states.at(-1),'preview');
-    const plain=W.mount({prepared:{original:'random',phases:[],clean:'random'},scroller,target,armZone,onStateChange:state=>states.push(state)});
-    tap();tick(100);tap();wheel(10);tick(5000);
-    assert.equal(plain.state,'preview');assert.equal(states.at(-1),'preview');assert.equal(armZone.hidden,true);
+    const plain=W.mount({prepared:{original:'random',phases:[],clean:'random'},scroller,target,onStateChange:state=>states.push(state)});
+    wheel(10);tick(5000);
+    assert.equal(plain.state,'preview');assert.equal(states.at(-1),'preview');
     plain.dispose();
+    // Starting the scroll during the opening inherits the ongoing touch.
+    const early=W.mount({prepared,scroller,target,initialGesture:{contact:true,gesture:true}});
+    scroll(25);tick(5000);assert.equal(early.state,'preview');
+    scroller.emit('touchend',{touches:[]});tick(2999);assert.equal(early.state,'preview');
+    tick(1);assert.equal(early.state,'armed');assert.equal(text(),'random');
+    wheel(-10);assert.equal(text(),'phase a');early.dispose();
+    const alreadyMoved=W.mount({prepared,scroller,target,initialGesture:{gesture:true,moved:true}});
+    tick(3000);assert.equal(alreadyMoved.state,'armed');alreadyMoved.dispose();
+
   }finally{Object.assign(global,saved);}
 });
 
@@ -132,8 +149,8 @@ test('opening reveals line by line but all words are already present, then scrol
   const target=new Element(),scroller=new Element();
   const prepared=W.prepare(words,10000);
   const flatten=node=>node.data??node.children.map(flatten).join('');
-  let completes=0;
-  const show=()=>W.reveal({prepared,target,scroller,prefixCount:30,onFinish:()=>completes++});
+  let completes=0,gestures=[],openingTexts=[];
+  const show=()=>W.reveal({prepared,target,scroller,prefixCount:30,onFinish:(gesture,openingText)=>{completes++;gestures.push(gesture);openingTexts.push(openingText);}});
   const visible=()=>target.children[0].children.filter(x=>x.style?.visibility==='visible').length;
   const hidden=()=>target.children[0].children.filter(x=>x.style?.visibility==='hidden').length;
   let opening=show();
@@ -147,11 +164,13 @@ test('opening reveals line by line but all words are already present, then scrol
   assert.equal(completes,0);
   scroller.emit('touchmove',{touches:[{clientY:280}]});
   assert.equal(completes,1);assert.equal(flatten(target),prepared.original);
-  assert.equal(hidden(),0);assert.equal(target.children[0].children.length,1);
+  assert.deepEqual(gestures[0],{contact:true,gesture:true});
+  assert.equal(hidden(),0);assert.equal(target.children[0],openingTexts[0]);
+  assert.equal(target.children[0].children.length,31); // keep touch target until pause
   tick(10000);assert.equal(completes,1);
   opening.dispose();
-  opening=show();scroller.emit('wheel',{deltaY:-20});assert.equal(completes,2);
-  opening=show();scroller.scrollTop+=40;scroller.emit('scroll');assert.equal(completes,3);
+  opening=show();scroller.emit('wheel',{deltaY:-20});assert.equal(completes,2);assert.deepEqual(gestures[1],{gesture:true});
+  opening=show();scroller.scrollTop+=40;scroller.emit('scroll');assert.equal(completes,3);assert.deepEqual(gestures[2],{contact:false,gesture:false,moved:false});
   opening=show();tick(4000);assert.equal(completes,4);assert.equal(flatten(target),prepared.original);
   opening=show();opening.dispose();tick(10000);assert.equal(completes,4);assert.equal(hidden(),0);
   assert.equal(flatten(target),prepared.original);

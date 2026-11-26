@@ -116,70 +116,85 @@
   }
   if(count<lines.length)text.appendChild(document.createTextNode(lines.slice(count).join('\n')));
   let done=false,timer=null,index=0,touch=null,lastTop=scroller.scrollTop;
-  function close(notify){
+  function close(notify,gesture={}){
    if(done)return;
    done=true;
    if(timer!==null)clearTimeout(timer);
    bindings.forEach(([type,handler])=>scroller.removeEventListener(type,handler));
    if(target.contains(text)){
-    text.replaceChildren(document.createTextNode(prepared.original));
-    if(notify)onFinish();
+    // A touch can be targeting an opening span. Keep those DOM nodes
+    // alive until the gesture ends, so its touchend/touchcancel can bubble.
+    if(notify&&gesture.gesture)opening.forEach(span=>{span.style.visibility='visible';});
+    else text.replaceChildren(document.createTextNode(prepared.original));
+    if(notify)onFinish(gesture,text);
    }
   }
   function emit(){
    if(done||!target.contains(text)){close(false);return;}
    opening[index++].style.visibility='visible';
-   if(index===count){close(true);return;}
+   if(index===count){close(true,{contact:touch!==null,gesture:touch!==null});return;}
    timer=setTimeout(emit,76+(index%7===0?90:0));
   }
   function onScroll(){
    const top=scroller.scrollTop;
-   if(Math.abs(top-lastTop)>.5)close(true);
+   if(Math.abs(top-lastTop)>.5)close(true,{contact:touch!==null,gesture:touch!==null,moved:touch!==null});
    lastTop=top;
   }
   function onStart(e){touch=e.touches.length===1?e.touches[0].clientY:null;}
   function onMove(e){
-   if(touch!==null&&e.touches.length===1&&Math.abs(e.touches[0].clientY-touch)>6)close(true);
+   if(touch!==null&&e.touches.length===1&&Math.abs(e.touches[0].clientY-touch)>6)close(true,{contact:true,gesture:true});
   }
   function onEnd(){touch=null;}
-  function onWheel(e){if(e.deltaY!==0)close(true);}
+  function onWheel(e){if(e.deltaY!==0)close(true,{gesture:true});}
   const bindings=[['scroll',onScroll],['touchstart',onStart],['touchmove',onMove],
    ['touchend',onEnd],['touchcancel',onEnd],['wheel',onWheel]];
   bindings.forEach(([type,handler])=>scroller.addEventListener(type,handler,{passive:true}));
   timer=setTimeout(emit,250);
   return {dispose(){close(false);}};
  }
- function mount({prepared,scroller,target,armZone,allowed=()=>true,pauseMs=PAUSE_MS,onComplete=()=>{},onStateChange=()=>{}}){
-  const text=document.createElement('div');
+ function mount({prepared,scroller,target,initialGesture={},openingText=null,allowed=()=>true,pauseMs=PAUSE_MS,onComplete=()=>{},onStateChange=()=>{}}){
+  const reuse=!!(initialGesture.gesture&&openingText&&target.contains(openingText));
+  const text=reuse?openingText:document.createElement('div');
   text.className='words-content';
-  const node=document.createTextNode(prepared.original);
-  text.appendChild(node);
-  target.replaceChildren(text);
+  let node=null;
+  function render(value){
+   if(node)node.data=value;
+   else{node=document.createTextNode(value);text.replaceChildren(node);}
+  }
+  if(!reuse){render(prepared.original);target.replaceChildren(text);}
   const machine=sequence(prepared.phases.length);
-  let disposed=false,timer=null,lastTop=scroller.scrollTop,firstTap=null,tap=null;
-  let contact=false,scrollUntil=0,hasMoved=false;
+  let disposed=false,timer=null,lastTop=scroller.scrollTop;
+  let contact=!!initialGesture.contact,scrollUntil=initialGesture.gesture?performance.now()+1600:0,
+   hasMoved=!!initialGesture.moved;
   const stopTimer=()=>{if(timer!==null)clearTimeout(timer);timer=null;};
   const permitted=()=>!disposed&&allowed()&&target.contains(text);
   const snooze=()=>{
    stopTimer();
-   if(machine.state!=='running'||contact||!hasMoved)return;
+   if(!prepared.phases.length||!['preview','running'].includes(machine.state)||contact||!hasMoved)return;
    timer=setTimeout(()=>{
     timer=null;
-    if(permitted()&&!contact&&machine.pause())
-     onStateChange(machine.state,machine.index===prepared.phases.length-1);
+    if(!permitted()||contact)return;
+    // The first qualified pause arms the effect without changing any words.
+    const changed=machine.state==='preview'?machine.arm():machine.pause();
+    if(changed){
+     hasMoved=false;scrollUntil=0;
+     // Consolidate the opening only when the first gesture has ended.
+     if(machine.state==='armed'&&!node)render(prepared.original);
+     onStateChange(machine.state,machine.state==='ready'&&machine.index===prepared.phases.length-1);
+    }
    },pauseMs);
   };
   function onScroll(){
    const top=scroller.scrollTop,delta=Math.abs(top-lastTop);lastTop=top;
-   if(!permitted()||delta<0.5||performance.now()>scrollUntil&&!contact)return;
-   if(machine.state==='preview'||machine.state==='complete')return;
+   if(!permitted()||delta<0.5||(!contact&&performance.now()>=scrollUntil))return;
+   if(!prepared.phases.length||machine.state==='complete')return;
    scrollUntil=performance.now()+1600;
    hasMoved=true;
    const result=machine.moved();
    if(result.changed){
     // One text-node write; same line count and line height, no scroll reset,
     // animation, rebuild or visible change while sitting still.
-    node.data=result.complete?prepared.clean:prepared.phases[result.index];
+    render(result.complete?prepared.clean:prepared.phases[result.index]);
     onStateChange(machine.state);
    }
    if(result.complete){stopTimer();onComplete();return;}
@@ -196,43 +211,22 @@
   function onWheel(){
    if(permitted())scrollUntil=performance.now()+1600;
   }
-  function onPointerDown(e){
-   if(!permitted()||!e.isPrimary||e.button!==0)return;
-   tap={id:e.pointerId,x:e.clientX,y:e.clientY,at:performance.now()};
-  }
-  function onPointerUp(e){
-   const previous=tap;tap=null;
-   if(!previous||previous.id!==e.pointerId||!permitted()||
-      Math.hypot(e.clientX-previous.x,e.clientY-previous.y)>10||
-      performance.now()-previous.at>350)return;
-   const now=performance.now();
-   if(firstTap!==null&&now-firstTap<=450){
-    firstTap=null;
-    if(machine.arm()){
-     armZone.hidden=true;lastTop=scroller.scrollTop;
-     contact=false;scrollUntil=0;hasMoved=false;
-     onStateChange(machine.state);
-    }
-   }else firstTap=now;
-  }
-  function onPointerCancel(){tap=null;}
   const bindings=[
    [scroller,'scroll',onScroll], [scroller,'touchstart',onTouchStart],
    [scroller,'touchend',onTouchEnd], [scroller,'touchcancel',onTouchEnd],
-   [scroller,'wheel',onWheel], [armZone,'pointerdown',onPointerDown],
-   [armZone,'pointerup',onPointerUp], [armZone,'pointercancel',onPointerCancel]
+   [scroller,'wheel',onWheel]
   ];
   bindings.forEach(([el,type,handler])=>el.addEventListener(type,handler,{passive:true}));
-  armZone.hidden=!prepared.phases.length;
   onStateChange(machine.state);
+  snooze();
   return {
    get original(){return prepared.original;},
    get state(){return machine.state;},
    dispose(clean=true){
     if(disposed)return;
-    disposed=true;stopTimer();armZone.hidden=true;
+    disposed=true;stopTimer();
     bindings.forEach(([el,type,handler])=>el.removeEventListener(type,handler));
-    if(clean&&target.contains(text)&&machine.state!=='complete')node.data=prepared.original;
+    if(clean&&target.contains(text)&&machine.state!=='complete')render(prepared.original);
     onStateChange('preview');
    }
   };

@@ -16,15 +16,16 @@ seus códigos de posição.
 3. Usar o teclado secreto já existente, com 01 para a primeira letra,
    02 para a segunda, 03 para a terceira e assim por diante.
 4. Enviar o pedido de palavras aleatórias. A lista inicial não tem filtro.
-   Rolar livremente para demonstrá-la antes de ativar.
-5. Dar dois toques rápidos no espaço vazio central do cabeçalho, sem
-   pressionar os botões. A lista não muda nesse momento.
-6. O primeiro pontinho do menu fica invisível para confirmar a ativação.
-   A próxima rolagem efetiva ativa a primeira letra. Todas as palavras
+   Sem rolagem, a lista permanece aleatória, independentemente do tempo.
+5. Rolar a lista em qualquer direção. Depois que a rolagem efetiva parar
+   por três segundos, o efeito é armado automaticamente (V148) e o
+   primeiro pontinho fica invisível. As palavras continuam aleatórias.
+   Não há mais gesto no cabeçalho. O modo comum não ativa o efeito.
+6. A próxima rolagem efetiva ativa a primeira letra. Todas as palavras
    da lista passam a conter essa letra na posição solicitada.
 7. Uma pausa de três segundos torna a próxima fase disponível, sem mudar
    o indicador entre letras. Quando termina a pausa da última letra,
-   os três pontinhos reaparecem (V147), mas a lista ainda não muda.
+   os três pontinhos reaparecem, mas a lista ainda não muda.
    Só a próxima rolagem, em qualquer direção, devolve a lista aleatória normal.
 
 A fase mantém a mesma quantidade de linhas e a mesma altura. Uma troca
