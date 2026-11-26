@@ -1,4 +1,4 @@
-# Joaninha V151: palavras aleatórias
+# Joaninha V152: palavras aleatórias
 
 A versão mantém os gestos e os inputs da V150, preservada na branch
 `backup-v150-antes-curadoria-avancada`. O experimento não modifica os TXT existentes,
@@ -60,3 +60,25 @@ não as fases secretas.
 
 Testes automatizados: `node --test tests/palavras.test.cjs`.
 Créditos e licença do corpus: [PALAVRAS-LICENCAS.md](PALAVRAS-LICENCAS.md).
+
+## V152: troca preparada durante a pausa
+
+O vocabulário e a seleção V151 permanecem iguais. Por cerca de 160 ms
+de imobilidade, durante a pausa já existente de três segundos, a próxima
+fase é montada em uma segunda camada invisível. Ambas compartilham a
+mesma altura e célula de layout. Após a pausa e a primeira rolagem
+efetiva, a visibilidade é alternada sem reescrever 10.000 linhas no
+instante da troca, sem animações e sem reposicionar a rolagem. A camada
+anterior permanece anexada durante o toque, para preservar os eventos do
+gesto; depois é reutilizada ou removida. Se a preparação falhar ou as
+alturas divergirem, o código usa a troca tradicional da V151.
+
+A versão não altera as regras de ativação, os indicadores ou o input.
+O código também observa deslocamento real durante touchmove, sem antecipar
+o efeito por um mero toque ou por previsão de movimento.
+
+Teste local em Chromium, 13 trocas de listas de 10.000 linhas:
+mediana do trabalho síncrono de troca e layout de 18,8 ms (V151) para
+0,3 ms (V152). Não é uma medição de latência do iPhone; a renderização
+final e a velocidade percebida no Safari precisam de teste no aparelho.
+A V151 permanece no backup `backup-v151-antes-troca-otimizada`.

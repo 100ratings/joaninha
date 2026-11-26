@@ -113,7 +113,19 @@ test('morphological relatives are spaced when an equally safe candidate is avail
   assert.equal(new Set(curated).size,48);
 });
 class Element {
-  constructor(){this.handlers=new Map();this.children=[];this.scrollTop=100;this.style={};}
+  constructor(){
+    this.handlers=new Map();this.children=[];this.scrollTop=100;this.style={};
+    this.attributes=new Map();this.className='';this.height=100;
+    this.classList={
+      add:name=>{const a=new Set(this.className.split(' ').filter(Boolean));a.add(name);this.className=[...a].join(' ');},
+      remove:name=>{this.className=this.className.split(' ').filter(x=>x!==name).join(' ');},
+      contains:name=>this.className.split(' ').includes(name)
+    };
+  }
+  getBoundingClientRect(){return {height:this.height};}
+  setAttribute(key,value){this.attributes.set(key,value);}
+  removeAttribute(key){this.attributes.delete(key);}
+  removeChild(node){this.children=this.children.filter(x=>x!==node);}
   addEventListener(n,f){const list=this.handlers.get(n)||[];list.push(f);this.handlers.set(n,list);}
   removeEventListener(n,f){this.handlers.set(n,(this.handlers.get(n)||[]).filter(x=>x!==f));}
   emit(n,e={}){for(const f of this.handlers.get(n)||[])f(e);}
@@ -145,7 +157,7 @@ test('mount: real gestures, both directions, stationary pause, no automatic chan
     const mounted=W.mount({prepared,scroller,target,onComplete:()=>completes++,onStateChange:(state,finalPause)=>{
       states.push(state);if(state==='ready')readyForRandom.push(finalPause);
     }});
-    const text=()=>target.children[0].children[0].data;
+    const text=()=>target.children.find(n=>n.className==='words-content').children[0].data;
     const scroll=delta=>{scroller.scrollTop+=delta;scroller.emit('scroll');};
     const wheel=delta=>{scroller.emit('wheel');scroll(delta);};
     assert.equal(text(),'random');assert.deepEqual(states,['preview']);
@@ -192,6 +204,86 @@ test('mount: real gestures, both directions, stationary pause, no automatic chan
     tick(3000);assert.equal(alreadyMoved.state,'armed');alreadyMoved.dispose();
 
   }finally{Object.assign(global,saved);}
+});
+
+test('V152 stages the next text during the pause and promotes it without a text write',()=>{
+ const saved={document:global.document,performance:global.performance,setTimeout:global.setTimeout,clearTimeout:global.clearTimeout};
+ let now=0,seq=0;const tasks=new Map();
+ function tick(ms){
+  const end=now+ms;
+  while(tasks.size){
+   const [id,task]=[...tasks.entries()].sort((a,b)=>a[1].at-b[1].at)[0];
+   if(task.at>end)break;
+   now=task.at;tasks.delete(id);task.fn();
+  }
+  now=end;
+ }
+ try{
+  let writes=0,created=0;
+  global.document={
+   createElement:()=>new Element(),
+   createTextNode(value){created++;return {get data(){return value;},set data(next){writes++;value=next;}};}
+  };
+  global.performance={now:()=>now};
+  global.setTimeout=(fn,ms)=>{tasks.set(++seq,{fn,at:now+ms});return seq;};
+  global.clearTimeout=id=>tasks.delete(id);
+  const scroller=new Element(),target=new Element();
+  const prepared={original:'normal',phases:['first','second'],clean:'final'};
+  const mounted=W.mount({prepared,scroller,target});
+  const active=()=>target.children.find(n=>n.className==='words-content');
+  const hidden=()=>target.children.find(n=>n.className==='words-buffer');
+  const move=d=>{scroller.scrollTop+=d;scroller.emit('scroll');};
+  const touchStart=()=>scroller.emit('touchstart',{touches:[{}]});
+  const touchEnd=()=>scroller.emit('touchend',{touches:[]});
+  touchStart();move(20);touchEnd();
+  tick(159);assert.equal(hidden(),undefined);
+  tick(1);assert.equal(hidden().children[0].data,'first');
+  assert.equal(hidden().attributes.get('aria-hidden'),'true');
+  assert.equal(active().children[0].data,'normal');
+  assert.equal(mounted.state,'preview');
+  tick(2840);assert.equal(mounted.state,'armed');
+  const previous=active(),staged=hidden(),createdAtPause=created,writesAtPause=writes;
+  touchStart();scroller.emit('touchmove',{touches:[{}]});
+  assert.equal(mounted.state,'armed'); // no actual movement
+  scroller.scrollTop+=.75;scroller.emit('touchmove',{touches:[{}]});
+  assert.equal(mounted.state,'running');assert.equal(active(),staged);
+  assert.equal(hidden(),previous);assert.equal(created,createdAtPause);
+  assert.equal(writes,writesAtPause);assert.equal(active().children[0].data,'first');
+  scroller.emit('scroll');assert.equal(active(),staged); // no double advance
+  tick(5000);assert.equal(mounted.state,'running');
+  touchEnd();tick(160);assert.equal(hidden().children[0].data,'second');
+  tick(2840);assert.equal(mounted.state,'ready');
+  const second=hidden(),count2=writes;
+  touchStart();move(-5);assert.equal(active(),second);assert.equal(writes,count2);
+  touchEnd();tick(160);assert.equal(hidden().children[0].data,'final');
+  tick(2840);assert.equal(mounted.state,'ready');
+  const final=hidden(),count3=writes;
+  touchStart();move(10);assert.equal(active(),final);assert.equal(writes,count3);
+  assert.equal(mounted.state,'complete');assert.equal(target.children.length,2);
+  touchEnd();tick(180);
+  assert.equal(target.children.length,1);assert.equal(active(),final);
+  assert.ok(!target.classList.contains('words-double-buffer'));
+  mounted.dispose();assert.equal(active().children[0].data,'final');
+  assert.equal(tasks.size,0);
+ }finally{Object.assign(global,saved);}
+});
+test('V152 layout mismatch safely falls back to the original text-node switch',()=>{
+ const saved={document:global.document,performance:global.performance,setTimeout:global.setTimeout,clearTimeout:global.clearTimeout};
+ let now=0,seq=0;const tasks=new Map();
+ const tick=ms=>{const end=now+ms;while(tasks.size){const [id,t]=[...tasks.entries()].sort((a,b)=>a[1].at-b[1].at)[0];if(t.at>end)break;now=t.at;tasks.delete(id);t.fn();}now=end;};
+ try{
+  let created=0;
+  global.document={createElement:()=>{const el=new Element();el.height=created++===0?100:125;return el;},createTextNode:data=>({data})};
+  global.performance={now:()=>now};global.setTimeout=(fn,ms)=>{tasks.set(++seq,{fn,at:now+ms});return seq;};
+  global.clearTimeout=id=>tasks.delete(id);
+  const scroller=new Element(),target=new Element(),mounted=W.mount({prepared:{original:'original',phases:['changed'],clean:'clean'},scroller,target});
+  const wheel=()=>{scroller.emit('wheel');scroller.scrollTop+=5;scroller.emit('scroll');};
+  wheel();tick(3000);
+  assert.equal(mounted.state,'armed');assert.equal(target.children.length,1);
+  assert.ok(!target.classList.contains('words-double-buffer'));
+  wheel();assert.equal(target.children[0].children[0].data,'changed');
+  mounted.dispose();assert.equal(target.children[0].children[0].data,'original');
+ }finally{Object.assign(global,saved);}
 });
 
 test('opening reveals line by line but all words are already present, then scroll finishes immediately',()=>{

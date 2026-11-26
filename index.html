@@ -200,7 +200,12 @@ border-radius:10px;background:rgba(29,29,32,.84);color:#a9a9af;font-size:10.5px}
 #list .number,.archived-list .number{width:calc(42px + var(--answer-number-extra,0px));margin-left:-20px;text-align:right;font-variant-numeric:tabular-nums;font-feature-settings:"tnum";white-space:nowrap}
 #list .word,.archived-list .word{min-width:0}
 /* V142: a long, fixed-height bullet list, independent of normal numbered rows. */
-.words-content{font-size:var(--answer-font,17.2px);line-height:calc(var(--answer-font,17.2px)*1.24 + var(--list-item-spacing,0px));letter-spacing:-.17px;white-space:pre;overflow:hidden;overflow-anchor:none}
+.words-content,.words-buffer{font-size:var(--answer-font,17.2px);line-height:calc(var(--answer-font,17.2px)*1.24 + var(--list-item-spacing,0px));letter-spacing:-.17px;white-space:pre;overflow:hidden;overflow-anchor:none}
+/* V152: next phase is laid out under the current phase during the pause.
+   Both layers have identical metrics; only visibility and access change. */
+.words-double-buffer{display:grid;grid-template-columns:minmax(0,1fr);align-items:start}
+.words-double-buffer>.words-content,.words-double-buffer>.words-buffer{grid-area:1/1;min-width:0}
+.words-buffer{visibility:hidden;pointer-events:none;user-select:none;-webkit-user-select:none}
 /* V147: restore the third dot when the final pause is complete. */
 #more[data-word-list-state="force"] circle:first-child{visibility:hidden}
 #app.word-list-mode #numberGridOverlay{display:none!important}
@@ -1034,7 +1039,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
 <script src="./chat-test-gpt-2-diag.js?v=9"></script>
 <script src="./joaninha-list-manager.js?v=140"></script>
 <script src="./joaninha-work-config.js?v=90"></script>
-<script src="./joaninha-palavras.js?v=151"></script>
+<script src="./joaninha-palavras.js?v=152"></script>
 <script>
 (function(){
  'use strict';
@@ -1474,7 +1479,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   if(out.some(item=>item===undefined))throw Error('lista preparada incompleta');
   return {ordered:out,reservedPosition:position};
  }
- const GPT_TEST_VERSION=151;
+ const GPT_TEST_VERSION=152;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // The number grid owns its own input state, independent of secret keyboard typing.
  let numberGridVisible=false,gridDigits='',gridGesture=null;

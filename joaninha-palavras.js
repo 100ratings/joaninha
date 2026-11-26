@@ -206,32 +206,95 @@
  }
  function mount({prepared,scroller,target,initialGesture={},openingText=null,allowed=()=>true,pauseMs=PAUSE_MS,onComplete=()=>{},onStateChange=()=>{}}){
   const reuse=!!(initialGesture.gesture&&openingText&&target.contains(openingText));
-  const text=reuse?openingText:document.createElement('div');
+  let text=reuse?openingText:document.createElement('div');
   text.className='words-content';
-  let node=null;
+  let node=null,standby=null,standbyNode=null,standbyValue=null;
   function render(value){
    if(node)node.data=value;
    else{node=document.createTextNode(value);text.replaceChildren(node);}
   }
   if(!reuse){render(prepared.original);target.replaceChildren(text);}
   const machine=sequence(prepared.phases.length);
-  let disposed=false,timer=null,lastTop=scroller.scrollTop;
+  let disposed=false,timer=null,stageTimer=null,cleanupTimer=null,motionFrame=null,lastTop=scroller.scrollTop;
   let contact=!!initialGesture.contact,scrollUntil=initialGesture.gesture?performance.now()+1600:0,
    hasMoved=!!initialGesture.moved;
   const stopTimer=()=>{if(timer!==null)clearTimeout(timer);timer=null;};
+  const stopStage=()=>{if(stageTimer!==null)clearTimeout(stageTimer);stageTimer=null;};
+  const stopCleanup=()=>{if(cleanupTimer!==null)clearTimeout(cleanupTimer);cleanupTimer=null;};
+  const stopMotionFrame=()=>{
+   if(motionFrame!==null&&typeof cancelAnimationFrame==='function')cancelAnimationFrame(motionFrame);
+   motionFrame=null;
+  };
   const permitted=()=>!disposed&&allowed()&&target.contains(text);
+  const nextValue=()=>prepared.phases[machine.index+1]??prepared.clean;
+  function removeStandby(){
+   if(standby&&target.contains(standby))target.removeChild(standby);
+   standby=null;standbyNode=null;standbyValue=null;
+   target.classList?.remove('words-double-buffer');
+  }
+  function stage(value){
+   if(!permitted()||contact||standbyValue===value||!target.classList||
+      typeof text.getBoundingClientRect!=='function')return;
+   // The only expensive text/layout update happens while stopped, not during
+   // the swipe. The two layers occupy exactly the same grid cell.
+   if(!node)render(prepared.original);
+   try{
+    if(!standby){
+     standby=document.createElement('div');
+     standby.className='words-buffer';
+     standby.setAttribute('aria-hidden','true');
+     standbyNode=document.createTextNode(value);
+     standby.appendChild(standbyNode);
+     target.classList.add('words-double-buffer');
+     target.appendChild(standby);
+    }else standbyNode.data=value;
+    // Flush layout for both layers now, keeping the existing scroll offset.
+    const height=text.getBoundingClientRect().height;
+    const nextHeight=standby.getBoundingClientRect().height;
+    if(height<=0||Math.abs(height-nextHeight)>1){removeStandby();return;}
+    standbyValue=value;
+   }catch(error){removeStandby();}
+  }
+  function promote(value){
+   if(standby&&standbyValue===value&&target.contains(standby)){
+    // No text mutation, reparenting, animation, or scroll-position write on
+    // the switching frame. Keep the former layer attached for touchend.
+    text.className='words-buffer';text.setAttribute('aria-hidden','true');
+    standby.className='words-content';standby.removeAttribute('aria-hidden');
+    const priorText=text,priorNode=node;
+    text=standby;node=standbyNode;
+    standby=priorText;standbyNode=priorNode;standbyValue=null;
+   }else{
+    // If layout could not be prepared, retain the proven V151 behavior.
+    render(value);
+   }
+  }
+  function cleanupWhenQuiet(){
+   stopCleanup();
+   if(contact||machine.state!=='complete'||!standby)return;
+   cleanupTimer=setTimeout(()=>{
+    cleanupTimer=null;
+    if(!disposed&&!contact&&machine.state==='complete')removeStandby();
+   },180);
+  }
   const snooze=()=>{
-   stopTimer();
+   stopTimer();stopStage();
    if(!prepared.phases.length||!['preview','running'].includes(machine.state)||contact||!hasMoved)return;
+   // Build the next layer early in the existing three-second pause.
+   if(standbyValue!==nextValue())stageTimer=setTimeout(()=>{
+    stageTimer=null;
+    if(permitted()&&!contact&&['preview','running'].includes(machine.state))stage(nextValue());
+   },Math.min(160,Math.max(0,pauseMs-1)));
    timer=setTimeout(()=>{
     timer=null;
     if(!permitted()||contact)return;
     // The first qualified pause arms the effect without changing any words.
     const changed=machine.state==='preview'?machine.arm():machine.pause();
     if(changed){
-     hasMoved=false;scrollUntil=0;
+     hasMoved=false;scrollUntil=0;stopStage();
      // Consolidate the opening only when the first gesture has ended.
      if(machine.state==='armed'&&!node)render(prepared.original);
+     if(standbyValue!==nextValue())stage(nextValue());
      onStateChange(machine.state,machine.state==='ready'&&machine.index===prepared.phases.length-1);
     }
    },pauseMs);
@@ -239,34 +302,48 @@
   function onScroll(){
    const top=scroller.scrollTop,delta=Math.abs(top-lastTop);lastTop=top;
    if(!permitted()||delta<0.5||(!contact&&performance.now()>=scrollUntil))return;
-   if(!prepared.phases.length||machine.state==='complete')return;
+   if(!prepared.phases.length)return;
+   if(machine.state==='complete'){cleanupWhenQuiet();return;}
    scrollUntil=performance.now()+1600;
    hasMoved=true;
    const result=machine.moved();
    if(result.changed){
-    // One text-node write; same line count and line height, no scroll reset,
-    // animation, rebuild or visible change while sitting still.
-    render(result.complete?prepared.clean:prepared.phases[result.index]);
+    promote(result.complete?prepared.clean:prepared.phases[result.index]);
     onStateChange(machine.state);
    }
-   if(result.complete){stopTimer();onComplete();return;}
+   if(result.complete){stopTimer();stopStage();cleanupWhenQuiet();onComplete();return;}
    snooze();
   }
   function onTouchStart(e){
    if(!permitted()||e.touches.length!==1)return;
-   contact=true;scrollUntil=performance.now()+1600;stopTimer();
+   contact=true;scrollUntil=performance.now()+1600;stopTimer();stopStage();stopCleanup();
+  }
+  function onTouchMove(e){
+   if(!permitted()||!contact||e.touches.length!==1||
+      !['armed','ready'].includes(machine.state))return;
+   // On iOS the native scroll may already have advanced before its scroll
+   // event is dispatched. Observe real displacement, never predict a swipe.
+   onScroll();
+   if(['armed','ready'].includes(machine.state)&&motionFrame===null&&typeof requestAnimationFrame==='function'){
+    motionFrame=requestAnimationFrame(()=>{
+     motionFrame=null;
+     if(contact&&permitted()&&['armed','ready'].includes(machine.state))onScroll();
+    });
+   }
   }
   function onTouchEnd(e){
    if(e.touches.length)return;
-   contact=false;scrollUntil=performance.now()+1600;snooze();
+   stopMotionFrame();
+   if(contact&&['armed','ready'].includes(machine.state))onScroll();
+   contact=false;scrollUntil=performance.now()+1600;snooze();cleanupWhenQuiet();
   }
   function onWheel(){
-   if(permitted())scrollUntil=performance.now()+1600;
+   if(permitted()){scrollUntil=performance.now()+1600;stopCleanup();}
   }
   const bindings=[
    [scroller,'scroll',onScroll], [scroller,'touchstart',onTouchStart],
-   [scroller,'touchend',onTouchEnd], [scroller,'touchcancel',onTouchEnd],
-   [scroller,'wheel',onWheel]
+   [scroller,'touchmove',onTouchMove], [scroller,'touchend',onTouchEnd],
+   [scroller,'touchcancel',onTouchEnd], [scroller,'wheel',onWheel]
   ];
   bindings.forEach(([el,type,handler])=>el.addEventListener(type,handler,{passive:true}));
   onStateChange(machine.state);
@@ -276,9 +353,10 @@
    get state(){return machine.state;},
    dispose(clean=true){
     if(disposed)return;
-    disposed=true;stopTimer();
+    disposed=true;stopTimer();stopStage();stopCleanup();stopMotionFrame();
     bindings.forEach(([el,type,handler])=>el.removeEventListener(type,handler));
     if(clean&&target.contains(text)&&machine.state!=='complete')render(prepared.original);
+    removeStandby();
     onStateChange('preview');
    }
   };
