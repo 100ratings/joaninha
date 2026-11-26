@@ -23,10 +23,9 @@ seus códigos de posição.
    A próxima rolagem efetiva ativa a primeira letra. Todas as palavras
    da lista passam a conter essa letra na posição solicitada.
 7. Uma pausa de três segundos torna a próxima fase disponível, sem mudar
-   o indicador. A lista só muda na rolagem seguinte, em qualquer direção.
-   O primeiro pontinho permanece invisível durante todo o efeito (V146).
-   A última pausa seguida de nova rolagem devolve uma lista aleatória normal
-   e restaura os três pontinhos.
+   o indicador entre letras. Quando termina a pausa da última letra,
+   os três pontinhos reaparecem (V147), mas a lista ainda não muda.
+   Só a próxima rolagem, em qualquer direção, devolve a lista aleatória normal.
 
 A fase mantém a mesma quantidade de linhas e a mesma altura. Uma troca
 muito lenta ou curta pode ser perceptível, por isso é necessário testar

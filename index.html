@@ -203,7 +203,7 @@ border-radius:10px;background:rgba(29,29,32,.84);color:#a9a9af;font-size:10.5px}
 .words-content{font-size:var(--answer-font,17.2px);line-height:calc(var(--answer-font,17.2px)*1.24 + var(--list-item-spacing,0px));letter-spacing:-.17px;white-space:pre;overflow:hidden;overflow-anchor:none}
 #wordListArmZone{position:absolute;left:50%;transform:translateX(-50%);top:0;width:min(112px,28%);height:44px;touch-action:manipulation;background:transparent;pointer-events:auto}
 #wordListArmZone[hidden]{display:none!important}
-/* V146: one hidden dot throughout the entire active effect. */
+/* V147: restore the third dot when the final pause is complete. */
 #more[data-word-list-state="force"] circle:first-child{visibility:hidden}
 #app.word-list-mode #numberGridOverlay{display:none!important}
 #actions,.archived-actions{display:none;align-items:center;gap:13px;margin-top:12px;padding-bottom:8px}
@@ -1037,7 +1037,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
 <script src="./chat-test-gpt-2-diag.js?v=9"></script>
 <script src="./joaninha-list-manager.js?v=140"></script>
 <script src="./joaninha-work-config.js?v=90"></script>
-<script src="./joaninha-palavras.js?v=145"></script>
+<script src="./joaninha-palavras.js?v=147"></script>
 <script>
 (function(){
  'use strict';
@@ -1477,7 +1477,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   if(out.some(item=>item===undefined))throw Error('lista preparada incompleta');
   return {ordered:out,reservedPosition:position};
  }
- const GPT_TEST_VERSION=146;
+ const GPT_TEST_VERSION=147;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // The number grid owns its own input state, independent of secret keyboard typing.
  let numberGridVisible=false,gridDigits='',gridGesture=null;
@@ -1642,9 +1642,9 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
  }
  // Cancel only superseded requests, never alter an active keyboard
  let replyToken=0,activeGridList=null,activeWordList=null,openingWordList=null,wordCorpusPromise=null;
- function setWordListIndicator(state){
+ function setWordListIndicator(state,readyForRandom=false){
   const more=$('more');
-  if(state==='armed'||state==='running'||state==='ready'){
+  if(state==='armed'||state==='running'||(state==='ready'&&!readyForRandom)){
    if(more.dataset.wordListState!=='force')more.dataset.wordListState='force';
   }else delete more.dataset.wordListState;
  }

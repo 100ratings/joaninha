@@ -77,8 +77,10 @@ test('mount: real gestures, both directions, stationary pause, no automatic chan
     const scroller=new Element(),target=new Element(),armZone=new Element();
     const prepared={original:'random',phases:['phase a','phase b'],clean:'finished'};
     let completes=0;
-    const states=[];
-    const mounted=W.mount({prepared,scroller,target,armZone,onComplete:()=>completes++,onStateChange:state=>states.push(state)});
+    const states=[],readyForRandom=[];
+    const mounted=W.mount({prepared,scroller,target,armZone,onComplete:()=>completes++,onStateChange:(state,finalPause)=>{
+      states.push(state);if(state==='ready')readyForRandom.push(finalPause);
+    }});
     const text=()=>target.children[0].children[0].data;
     const scroll=delta=>{scroller.scrollTop+=delta;scroller.emit('scroll');};
     const wheel=delta=>{scroller.emit('wheel');scroll(delta);};
@@ -92,11 +94,11 @@ test('mount: real gestures, both directions, stationary pause, no automatic chan
     assert.equal(text(),'phase a');assert.equal(states.at(-1),'running');
     tick(5000);assert.equal(mounted.state,'running'); // finger still down
     scroller.emit('touchend',{touches:[]});tick(2999);assert.equal(mounted.state,'running');
-    tick(1);assert.equal(mounted.state,'ready');assert.equal(text(),'phase a');assert.equal(states.at(-1),'ready');
+    tick(1);assert.equal(mounted.state,'ready');assert.equal(text(),'phase a');assert.equal(states.at(-1),'ready');assert.deepEqual(readyForRandom,[false]);
     tick(1000);scroll(10);assert.equal(text(),'phase a'); // no actual new gesture
     wheel(-1);assert.equal(text(),'phase b');assert.equal(mounted.state,'running');assert.equal(states.at(-1),'running');
     tick(1000);wheel(10);tick(2999);assert.equal(mounted.state,'running');
-    tick(1);assert.equal(mounted.state,'ready');assert.equal(text(),'phase b');
+    tick(1);assert.equal(mounted.state,'ready');assert.equal(text(),'phase b');assert.deepEqual(readyForRandom,[false,true]);
     wheel(1);assert.equal(text(),'finished');assert.equal(completes,1);
     assert.deepEqual(states,['preview','armed','running','ready','running','ready','complete']);
     tick(5000);wheel(-10);assert.equal(text(),'finished');assert.equal(completes,1);

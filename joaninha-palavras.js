@@ -165,7 +165,8 @@
    if(machine.state!=='running'||contact||!hasMoved)return;
    timer=setTimeout(()=>{
     timer=null;
-    if(permitted()&&!contact&&machine.pause())onStateChange(machine.state);
+    if(permitted()&&!contact&&machine.pause())
+     onStateChange(machine.state,machine.index===prepared.phases.length-1);
    },pauseMs);
   };
   function onScroll(){
