@@ -19,11 +19,11 @@ seus códigos de posição.
 6. O primeiro pontinho do menu fica invisível para confirmar a ativação (V143).
    A próxima rolagem efetiva ativa a primeira letra. Todas as palavras
    da lista passam a conter essa letra na posição solicitada.
-7. Uma pausa de três segundos torna a próxima fase disponível e esconde
-   o segundo pontinho. A lista
+7. Uma pausa de três segundos torna a próxima fase disponível: o primeiro
+   pontinho reaparece e o terceiro fica invisível (V144). A lista
    só muda na rolagem seguinte, em qualquer direção. A última pausa
    seguida de nova rolagem devolve uma lista aleatória normal. A cada
-   troca o indicador retorna a dois pontinhos, e no fim, a três.
+   troca o primeiro pontinho fica invisível novamente; no fim, os três aparecem.
 
 A fase mantém a mesma quantidade de linhas e a mesma altura. Uma troca
 muito lenta ou curta pode ser perceptível, por isso é necessário testar
