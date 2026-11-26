@@ -14,7 +14,7 @@ seus códigos de posição.
    com a lista inteira pronta antes da animação; qualquer rolagem revela
    de imediato todas as linhas restantes.
 2. Para o modo especial, informar a palavra no input manual já existente
-   (três toques rápidos em Work) ou via Inject 5156. O manual tem prioridade.
+   (dois toques rápidos em Work) ou via Inject 5156. O manual tem prioridade.
 3. Usar o teclado secreto já existente, com 01 para a primeira letra,
    02 para a segunda, 03 para a terceira e assim por diante.
 4. Enviar o pedido de palavras aleatórias. A lista inicial não tem filtro de letra.
