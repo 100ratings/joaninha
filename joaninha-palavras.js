@@ -93,6 +93,62 @@
    get index(){return index;}
   };
  }
+ // The full list is already in the DOM when the first line appears.
+ // Only a short opening section is concealed; a real scroll reveals everything.
+ function reveal({prepared,scroller,target,prefixCount=null,onFinish=()=>{}}){
+  const text=document.createElement('div');
+  text.className='words-content';
+  target.replaceChildren(text);
+  const lines=prepared.original.split('\n');
+  if(prefixCount===null){
+   const height=Number.parseFloat(getComputedStyle(text).lineHeight)||24;
+   const available=scroller.getBoundingClientRect().bottom-text.getBoundingClientRect().top;
+   prefixCount=Math.max(1,Math.min(64,Math.ceil(available/height)+2));
+  }
+  const count=Math.min(lines.length,Math.max(1,prefixCount));
+  const opening=[];
+  for(let i=0;i<count;i++){
+   const span=document.createElement('span');
+   span.className='words-opening-line';
+   span.style.visibility='hidden';
+   span.appendChild(document.createTextNode(lines[i]+(i<lines.length-1?'\n':'')));
+   text.appendChild(span);opening.push(span);
+  }
+  if(count<lines.length)text.appendChild(document.createTextNode(lines.slice(count).join('\n')));
+  let done=false,timer=null,index=0,touch=null,lastTop=scroller.scrollTop;
+  function close(notify){
+   if(done)return;
+   done=true;
+   if(timer!==null)clearTimeout(timer);
+   bindings.forEach(([type,handler])=>scroller.removeEventListener(type,handler));
+   if(target.contains(text)){
+    text.replaceChildren(document.createTextNode(prepared.original));
+    if(notify)onFinish();
+   }
+  }
+  function emit(){
+   if(done||!target.contains(text)){close(false);return;}
+   opening[index++].style.visibility='visible';
+   if(index===count){close(true);return;}
+   timer=setTimeout(emit,76+(index%7===0?90:0));
+  }
+  function onScroll(){
+   const top=scroller.scrollTop;
+   if(Math.abs(top-lastTop)>.5)close(true);
+   lastTop=top;
+  }
+  function onStart(e){touch=e.touches.length===1?e.touches[0].clientY:null;}
+  function onMove(e){
+   if(touch!==null&&e.touches.length===1&&Math.abs(e.touches[0].clientY-touch)>6)close(true);
+  }
+  function onEnd(){touch=null;}
+  function onWheel(e){if(e.deltaY!==0)close(true);}
+  const bindings=[['scroll',onScroll],['touchstart',onStart],['touchmove',onMove],
+   ['touchend',onEnd],['touchcancel',onEnd],['wheel',onWheel]];
+  bindings.forEach(([type,handler])=>scroller.addEventListener(type,handler,{passive:true}));
+  timer=setTimeout(emit,250);
+  return {dispose(){close(false);}};
+ }
  function mount({prepared,scroller,target,armZone,allowed=()=>true,pauseMs=PAUSE_MS,onComplete=()=>{},onStateChange=()=>{}}){
   const text=document.createElement('div');
   text.className='words-content';
@@ -180,7 +236,7 @@
    }
   };
  }
- const api={COUNT,PAUSE_MS,MIN_POOL,MAX_POSITION,cleanWords,secretLetters,parseQuantity,matches,draw,display,prepare,sequence,mount};
+ const api={COUNT,PAUSE_MS,MIN_POOL,MAX_POSITION,cleanWords,secretLetters,parseQuantity,matches,draw,display,prepare,sequence,reveal,mount};
  if(typeof module==='object'&&module.exports)module.exports=api;
  if(root)root.JoaninhaWords=api;
 })(typeof window==='object'?window:null);

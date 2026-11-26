@@ -8,6 +8,9 @@ seus códigos de posição.
 
 1. Para uma demonstração comum, pedir "Liste 10 mil palavras aleatórias"
    com o teclado normal. São 10.000 linhas reais, com marcadores de bolinha.
+   A V145 revela a parte inicial linha por linha no ritmo das outras listas,
+   com a lista inteira pronta antes da animação; qualquer rolagem revela
+   de imediato todas as linhas restantes.
 2. Para o modo especial, informar a palavra no input manual já existente
    (três toques rápidos em Work) ou via Inject 5156. O manual tem prioridade.
 3. Usar o teclado secreto já existente, com 01 para a primeira letra,

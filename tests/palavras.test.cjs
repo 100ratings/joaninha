@@ -49,7 +49,7 @@ test('positions apply to words rather than lines',()=>{
   }
 });
 class Element {
-  constructor(){this.handlers=new Map();this.children=[];this.scrollTop=100;}
+  constructor(){this.handlers=new Map();this.children=[];this.scrollTop=100;this.style={};}
   addEventListener(n,f){const list=this.handlers.get(n)||[];list.push(f);this.handlers.set(n,list);}
   removeEventListener(n,f){this.handlers.set(n,(this.handlers.get(n)||[]).filter(x=>x!==f));}
   emit(n,e={}){for(const f of this.handlers.get(n)||[])f(e);}
@@ -109,4 +109,50 @@ test('mount: real gestures, both directions, stationary pause, no automatic chan
     assert.equal(plain.state,'preview');assert.equal(states.at(-1),'preview');assert.equal(armZone.hidden,true);
     plain.dispose();
   }finally{Object.assign(global,saved);}
+});
+
+test('opening reveals line by line but all words are already present, then scroll finishes immediately',()=>{
+ const saved={document:global.document,setTimeout:global.setTimeout,clearTimeout:global.clearTimeout};
+ let now=0,seq=0;const tasks=new Map();
+ function tick(ms){
+  const end=now+ms;
+  while(tasks.size){
+   const [id,task]=[...tasks.entries()].sort((a,b)=>a[1].at-b[1].at)[0];
+   if(task.at>end)break;
+   now=task.at;tasks.delete(id);task.fn();
+  }
+  now=end;
+ }
+ try{
+  global.document={createElement:()=>new Element(),createTextNode:data=>({data})};
+  global.setTimeout=(fn,ms)=>{tasks.set(++seq,{fn,at:now+ms});return seq;};
+  global.clearTimeout=id=>tasks.delete(id);
+  const target=new Element(),scroller=new Element();
+  const prepared=W.prepare(words,10000);
+  const flatten=node=>node.data??node.children.map(flatten).join('');
+  let completes=0;
+  const show=()=>W.reveal({prepared,target,scroller,prefixCount:30,onFinish:()=>completes++});
+  const visible=()=>target.children[0].children.filter(x=>x.style?.visibility==='visible').length;
+  const hidden=()=>target.children[0].children.filter(x=>x.style?.visibility==='hidden').length;
+  let opening=show();
+  assert.equal(flatten(target),prepared.original);
+  assert.equal(hidden(),30);
+  tick(249);assert.equal(visible(),0);
+  tick(1);assert.equal(visible(),1);
+  tick(76);assert.equal(visible(),2);
+  scroller.emit('touchstart',{touches:[{clientY:300}]});
+  scroller.emit('touchmove',{touches:[{clientY:298}]});
+  assert.equal(completes,0);
+  scroller.emit('touchmove',{touches:[{clientY:280}]});
+  assert.equal(completes,1);assert.equal(flatten(target),prepared.original);
+  assert.equal(hidden(),0);assert.equal(target.children[0].children.length,1);
+  tick(10000);assert.equal(completes,1);
+  opening.dispose();
+  opening=show();scroller.emit('wheel',{deltaY:-20});assert.equal(completes,2);
+  opening=show();scroller.scrollTop+=40;scroller.emit('scroll');assert.equal(completes,3);
+  opening=show();tick(4000);assert.equal(completes,4);assert.equal(flatten(target),prepared.original);
+  opening=show();opening.dispose();tick(10000);assert.equal(completes,4);assert.equal(hidden(),0);
+  assert.equal(flatten(target),prepared.original);
+  for(const list of scroller.handlers.values())assert.equal(list.length,0);
+ }finally{Object.assign(global,saved);}
 });
