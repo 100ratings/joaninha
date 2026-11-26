@@ -4,9 +4,42 @@
  const COUNT=10000, PAUSE_MS=3000, MIN_POOL=40, MAX_POSITION=9, MAX_SECRET=32;
  const normalize=value=>String(value).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
  const wordPattern=/^[a-zàáâãéêíóôõúüç]{3,16}$/u;
- const cleanWords=raw=>Array.from(new Map(String(raw).split(/\r?\n/)
-  .map(s=>s.trim().normalize('NFC').toLowerCase()).filter(s=>wordPattern.test(s))
-  .map(s=>[normalize(s),s])).values());
+ // Optional V151 pool/family metadata is packaged with the same vocabulary.
+ // Old plain corpora remain valid; old app versions ignore metadata rows.
+ const curated=new WeakMap();
+ function cleanWords(raw){
+  const rows=String(raw).split(/\r?\n/);
+  const words=Array.from(new Map(rows
+   .map(s=>s.trim().normalize('NFC').toLowerCase()).filter(s=>wordPattern.test(s))
+   .map(s=>[normalize(s),s])).values());
+  const pools=new Map(),families=new Map();
+  function decode(encoded){
+   if(!encoded||encoded.length%3||!/^[0-9a-z]+$/.test(encoded))return null;
+   const found=[];
+   for(let i=0;i<encoded.length;i+=3){
+    const word=words[parseInt(encoded.slice(i,i+3),36)];
+    if(word===undefined)return null;
+    found.push(word);
+   }
+   return new Set(found).size===found.length?found:null;
+  }
+  for(const row of rows){
+   if(row.startsWith('#pool ')){
+    const match=row.match(/^#pool (g[0-9]|[1-9][a-z]) ([0-9a-z]+)$/);
+    if(!match)continue;
+    const key=match[1],pool=decode(match[2]);
+    const ordinary=key[0]==='g',position=Number(key[ordinary?1:0]);
+    const minLength=Math.max(3,position);
+    if(!pool||pool.length<MIN_POOL||!pool.every(w=>w.length>=minLength&&(ordinary||w[position-1]===key[1])))continue;
+    pools.set(key,pool);
+   }else if(row.startsWith('#family ')){
+    const group=decode(row.slice(8));
+    if(group&&group.length>1)for(const word of group)families.set(word,group[0]);
+   }
+  }
+  if(pools.size)curated.set(words,{pools,families});
+  return words;
+ }
  function secretLetters(input){
   const value=normalize(String(input).trim()).replace(/[\s-]+/g,'');
   if(!/^[a-z]+$/.test(value)||value.length>MAX_SECRET)throw Error('Palavra secreta inválida');
@@ -19,20 +52,29 @@
   }
   return out;
  }
- function draw(pool,count,random=Math.random){
+ function draw(pool,count,random=Math.random,families=null){
   if(pool.length<MIN_POOL)throw Error('Vocabulário insuficiente para esta posição');
-  const out=[],lastSeen=new Map(),gap=Math.min(32,Math.floor(pool.length/2));
+  const out=[],lastSeen=new Map(),lastFamily=new Map(),gap=Math.min(32,Math.floor(pool.length/2));
+  const familyOf=w=>families?.get(w)??w;
   let bag=[];
   while(out.length<count){
    if(!bag.length)bag=shuffle(pool,random);
    let at=bag.length-1;
-   if(out.length-(lastSeen.get(bag[at])??-Infinity)<=gap){
-    const safe=bag.findIndex(w=>out.length-(lastSeen.get(w)??-Infinity)>gap);
+   const safeWord=w=>out.length-(lastSeen.get(w)??-Infinity)>gap;
+   const safeFamily=w=>!families||out.length-(lastFamily.get(familyOf(w))??-Infinity)>3;
+   if(!safeWord(bag[at])||!safeFamily(bag[at])){
+    const safe=bag.findIndex(w=>safeWord(w)&&safeFamily(w));
     if(safe>=0)at=safe;
+    else if(!safeWord(bag[at])){
+     const exact=bag.findIndex(safeWord);
+     if(exact>=0)at=exact;
+    }
    }
    const word=bag[at];
    bag[at]=bag[bag.length-1];bag.pop();
-   lastSeen.set(word,out.length);out.push(word);
+   lastSeen.set(word,out.length);
+   if(families)lastFamily.set(familyOf(word),out.length);
+   out.push(word);
   }
   return out;
  }
@@ -67,8 +109,9 @@
    throw Error('Posição de letra inválida');
   const minLength=secret===null?3:Math.max(3,position);
   // Keep the preview and restoration naturally suited to the chosen position.
-  const general=preferredPool(words,minLength,120,4000);
-  const original=display(draw(general,quantity,random));
+  const metadata=curated.get(words);
+  const general=metadata?.pools.get('g'+(secret===null?0:position))??preferredPool(words,minLength,120,4000);
+  const original=display(draw(general,quantity,random,metadata?.families));
   if(secret===null)return {original,phases:[],clean:original,quantity};
   const letters=secretLetters(secret);
   const pools=new Map();
@@ -76,12 +119,12 @@
    // Use unaccented target letters so the revealed spelling is unambiguous.
    // Accents elsewhere in each displayed word are preserved.
    const all=words.filter(w=>w[position-1]===letter);
-   const pool=preferredPool(all,minLength,120,480);
+   const pool=metadata?.pools.get(String(position)+letter)??preferredPool(all,minLength,120,480);
    if(pool.length<MIN_POOL)throw Error('Vocabulário insuficiente para esta posição');
    pools.set(letter,pool);
   }
-  const phases=letters.map(letter=>display(draw(pools.get(letter),quantity,random)));
-  return {original,phases,clean:display(draw(general,quantity,random)),quantity};
+  const phases=letters.map(letter=>display(draw(pools.get(letter),quantity,random,metadata?.families)));
+  return {original,phases,clean:display(draw(general,quantity,random,metadata?.families)),quantity};
  }
  // Logic shared by browser and deterministic tests. Waiting does not alter text:
  // only a new movement after a qualified stop advances the whole list.

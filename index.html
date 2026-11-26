@@ -1034,7 +1034,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
 <script src="./chat-test-gpt-2-diag.js?v=9"></script>
 <script src="./joaninha-list-manager.js?v=140"></script>
 <script src="./joaninha-work-config.js?v=90"></script>
-<script src="./joaninha-palavras.js?v=149"></script>
+<script src="./joaninha-palavras.js?v=151"></script>
 <script>
 (function(){
  'use strict';
@@ -1474,7 +1474,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   if(out.some(item=>item===undefined))throw Error('lista preparada incompleta');
   return {ordered:out,reservedPosition:position};
  }
- const GPT_TEST_VERSION=150;
+ const GPT_TEST_VERSION=151;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // The number grid owns its own input state, independent of secret keyboard typing.
  let numberGridVisible=false,gridDigits='',gridGesture=null;
@@ -1656,7 +1656,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
    wordCorpusPromise=(async()=>{
     if(navigator.onLine===false&&!navigator.serviceWorker?.controller)
      throw Error('Vocabulário offline indisponível');
-    const response=await fetch('./joaninha-palavras-ptbr.txt?v=149');
+    const response=await fetch('./joaninha-palavras-ptbr.txt?v=151');
     if(!response.ok)throw Error('Vocabulário indisponível');
     return JoaninhaWords.cleanWords(await response.text());
    })().catch(error=>{wordCorpusPromise=null;throw error;});

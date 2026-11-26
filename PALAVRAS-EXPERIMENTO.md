@@ -1,14 +1,14 @@
-# Joaninha V149: palavras aleatórias
+# Joaninha V151: palavras aleatórias
 
-A versão mantém o funcionamento da V148, preservada na branch
-`backup-v148-antes-curadoria-palavras`. O experimento não modifica os TXT existentes,
+A versão mantém os gestos e os inputs da V150, preservada na branch
+`backup-v150-antes-curadoria-avancada`. O experimento não modifica os TXT existentes,
 as categorias anteriores, o formato das listas numeradas anteriores nem
 seus códigos de posição.
 
 ## Uso
 
 1. Para uma demonstração comum, pedir "Liste 10 mil palavras aleatórias"
-   com o teclado normal. São 10.000 linhas reais, com marcadores de bolinha. A V149 prioriza
+   com o teclado normal. São 10.000 linhas reais, com marcadores de bolinha. A V151 prioriza
    palavras familiares de três a seis letras.
    A V145 revela a parte inicial linha por linha no ritmo das outras listas,
    com a lista inteira pronta antes da animação; qualquer rolagem revela
@@ -42,13 +42,19 @@ são 01 a 09, desde que o corpus contenha ao menos 40 palavras para cada
 combinação. Acentos, espaços e hífens da palavra secreta são normalizados.
 Combinações pouco frequentes podem ser recusadas; não há substituição
 silenciosa por letras erradas ou palavras fabricadas. A lista normal e a lista filtrada repetem palavras, com espaçamento
-entre repetições. A V149 ordena o corpus pela familiaridade e prioriza
-palavras de três a seis letras, sempre com comprimento suficiente para a
-posição escolhida. A seleção de cada letra utiliza até 480 palavras curtas;
-se houver menos de 120, completa a seleção com palavras progressivamente
-mais longas apenas quando disponíveis e necessárias para variedade. As
-posições 07 a 09 continuam disponíveis, com comprimento correspondente.
-A lista normal utiliza até 4.000 palavras curtas. Uma entrada manual
+entre repetições. A V151 seleciona palavras por familiaridade, comprimento e família
+morfológica. A lista normal tem até 2.600 palavras de três a seis letras,
+uma forma por família na seleção sem posição, com repetições espaçadas.
+A seleção das fases leva em conta as famílias de palavras: até 360
+formas curtas; quando houver poucas, acrescenta palavras mais longas
+progressivamente para chegar a 120 alternativas quando possível.
+Quando necessário, formas da mesma família são usadas, mas o sorteio
+tenta mantê-las afastadas sem violar a regra de repetição exata. As 188
+combinações da V150 continuam disponíveis, com a inclusão de X na
+primeira posição. As posições 07 a 09 continuam disponíveis.
+Não há novas dependências nem chamadas de rede: os índices das seleções
+e famílias ficam no final do próprio TXT como metadados opcionais,
+compatíveis com a leitura antiga. Uma entrada manual
 inválida não é consumida. O histórico registra a lista aleatória inicial,
 não as fases secretas.
 

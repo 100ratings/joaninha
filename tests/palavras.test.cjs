@@ -11,8 +11,8 @@ const validList = text=>{
 };
 test('corpus, supported requests and disjoint categories',()=>{
   assert.ok(words.length>=24000);
-  for(const word of ['chi','xi','homen','patrícia'])assert.ok(!words.includes(word));
-  for(const word of ['céu','soldado','casa'])assert.ok(words.includes(word));
+  for(const word of ['chi','xi','homen','patrícia','fode','pornôs','merdas','sector','cocô'])assert.ok(!words.includes(word));
+  for(const word of ['céu','soldado','casa','lua','flor','rosa','caju','pera','coco'])assert.ok(words.includes(word));
   for(const request of ['liste 10 mil palavras aleatorias','liste dez mil palavras','liste 10000 palavras aleatorias','liste 10.000 palavras']) {
     assert.equal(W.matches(request),true);
     assert.equal(W.parseQuantity(request),10000);
@@ -24,7 +24,7 @@ test('corpus, supported requests and disjoint categories',()=>{
 test('ten thousand real rows in every phase, correct letter even for repeats',()=>{
   const prepared=W.prepare(words,10000,'EDEN',3);
   validList(prepared.original);validList(prepared.clean);
-  assert.equal(new Set(lines(prepared.original)).size,4000);
+  assert.equal(new Set(lines(prepared.original)).size,2600);
   for(const text of [prepared.original,prepared.clean]) assert.ok(lines(text).every(row=>extract(row).length<=6));
   assert.equal(prepared.phases.length,4);
   for(const [i,phase] of prepared.phases.entries()){
@@ -62,6 +62,55 @@ test('longer fallback is only needed for rare position-letter combinations',()=>
   assert.ok(forced.filter(w=>w.length===7).length>forced.length/2);
   const ordinary=W.prepare(words,10000);
   assert.ok(lines(ordinary.original).every(row=>extract(row).length>=3&&extract(row).length<=6));
+});
+
+test('V151 curated pools preserve every previously supported combination and add X at position 1',()=>{
+  // Snapshot of all 188 combinations supported by V150, independent of V151 data.
+  const coverage=['abcdefghijlmnopqrstuvz', 'abcdefghijlmnopqrstuvx', 'abcdefghijlmnopqrstuvxz', 'abcdefghijlmnopqrstuvxz', 'abcdefghijlmnopqrstuvxz', 'abcdefghijlmnopqrstuvz', 'abcdefghilmnoprstuvz', 'acdeghilmnorstuvz', 'acdeghilmnorstuv'];
+  coverage[0]+='x';
+  let checked=0;
+  const raw=fs.readFileSync(require('node:path').join(__dirname,'../joaninha-palavras-ptbr.txt'),'utf8');
+  const keys=new Set(raw.split('\n').filter(l=>l.startsWith('#pool ')).map(l=>l.split(' ')[1]));
+  const seeded=seed=>()=>{seed=(1664525*seed+1013904223)>>>0;return seed/4294967296;};
+  for(let p=1;p<=9;p++)for(const c of coverage[p-1]){
+    assert.ok(keys.has(String(p)+c));
+    const {phases}=W.prepare(words,10000,c,p,seeded(p*97+c.charCodeAt(0)));
+    const rows=lines(phases[0]).map(extract);
+    assert.equal(rows.length,10000);
+    assert.ok(rows.every(w=>w[p-1]===c));
+    const n=new Set(rows).size;
+    assert.ok(n>=40);
+    const last=new Map(),gap=Math.min(32,Math.floor(n/2));
+    for(const [i,w] of rows.entries()){
+      assert.ok(i-(last.get(w)??-Infinity)>gap);
+      last.set(w,i);
+    }
+    checked++;
+  }
+  assert.equal(checked,189);
+  const normal=W.prepare(words,10000,null,null,seeded(1));
+  const emitted=new Set(lines(normal.original).map(extract));
+  for(const w of ['lua','flor','rosa','caju','pera','coco','céu'])assert.ok(emitted.has(w));
+  assert.ok([...emitted].every(w=>w.length>=3&&w.length<=6));
+});
+test('curated metadata is optional and invalid indexes are safely ignored',()=>{
+  const raw=Array.from({length:50},(_,i)=>'a'+String.fromCharCode(97+Math.floor(i/26))+String.fromCharCode(97+i%26)).join('\n');
+  // Synthetic data exercises fallback, not the production vocabulary.
+  const plain=W.cleanWords(raw);
+  const malformed=W.cleanWords(raw+'\n#pool 1a zzzz00\n#pool g0 zzz\n#family zzz000');
+  assert.deepEqual(plain,malformed);
+  assert.equal(lines(W.prepare(malformed,200,'a',1).phases[0]).length,200);
+});
+test('morphological relatives are spaced when an equally safe candidate is available',()=>{
+  const pool=Array.from({length:48},(_,i)=>'word'+i);
+  const families=new Map(pool.map((w,i)=>[w,'family'+Math.floor(i/4)]));
+  let seed=123,random=()=>{seed=(1664525*seed+1013904223)>>>0;return seed/4294967296;};
+  const ordinary=W.draw(pool,3000,random);
+  seed=123;
+  const curated=W.draw(pool,3000,random,families);
+  let close=rows=>rows.reduce((total,w,i)=>total+(rows.slice(Math.max(0,i-3),i).some(v=>families.get(v)===families.get(w))?1:0),0);
+  assert.ok(close(curated)<close(ordinary)/3);
+  assert.equal(new Set(curated).size,48);
 });
 class Element {
   constructor(){this.handlers=new Map();this.children=[];this.scrollTop=100;this.style={};}
