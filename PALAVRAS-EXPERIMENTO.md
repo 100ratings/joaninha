@@ -16,11 +16,14 @@ seus códigos de posição.
    Rolar livremente para demonstrá-la antes de ativar.
 5. Dar dois toques rápidos no espaço vazio central do cabeçalho, sem
    pressionar os botões. A lista não muda nesse momento.
-6. A próxima rolagem efetiva ativa a primeira letra. Todas as palavras
+6. O primeiro pontinho do menu fica invisível para confirmar a ativação (V143).
+   A próxima rolagem efetiva ativa a primeira letra. Todas as palavras
    da lista passam a conter essa letra na posição solicitada.
-7. Uma pausa de três segundos torna a próxima fase disponível. A lista
+7. Uma pausa de três segundos torna a próxima fase disponível e esconde
+   o segundo pontinho. A lista
    só muda na rolagem seguinte, em qualquer direção. A última pausa
-   seguida de nova rolagem devolve uma lista aleatória normal.
+   seguida de nova rolagem devolve uma lista aleatória normal. A cada
+   troca o indicador retorna a dois pontinhos, e no fim, a três.
 
 A fase mantém a mesma quantidade de linhas e a mesma altura. Uma troca
 muito lenta ou curta pode ser perceptível, por isso é necessário testar

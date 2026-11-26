@@ -93,7 +93,7 @@
    get index(){return index;}
   };
  }
- function mount({prepared,scroller,target,armZone,allowed=()=>true,pauseMs=PAUSE_MS,onComplete=()=>{}}){
+ function mount({prepared,scroller,target,armZone,allowed=()=>true,pauseMs=PAUSE_MS,onComplete=()=>{},onStateChange=()=>{}}){
   const text=document.createElement('div');
   text.className='words-content';
   const node=document.createTextNode(prepared.original);
@@ -109,7 +109,7 @@
    if(machine.state!=='running'||contact||!hasMoved)return;
    timer=setTimeout(()=>{
     timer=null;
-    if(permitted()&&!contact)machine.pause();
+    if(permitted()&&!contact&&machine.pause())onStateChange(machine.state);
    },pauseMs);
   };
   function onScroll(){
@@ -123,6 +123,7 @@
     // One text-node write; same line count and line height, no scroll reset,
     // animation, rebuild or visible change while sitting still.
     node.data=result.complete?prepared.clean:prepared.phases[result.index];
+    onStateChange(machine.state);
    }
    if(result.complete){stopTimer();onComplete();return;}
    snooze();
@@ -153,6 +154,7 @@
     if(machine.arm()){
      armZone.hidden=true;lastTop=scroller.scrollTop;
      contact=false;scrollUntil=0;hasMoved=false;
+     onStateChange(machine.state);
     }
    }else firstTap=now;
   }
@@ -165,6 +167,7 @@
   ];
   bindings.forEach(([el,type,handler])=>el.addEventListener(type,handler,{passive:true}));
   armZone.hidden=!prepared.phases.length;
+  onStateChange(machine.state);
   return {
    get original(){return prepared.original;},
    get state(){return machine.state;},
@@ -173,6 +176,7 @@
     disposed=true;stopTimer();armZone.hidden=true;
     bindings.forEach(([el,type,handler])=>el.removeEventListener(type,handler));
     if(clean&&target.contains(text)&&machine.state!=='complete')node.data=prepared.original;
+    onStateChange('preview');
    }
   };
  }

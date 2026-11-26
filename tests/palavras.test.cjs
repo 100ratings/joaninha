@@ -77,29 +77,36 @@ test('mount: real gestures, both directions, stationary pause, no automatic chan
     const scroller=new Element(),target=new Element(),armZone=new Element();
     const prepared={original:'random',phases:['phase a','phase b'],clean:'finished'};
     let completes=0;
-    const mounted=W.mount({prepared,scroller,target,armZone,onComplete:()=>completes++});
+    const states=[];
+    const mounted=W.mount({prepared,scroller,target,armZone,onComplete:()=>completes++,onStateChange:state=>states.push(state)});
     const text=()=>target.children[0].children[0].data;
     const scroll=delta=>{scroller.scrollTop+=delta;scroller.emit('scroll');};
     const wheel=delta=>{scroller.emit('wheel');scroll(delta);};
     const tap=()=>{const e={isPrimary:true,button:0,pointerId:1,clientX:100,clientY:50};armZone.emit('pointerdown',e);armZone.emit('pointerup',e);};
-    assert.equal(text(),'random');
+    assert.equal(text(),'random');assert.deepEqual(states,['preview']);
     wheel(30);tick(4000);wheel(-10);assert.equal(text(),'random');
     tap();tick(100);tap(); assert.equal(mounted.state,'armed'); assert.equal(armZone.hidden,true);
+    assert.deepEqual(states,['preview','armed']);
     tick(2000);scroll(2);assert.equal(text(),'random');
     scroller.emit('touchstart',{touches:[{}]});scroll(3);
-    assert.equal(text(),'phase a');
+    assert.equal(text(),'phase a');assert.equal(states.at(-1),'running');
     tick(5000);assert.equal(mounted.state,'running'); // finger still down
     scroller.emit('touchend',{touches:[]});tick(2999);assert.equal(mounted.state,'running');
-    tick(1);assert.equal(mounted.state,'ready');assert.equal(text(),'phase a');
+    tick(1);assert.equal(mounted.state,'ready');assert.equal(text(),'phase a');assert.equal(states.at(-1),'ready');
     tick(1000);scroll(10);assert.equal(text(),'phase a'); // no actual new gesture
-    wheel(-1);assert.equal(text(),'phase b');assert.equal(mounted.state,'running');
+    wheel(-1);assert.equal(text(),'phase b');assert.equal(mounted.state,'running');assert.equal(states.at(-1),'running');
     tick(1000);wheel(10);tick(2999);assert.equal(mounted.state,'running');
     tick(1);assert.equal(mounted.state,'ready');assert.equal(text(),'phase b');
     wheel(1);assert.equal(text(),'finished');assert.equal(completes,1);
+    assert.deepEqual(states,['preview','armed','running','ready','running','ready','complete']);
     tick(5000);wheel(-10);assert.equal(text(),'finished');assert.equal(completes,1);
-    mounted.dispose();for(const list of scroller.handlers.values())assert.equal(list.length,0);
-    const other=W.mount({prepared,scroller,target,armZone});
+    mounted.dispose();assert.equal(states.at(-1),'preview');for(const list of scroller.handlers.values())assert.equal(list.length,0);
+    const other=W.mount({prepared,scroller,target,armZone,onStateChange:state=>states.push(state)});
     tap();tick(100);tap();wheel(10);assert.equal(text(),'phase a');
-    other.dispose();assert.equal(text(),'random');
+    other.dispose();assert.equal(text(),'random');assert.equal(states.at(-1),'preview');
+    const plain=W.mount({prepared:{original:'random',phases:[],clean:'random'},scroller,target,armZone,onStateChange:state=>states.push(state)});
+    tap();tick(100);tap();wheel(10);tick(5000);
+    assert.equal(plain.state,'preview');assert.equal(states.at(-1),'preview');assert.equal(armZone.hidden,true);
+    plain.dispose();
   }finally{Object.assign(global,saved);}
 });
