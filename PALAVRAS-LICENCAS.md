@@ -1,6 +1,6 @@
-# Vocabulário de palavras aleatórias (V142)
+# Vocabulário de palavras aleatórias
 
-O arquivo `joaninha-palavras-ptbr.txt` contém 28.000 palavras, derivadas
+O corpus original da V142 continha 28.000 palavras, derivadas
 de [FrequencyWords, Hermit Dave, lista pt_BR de 2018](https://github.com/hermitdave/FrequencyWords/blob/525f9b560de45753a5ea01069454e72e9aa541c6/content/2018/pt_br/pt_br_50k.txt),
 sob a licença [Creative Commons Attribution-ShareAlike 4.0 International](https://creativecommons.org/licenses/by-sa/4.0/).
 A lista derivada é disponibilizada sob essa mesma licença, exclusivamente
@@ -19,3 +19,22 @@ referência não são distribuídos neste repositório. A filtragem não garante
 a ausência de todas as palavras ou expressões potencialmente inadequadas.
 
 O script `scripts/build-palavras.py` descreve a preparação do corpus.
+
+## Curadoria V149
+
+O arquivo atual contém 25.109 palavras, das quais 6.568 têm de três a seis
+letras. A lista anterior foi cruzada com [palavras-ptbr, de Gerson Locci](https://github.com/gelocci/palavras-ptbr/tree/3c6d064999d7b7112d660361d3968a5631341823)
+(CC BY 4.0), que utiliza os corpora por-br_newscrawl_2011_1M e
+por_news_2024_1M da Leipzig Corpora Collection e o dicionário VERO.
+A curadoria considera somente entradas minúsculas classificadas como
+corretas, descarta abreviações, nomes e outros termos indesejados, utiliza
+frequência de ocorrência e consulta o léxico [MorphoBr](https://github.com/LR-POR/MorphoBr/tree/eb6fbe335c2607c708915c25f79383f4fda6b72c)
+(Apache 2.0) para priorizar vocábulos reconhecidos e formas canônicas.
+Foram acrescentadas 18 entradas verificadas por essas referências para
+preservar as combinações válidas de posição e letra da V148.
+O corpus derivado permanece sob CC BY-SA 4.0; os arquivos de
+referência não são redistribuídos neste repositório.
+
+A curadoria é reproduzível com `scripts/curate-palavras.py` e o corpus da
+V148 (commit `0ab0f803c60f5eb3cb47dc6bb69f54780d86f71c`). A filtragem é linguística e de frequência,
+não uma revisão manual de cada palavra.

@@ -1,13 +1,15 @@
-# Joaninha V142 experimental: palavras aleatórias
+# Joaninha V149: palavras aleatórias
 
-A versão está isolada da V141. O experimento não modifica os TXT existentes,
+A versão mantém o funcionamento da V148, preservada na branch
+`backup-v148-antes-curadoria-palavras`. O experimento não modifica os TXT existentes,
 as categorias anteriores, o formato das listas numeradas anteriores nem
 seus códigos de posição.
 
 ## Uso
 
 1. Para uma demonstração comum, pedir "Liste 10 mil palavras aleatórias"
-   com o teclado normal. São 10.000 linhas reais, com marcadores de bolinha.
+   com o teclado normal. São 10.000 linhas reais, com marcadores de bolinha. A V149 prioriza
+   palavras familiares de três a seis letras.
    A V145 revela a parte inicial linha por linha no ritmo das outras listas,
    com a lista inteira pronta antes da animação; qualquer rolagem revela
    de imediato todas as linhas restantes.
@@ -15,7 +17,7 @@ seus códigos de posição.
    (três toques rápidos em Work) ou via Inject 5156. O manual tem prioridade.
 3. Usar o teclado secreto já existente, com 01 para a primeira letra,
    02 para a segunda, 03 para a terceira e assim por diante.
-4. Enviar o pedido de palavras aleatórias. A lista inicial não tem filtro.
+4. Enviar o pedido de palavras aleatórias. A lista inicial não tem filtro de letra.
    Sem rolagem, a lista permanece aleatória, independentemente do tempo.
 5. Rolar a lista em qualquer direção. Depois que a rolagem efetiva parar
    por três segundos, o efeito é armado automaticamente (V148) e o
@@ -39,8 +41,14 @@ O vocabulário é local, em português brasileiro. As posições disponíveis
 são 01 a 09, desde que o corpus contenha ao menos 40 palavras para cada
 combinação. Acentos, espaços e hífens da palavra secreta são normalizados.
 Combinações pouco frequentes podem ser recusadas; não há substituição
-silenciosa por letras erradas ou palavras fabricadas. A lista filtrada
-repete palavras, com espaçamento entre repetições. Uma entrada manual
+silenciosa por letras erradas ou palavras fabricadas. A lista normal e a lista filtrada repetem palavras, com espaçamento
+entre repetições. A V149 ordena o corpus pela familiaridade e prioriza
+palavras de três a seis letras, sempre com comprimento suficiente para a
+posição escolhida. A seleção de cada letra utiliza até 480 palavras curtas;
+se houver menos de 120, completa a seleção com palavras progressivamente
+mais longas apenas quando disponíveis e necessárias para variedade. As
+posições 07 a 09 continuam disponíveis, com comprimento correspondente.
+A lista normal utiliza até 4.000 palavras curtas. Uma entrada manual
 inválida não é consumida. O histórico registra a lista aleatória inicial,
 não as fases secretas.
 

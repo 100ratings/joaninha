@@ -10,7 +10,9 @@ const validList = text=>{
   for(const line of lines(text)) assert.match(line,/^•  \p{L}{3,16}$/u);
 };
 test('corpus, supported requests and disjoint categories',()=>{
-  assert.equal(words.length,28000);
+  assert.ok(words.length>=24000);
+  for(const word of ['chi','xi','homen','patrícia'])assert.ok(!words.includes(word));
+  for(const word of ['céu','soldado','casa'])assert.ok(words.includes(word));
   for(const request of ['liste 10 mil palavras aleatorias','liste dez mil palavras','liste 10000 palavras aleatorias','liste 10.000 palavras']) {
     assert.equal(W.matches(request),true);
     assert.equal(W.parseQuantity(request),10000);
@@ -22,7 +24,8 @@ test('corpus, supported requests and disjoint categories',()=>{
 test('ten thousand real rows in every phase, correct letter even for repeats',()=>{
   const prepared=W.prepare(words,10000,'EDEN',3);
   validList(prepared.original);validList(prepared.clean);
-  assert.equal(new Set(lines(prepared.original)).size,10000);
+  assert.equal(new Set(lines(prepared.original)).size,4000);
+  for(const text of [prepared.original,prepared.clean]) assert.ok(lines(text).every(row=>extract(row).length<=6));
   assert.equal(prepared.phases.length,4);
   for(const [i,phase] of prepared.phases.entries()){
     validList(phase);
@@ -30,6 +33,7 @@ test('ten thousand real rows in every phase, correct letter even for repeats',()
     for(const [j,row] of lines(phase).entries()){
       const word=extract(row);
       assert.equal(word[2],'eden'[i]);
+      assert.ok(word.length<=6);
       assert.ok(j-(last.get(word)??-Infinity)>20);
       last.set(word,j);
     }
@@ -43,10 +47,21 @@ test('ten thousand real rows in every phase, correct letter even for repeats',()
   assert.throws(()=>W.prepare(words,10001));
 });
 test('positions apply to words rather than lines',()=>{
-  for(const p of [1,2,3,4,5,6,7]){
+  for(const p of [1,2,3,4,5,6,7,8,9]){
     const prepared=W.prepare(words,10000,'a',p);
     assert.ok(lines(prepared.phases[0]).every(row=>extract(row)[p-1]==='a'));
+    for(const text of [prepared.original,prepared.clean])assert.ok(lines(text).every(row=>extract(row).length>=p&&extract(row).length<=Math.max(6,p)));
   }
+});
+test('longer fallback is only needed for rare position-letter combinations',()=>{
+  const prepared=W.prepare(words,10000,'d',6);
+  const forced=lines(prepared.phases[0]).map(extract);
+  assert.ok(forced.every(w=>w[5]==='d'&&w.length>=6));
+  assert.ok(forced.includes('soldado'));
+  assert.ok(forced.some(w=>w.length===7));
+  assert.ok(forced.filter(w=>w.length===7).length>forced.length/2);
+  const ordinary=W.prepare(words,10000);
+  assert.ok(lines(ordinary.original).every(row=>extract(row).length>=3&&extract(row).length<=6));
 });
 class Element {
   constructor(){this.handlers=new Map();this.children=[];this.scrollTop=100;this.style={};}

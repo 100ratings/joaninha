@@ -52,22 +52,31 @@
   return /\bpalavras?\s+(?:aleatorias?|ao acaso|randomicas?)\b/.test(plain)||
    /\b(?:\d{1,5}|dez|cinco)(?:[.,]\d{3}|\s+mil)?\s+palavras\s*[.!?]*$/.test(plain);
  }
+ // Prefer familiar short words; add longer ones in length order only
+ // when necessary to maintain a sufficiently varied pool.
+ function preferredPool(words,minLength,desired,limit){
+  const shortMax=Math.max(6,minLength);
+  const short=words.filter(w=>w.length>=minLength&&w.length<=shortMax).slice(0,limit);
+  if(short.length>=desired)return short;
+  const longer=words.filter(w=>w.length>shortMax).sort((a,b)=>a.length-b.length);
+  return short.concat(longer.slice(0,desired-short.length));
+ }
  function prepare(words,quantity,secret=null,position=null,random=Math.random){
   if(!Number.isInteger(quantity)||quantity<1||quantity>COUNT)throw Error('Quantidade de palavras inválida');
-  // Keep ordinary, high-frequency vocabulary for the demonstration.
-  const general=words.slice(0,Math.min(words.length,16000));
+  if(secret!==null&&(!Number.isInteger(position)||position<1||position>MAX_POSITION))
+   throw Error('Posição de letra inválida');
+  const minLength=secret===null?3:Math.max(3,position);
+  // Keep the preview and restoration naturally suited to the chosen position.
+  const general=preferredPool(words,minLength,120,4000);
   const original=display(draw(general,quantity,random));
   if(secret===null)return {original,phases:[],clean:original,quantity};
-  if(!Number.isInteger(position)||position<1||position>MAX_POSITION)
-   throw Error('Posição de letra inválida');
   const letters=secretLetters(secret);
   const pools=new Map();
   for(const letter of new Set(letters)){
    // Use unaccented target letters so the revealed spelling is unambiguous.
    // Accents elsewhere in each displayed word are preserved.
    const all=words.filter(w=>w[position-1]===letter);
-   const common=general.filter(w=>w[position-1]===letter);
-   const pool=common.length>=120?common:all;
+   const pool=preferredPool(all,minLength,120,480);
    if(pool.length<MIN_POOL)throw Error('Vocabulário insuficiente para esta posição');
    pools.set(letter,pool);
   }
