@@ -1,5 +1,6 @@
 /* Joaninha offline runtime. Keep this file stable across ordinary app updates.
-   New releases are staged only after the user confirms the existing update prompt. */
+   Download a release completely before activating it; keep the V152 protocol
+   available for the first upgrade to the new private update settings. */
 'use strict';
 
 const OFFLINE_PREFIX='joaninha-shell-v1-';
@@ -45,11 +46,14 @@ async function missingFiles(version){
 async function offlineStatus(){
  const version=await activeVersion();
  const missing=await missingFiles(version);
- return {ready:!!version&&missing.length===0,version,missingCount:missing.length};
+ return {ready:!!version&&missing.length===0,version,missingCount:missing.length,stagingProtocol:2};
 }
 
-async function getOnlineFile(path){
- const response=await fetch(absolute(path),{cache:'no-store'});
+async function getOnlineFile(path,version=null,stamp=Date.now()){
+ const url=new URL(absolute(path));
+ if(version!==null)url.searchParams.set('v',String(version));
+ url.searchParams.set('ts',String(stamp));
+ const response=await fetch(url.href,{cache:'no-store'});
  if(!response.ok||response.type==='opaque')throw Error('Arquivo indisponível: '+path);
  return response;
 }
@@ -61,41 +65,72 @@ async function getWebsiteVersion(){
  return version;
 }
 
-async function stageRelease(version){
+async function getPublishedVersion(){
+ const response=await getOnlineFile('index-version.json');
+ const value=(await response.json()).version;
+ if(!Number.isSafeInteger(value)||value<1)throw Error('Versão publicada inválida');
+ return value;
+}
+
+async function downloadRelease(version){
  if(!Number.isSafeInteger(version)||version<1)throw Error('Versão inválida');
- if(ongoingStage)return ongoingStage.then(()=>stageRelease(version));
+ if(ongoingStage)return ongoingStage.then(()=>downloadRelease(version));
  ongoingStage=(async()=>{
   const current=await activeVersion();
   if(current===version&&(await missingFiles(version)).length===0)
    return {ready:true,version};
-  // Download everything before touching the currently active cache.
-  const responses=await Promise.all(FILES.map(path=>getOnlineFile(path)));
+  if(current!==null&&version<current)throw Error('Versão anterior à instalada');
+  // A version marker and a fresh HTML must agree before accepting a release.
+  if(await getPublishedVersion()!==version)throw Error('Publicação ainda não disponível');
+  const stamp=Date.now();
+  const responses=await Promise.all(FILES.map(path=>getOnlineFile(path,version,stamp)));
   const htmlVersion=Number((await responses[0].clone().text()).match(VERSION_PATTERN)?.[1]);
-  if(htmlVersion!==version)throw Error('Publicação ainda não disponível');
+  if(htmlVersion!==version||await getPublishedVersion()!==version)
+   throw Error('Publicação ainda não disponível');
   const targetName=OFFLINE_PREFIX+version;
   const target=await caches.open(targetName);
   try{
-   for(let i=0;i<FILES.length;i++){
-    await target.put(absolute(FILES[i]),responses[i]);
-   }
+   for(let i=0;i<FILES.length;i++)await target.put(absolute(FILES[i]),responses[i]);
    if((await missingFiles(version)).length)throw Error('Cache incompleto');
-   const meta=await caches.open(META_CACHE);
-   await meta.put(META_URL,new Response(JSON.stringify({version}),{
-    headers:{'Content-Type':'application/json'}
-   }));
   }catch(error){
-   // Never remove the cache still in use.
-   if(current!==version)await caches.delete(targetName);
+   // A failed download must never remove the active release.
+   if(await activeVersion()!==version)await caches.delete(targetName);
    throw error;
-  }
-  for(const name of await caches.keys()){
-   if(name.startsWith(OFFLINE_PREFIX)&&name!==targetName)
-    await caches.delete(name);
   }
   return {ready:true,version};
  })();
  try{return await ongoingStage;}
  finally{ongoingStage=null;}
+}
+
+async function activateRelease(version){
+ if(!Number.isSafeInteger(version)||version<1)throw Error('Versão inválida');
+ const current=await activeVersion();
+ if(current!==null&&version<current)throw Error('Versão anterior à instalada');
+ if((await missingFiles(version)).length)throw Error('Cache incompleto');
+ const targetName=OFFLINE_PREFIX+version;
+ const target=await caches.open(targetName);
+ const html=await target.match(SHELL);
+ const htmlVersion=Number((await html.text()).match(VERSION_PATTERN)?.[1]);
+ if(htmlVersion!==version)throw Error('Versão do cache inválida');
+ const meta=await caches.open(META_CACHE);
+ await meta.put(META_URL,new Response(JSON.stringify({version}),{
+  headers:{'Content-Type':'application/json'}
+ }));
+ // Retain the previously working release as a local fallback; disk cleanup
+ // is best-effort and must not cause an otherwise successful update to fail.
+ try{
+  for(const name of await caches.keys()){
+   if(name.startsWith(OFFLINE_PREFIX)&&name!==targetName&&name!==OFFLINE_PREFIX+current)
+    await caches.delete(name);
+  }
+ }catch(error){}
+ return {ready:true,version};
+}
+
+async function stageRelease(version){
+ await downloadRelease(version);
+ return activateRelease(version);
 }
 
 async function repairOffline(){
@@ -232,6 +267,8 @@ self.addEventListener('message',event=>{
    if(data.type==='STATUS')result=await offlineStatus();
    else if(data.type==='REPAIR')result=await repairOffline();
    else if(data.type==='PREPARE_UPDATE')result=await stageRelease(Number(data.version));
+   else if(data.type==='DOWNLOAD_UPDATE')result=await downloadRelease(Number(data.version));
+   else if(data.type==='ACTIVATE_UPDATE')result=await activateRelease(Number(data.version));
    else throw Error('Mensagem desconhecida');
    port.postMessage({ok:true,...result});
   }catch(error){

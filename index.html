@@ -7,8 +7,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ChatGPT">
-<link rel="manifest" href="./manifest.webmanifest?v=49">
-<link rel="apple-touch-icon" href="./icon-192.png?v=48">
+<link rel="manifest" href="./manifest.webmanifest?v=153">
+<link rel="apple-touch-icon" href="./icon-192.png?v=153">
 <title>ChatGPT</title>
 <script>
 /* Restore the chosen appearance before the first paint. */
@@ -107,13 +107,10 @@ svg{display:block}
 #top-menu{position:relative}
 
 /* V75: segmented bubble based on MIT-licensed TemporaryChatGlyph by bryanrg22.
-   A check is shown for a temporary chat OR a pending version update.
-   An offline-cache issue alone does not imply that an update is available. */
+   The check indicates temporary chat only. Updates live in private settings. */
 #top-home-right .temp-check{display:none}
-#app.temporary-chat #top-home-right .temp-bubble,
-#app.update-attention #top-home-right .temp-bubble{display:none}
-#app.temporary-chat #top-home-right .temp-check,
-#app.update-attention #top-home-right .temp-check{display:block}
+#app.temporary-chat #top-home-right .temp-bubble{display:none}
+#app.temporary-chat #top-home-right .temp-check{display:block}
 #app.temporary-chat #home-tabs{display:none}
 #temporaryInfo{display:none;position:absolute;z-index:14;top:28%;left:12px;right:12px;text-align:center;pointer-events:none}
 #app.temporary-chat.scene-home #temporaryInfo{display:block}
@@ -746,7 +743,17 @@ html[data-theme="light"] #themePicker .theme-option[aria-checked="true"]::after{
 }
 
 /* V134: live, pixel-precise activation editor */
-.peek-tabs{grid-template-columns:repeat(3,minmax(0,1fr))}
+.peek-tabs{grid-template-columns:repeat(4,minmax(0,1fr))}
+.peek-tabs #peekTabUpdatesButton{font-size:11px;padding:0 2px}
+#peekPanel .peek-footer[hidden],#peekStorageStatus[hidden]{display:none!important}
+#peekTabUpdates{padding:7px 0 2px}
+#peekTabUpdates .update-version{font-size:23px;font-weight:700;margin:3px 0 8px}
+#peekTabUpdates .update-status{color:#b7b7c0;font-size:13px;min-height:20px;margin:0 0 12px}
+#peekTabUpdates .update-buttons{display:grid;grid-template-columns:1fr 1.35fr;gap:9px}
+#peekTabUpdates .update-buttons button{height:40px;border-radius:12px;border:1px solid #54545f;background:#3a3a41;color:inherit;font-size:13px;font-weight:600}
+#peekTabUpdates .update-buttons button:disabled{opacity:.45}
+html[data-theme="light"] #peekTabUpdates .update-status{color:#606672}
+html[data-theme="light"] #peekTabUpdates .update-buttons button{background:#ebedf2;border-color:#d1d5dd;color:#20232b}
 #peekTabActivation[hidden]{display:none!important}
 #app.activation-editor-on #peekPanel{max-height:var(--activation-panel-room,calc(100% - 175px))}
 /* The activation editor is a real touch test, not just a painted guide.
@@ -946,11 +953,12 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   <section id="peekPanel" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="peekTitle">
    <div class="peek-head"><strong id="peekTitle">Ajustes da Joaninha</strong><button id="peekClose" type="button" aria-label="Fechar ajustes">×</button></div>
    <div class="peek-tabs" role="tablist" aria-label="Tipo de ajuste">
-    <button id="peekTabPeekButton" type="button" class="selected" role="tab" aria-controls="peekTabPeek" aria-selected="true">Peek</button>
+    <button id="peekTabActivationButton" type="button" class="selected" role="tab" aria-controls="peekTabActivation" aria-selected="true">Ativação</button>
+    <button id="peekTabPeekButton" type="button" role="tab" aria-controls="peekTabPeek" aria-selected="false">Peek</button>
     <button id="peekTabFontsButton" type="button" role="tab" aria-controls="peekTabFonts" aria-selected="false">Fontes</button>
-    <button id="peekTabActivationButton" type="button" role="tab" aria-controls="peekTabActivation" aria-selected="false">Ativação</button>
+    <button id="peekTabUpdatesButton" type="button" role="tab" aria-controls="peekTabUpdates" aria-selected="false">Atualizações</button>
    </div>
-   <div id="peekTabPeek" role="tabpanel" aria-labelledby="peekTabPeekButton">
+   <div id="peekTabPeek" role="tabpanel" aria-labelledby="peekTabPeekButton" hidden>
    <p class="peek-hint">Prévia 23 no campo de mensagem, ajustes salvos automaticamente</p>
    <div class="peek-label">Posição <output id="peekCoords">X 17 · Y -13</output></div>
    <div class="peek-pad">
@@ -1001,7 +1009,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
     <div class="peek-label">Espaçamento <output id="listSpacingLabel">0 px</output></div>
     <div class="peek-adjust"><button type="button" data-list-spacing-delta="-1" aria-label="Diminuir espaçamento entre itens">−</button><input id="listSpacingRange" type="range" min="-6" max="24" step="1" value="0" aria-label="Espaçamento vertical entre itens da lista"><button type="button" data-list-spacing-delta="1" aria-label="Aumentar espaçamento entre itens">+</button></div>
    </div>
-   <div id="peekTabActivation" role="tabpanel" aria-labelledby="peekTabActivationButton" hidden>
+   <div id="peekTabActivation" role="tabpanel" aria-labelledby="peekTabActivationButton">
     <p class="activation-help">Veja diretamente na barra onde começa o modo secreto, ajuste a posição com precisão</p>
     <div class="activation-modes" role="group" aria-label="Estado do teclado">
      <button type="button" data-activation-keyboard="closed" aria-pressed="true">Teclado fechado</button>
@@ -1020,6 +1028,15 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
     </div>
     <p class="activation-note">Arraste a régua ou use os botões, ajustes independentes para vertical e horizontal, aberto e fechado, salvos automaticamente</p>
    </div>
+   <div id="peekTabUpdates" role="tabpanel" aria-labelledby="peekTabUpdatesButton" hidden>
+    <div class="peek-hint">Versão instalada</div>
+    <div id="updateVersionText" class="update-version">V153</div>
+    <div id="updateStatus" class="update-status" role="status" aria-live="polite">Verificando…</div>
+    <div class="update-buttons">
+     <button id="checkUpdatesBtn" type="button">Verificar</button>
+     <button id="updateAppBtn" type="button" disabled>Atualizar aplicativo</button>
+    </div>
+   </div>
    <div class="peek-footer"><button id="peekReset" type="button">Restaurar peek</button><button id="peekSave" type="button">Salvar e fechar</button></div>
    <div id="peekStorageStatus" role="status">Salvo automaticamente neste aparelho</div>
   </section>
@@ -1036,10 +1053,10 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   </section>
  </main>
 </div>
-<script src="./chat-test-gpt-2-diag.js?v=9"></script>
-<script src="./joaninha-list-manager.js?v=140"></script>
-<script src="./joaninha-work-config.js?v=90"></script>
-<script src="./joaninha-palavras.js?v=152"></script>
+<script src="./chat-test-gpt-2-diag.js?v=153"></script>
+<script src="./joaninha-list-manager.js?v=153"></script>
+<script src="./joaninha-work-config.js?v=153"></script>
+<script src="./joaninha-palavras.js?v=153"></script>
 <script>
 (function(){
  'use strict';
@@ -1160,7 +1177,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   if(navigator.onLine===false&&!navigator.serviceWorker?.controller)
    throw Error('lista offline indisponível');
   const offlineHint=navigator.onLine===false?'&offline=1':'';
-  const response=await fetch('chat-test-gpt-2-listas/'+encodeURIComponent(category)+'.txt?v=48&ts='+Date.now()+offlineHint,{cache:'no-store'});
+  const response=await fetch('chat-test-gpt-2-listas/'+encodeURIComponent(category)+'.txt?v=153&ts='+Date.now()+offlineHint,{cache:'no-store'});
   if(!response.ok)throw Error('lista nao disponivel');
   const raw=await response.text();
   return raw.replace(/^\uFEFF/,'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
@@ -1479,7 +1496,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   if(out.some(item=>item===undefined))throw Error('lista preparada incompleta');
   return {ordered:out,reservedPosition:position};
  }
- const GPT_TEST_VERSION=152;
+ const GPT_TEST_VERSION=153;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // The number grid owns its own input state, independent of secret keyboard typing.
  let numberGridVisible=false,gridDigits='',gridGesture=null;
@@ -1661,7 +1678,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
    wordCorpusPromise=(async()=>{
     if(navigator.onLine===false&&!navigator.serviceWorker?.controller)
      throw Error('Vocabulário offline indisponível');
-    const response=await fetch('./joaninha-palavras-ptbr.txt?v=151');
+    const response=await fetch('./joaninha-palavras-ptbr.txt?v=153');
     if(!response.ok)throw Error('Vocabulário indisponível');
     return JoaninhaWords.cleanWords(await response.text());
    })().catch(error=>{wordCorpusPromise=null;throw error;});
@@ -2083,7 +2100,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   const n=Number(value);
   return Number.isFinite(n)?Math.max(75,Math.min(150,Math.round(n))):109;
  };
- let fontScale=109,fontStoreOK=true,activeSettingsTab='peek';
+ let fontScale=109,fontStoreOK=true,activeSettingsTab='activation';
  const cleanListSpacing=value=>bounded(value,-6,24,0);
  let listSpacing=0,listSpacingStoreOK=true;
  try{
@@ -2161,12 +2178,13 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   diag.event('font-adjust',{scale:fontScale,question:fonts.question,answer:fonts.answer});
  }
  function selectSettingsTab(value){
-  activeSettingsTab=['peek','fonts','activation'].includes(value)?value:'peek';
-  const isPeek=activeSettingsTab==='peek',isActivation=activeSettingsTab==='activation';
+  activeSettingsTab=['activation','peek','fonts','updates'].includes(value)?value:'activation';
+  const isPeek=activeSettingsTab==='peek',isActivation=activeSettingsTab==='activation',isUpdates=activeSettingsTab==='updates';
   for(const [name,panel,button] of [
    ['peek','peekTabPeek','peekTabPeekButton'],
    ['fonts','peekTabFonts','peekTabFontsButton'],
-   ['activation','peekTabActivation','peekTabActivationButton']
+   ['activation','peekTabActivation','peekTabActivationButton'],
+   ['updates','peekTabUpdates','peekTabUpdatesButton']
   ]){
    const chosen=name===activeSettingsTab;
    $(panel).hidden=!chosen;
@@ -2174,6 +2192,8 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
    $(button).setAttribute('aria-selected',String(chosen));
   }
   app.classList.toggle('activation-editor-on',peekPanelOpen&&isActivation);
+  $('peekPanel').querySelector('.peek-footer').hidden=isUpdates;
+  $('peekStorageStatus').hidden=isUpdates;
   $('peekReset').textContent=isPeek?'Restaurar peek':
    isActivation?'Restaurar divisão':'Restaurar ajustes';
   if(!isActivation)$('peekPanel').style.removeProperty('--activation-panel-room');
@@ -2243,7 +2263,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   clearSecretPeek();
   app.classList.add('peek-panel-on');
   $('peekPanel').setAttribute('aria-hidden','false');
-  selectSettingsTab(scene==='home'?'peek':'fonts');
+  selectSettingsTab('activation');
   diag.event('peek-panel-open');
  }
  function closePeekPanel(){
@@ -2265,13 +2285,14 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
  $('peekTabPeekButton').addEventListener('click',()=>selectSettingsTab('peek'));
  $('peekTabFontsButton').addEventListener('click',()=>selectSettingsTab('fonts'));
  $('peekTabActivationButton').addEventListener('click',()=>selectSettingsTab('activation'));
+ $('peekTabUpdatesButton').addEventListener('click',()=>selectSettingsTab('updates'));
  $('peekClose').addEventListener('click',closePeekPanel);
  $('peekShade').addEventListener('click',closePeekPanel);
  $('peekSave').addEventListener('click',()=>{persistPeek();persistFonts();persistListSpacing();refreshPeekPanel();closePeekPanel();});
  $('peekReset').addEventListener('click',()=>{
   if(activeSettingsTab==='peek')editPeek({...PEEK_DEFAULT});
   else if(activeSettingsTab==='activation')resetActivationDivider();
-  else{editFontScale(109);editListSpacing(0);}
+  else if(activeSettingsTab==='fonts'){editFontScale(109);editListSpacing(0);}
  });
  $('peekStep').addEventListener('click',()=>{peekStep=peekStep===1?5:1;refreshPeekPanel();});
  $('peekPanel').addEventListener('click',e=>{
@@ -3143,7 +3164,6 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
  $('searchChats').addEventListener('click',()=>{});
  $('drawerNew').addEventListener('click',()=>showScene('home',{closeDrawer:true}));
  $('recentAnimals').addEventListener('click',()=>{
-  if(latestTestVersion!==null&&latestTestVersion>GPT_TEST_VERSION){applyAvailableTestUpdate();return;}
   if(restoreLatestConversation())return;
   startReply('Liste 100 animais',null,{closeDrawer:true});
  });
@@ -4259,23 +4279,16 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
  });
  // The only persistent conversation always occupies the first Recentes item.
  const RECENT_CONVERSATION_KEY='joaninha-chat-test-gpt-2-latest-conversation-v1';
- let latestTestVersion=null,updateCheckSequence=0,testUpdateInProgress=false;
+ let latestTestVersion=null,updateCheckSequence=0,testUpdateInProgress=false,updateCheckRunning=false;
+ let startupInteraction=false;
+ for(const event of ['pointerdown','touchstart','keydown'])
+  document.addEventListener(event,()=>{startupInteraction=true;},{capture:true,passive:true});
  const recentAnimals=$('recentAnimals');
  // Offline-cache health and available updates are tracked independently.
- const PENDING_UPDATE_KEY='joaninha-pending-update-v1';
  const offlineHintNode=$('offlineHint');
  let offlineCacheReady=false,offlineCheckRunning=null;
- try{
-  const storedVersion=Number(localStorage.getItem(PENDING_UPDATE_KEY));
-  if(Number.isSafeInteger(storedVersion)&&storedVersion>GPT_TEST_VERSION)
-   latestTestVersion=storedVersion;
-  else localStorage.removeItem(PENDING_UPDATE_KEY);
- }catch(error){}
  function refreshAttentionIndicator(){
-  const updatePending=latestTestVersion!==null&&latestTestVersion>GPT_TEST_VERSION;
-  // Keep offline diagnostics independent of the visible update check.
-  app.classList.toggle('offline-attention',!offlineCacheReady||updatePending);
-  app.classList.toggle('update-attention',updatePending);
+  app.classList.toggle('offline-attention',!offlineCacheReady);
  }
  function updateOfflineIndicator(){
   offlineHintNode.classList.toggle('shown',navigator.onLine===false);
@@ -4473,84 +4486,105 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   return true;
  }
  function renderRecentEntry(){
-  const available=latestTestVersion!==null&&latestTestVersion>GPT_TEST_VERSION;
-  const title=available?'Deseja atualizar o app':lastSavedConversation?.title||'Lista de animais';
+  const title=lastSavedConversation?.title||'Lista de animais';
   recentAnimals.textContent=title;
   recentAnimals.title=title;
-  recentAnimals.classList.toggle('update-ready',available);
-  recentAnimals.setAttribute('aria-label',available?'Deseja atualizar o app, toque para atualizar':title);
- }
- function renderAvailableTestUpdate(version){
-  latestTestVersion=Number.isSafeInteger(version)&&version>GPT_TEST_VERSION?version:null;
-  try{
-   if(latestTestVersion===null)localStorage.removeItem(PENDING_UPDATE_KEY);
-   else localStorage.setItem(PENDING_UPDATE_KEY,String(latestTestVersion));
-  }catch(error){}
-  refreshAttentionIndicator();
-  renderRecentEntry();
+  recentAnimals.setAttribute('aria-label',title);
  }
  renderRecentEntry();
- async function checkForTestUpdate(){
-  if(location.protocol==='file:'||document.visibilityState==='hidden'||navigator.onLine===false)return;
+ function renderUpdateUI(status){
+  const available=latestTestVersion!==null&&latestTestVersion>GPT_TEST_VERSION;
+  $('updateVersionText').textContent='V'+GPT_TEST_VERSION;
+  $('updateStatus').textContent=status||(available?'Nova versão disponível: V'+latestTestVersion:'Atualizado');
+  $('checkUpdatesBtn').disabled=updateCheckRunning||testUpdateInProgress;
+  $('updateAppBtn').disabled=!available||updateCheckRunning||testUpdateInProgress;
+ }
+ // Never auto-reload once someone has started interacting with the app.
+ function startupIsIdle(){
+  return !startupInteraction&&document.visibilityState==='visible'&&!peekPanelOpen;
+ }
+ async function checkForTestUpdate(autoApply=false){
+  if(updateCheckRunning||testUpdateInProgress)return;
   const sequence=++updateCheckSequence;
+  updateCheckRunning=true;
+  renderUpdateUI('Verificando…');
+  let checked=false,allowAuto=false;
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),6000);
   try{
+   if(location.protocol==='file:'||navigator.onLine===false)throw Error('Sem conexão');
    const url=new URL('./index-version.json',document.baseURI);
    url.searchParams.set('ts',String(Date.now()));
-   const response=await fetch(url.href,{cache:'no-store'});
-   if(!response.ok)throw new Error('Marcador indisponível');
+   const response=await fetch(url.href,{cache:'no-store',signal:controller.signal});
+   if(!response.ok)throw Error('Marcador indisponível');
    const data=await response.json();
-   const latest=Number(data.version);
-   if(!Number.isSafeInteger(latest)||latest<1)throw new Error('Versão inválida');
-   if(sequence===updateCheckSequence)renderAvailableTestUpdate(latest);
+   const latest=data.version;
+   if(!Number.isSafeInteger(latest)||latest<1)throw Error('Versão inválida');
+   if(sequence!==updateCheckSequence)return;
+   latestTestVersion=latest>GPT_TEST_VERSION?latest:null;
+   checked=true;
+   allowAuto=autoApply&&latestTestVersion!==null&&startupIsIdle()&&
+    new URL(location.href).searchParams.get('v')!==String(latestTestVersion);
   }catch(error){
-   // Offline, keep Lista de animais usable, never block navigation
+   // Preserve the installed version and all user data if the network fails.
+  }finally{
+   clearTimeout(timer);
+   updateCheckRunning=false;
+   renderUpdateUI(checked?undefined:'Não foi possível verificar');
   }
+  if(allowAuto)await applyAvailableTestUpdate(true);
  }
- async function applyAvailableTestUpdate(){
-  if(testUpdateInProgress||latestTestVersion===null||latestTestVersion<=GPT_TEST_VERSION)return;
+ async function applyAvailableTestUpdate(automatic=false){
+  if(testUpdateInProgress||updateCheckRunning||latestTestVersion===null||latestTestVersion<=GPT_TEST_VERSION)return;
+  if(automatic&&!startupIsIdle())return;
+  const version=latestTestVersion;
   testUpdateInProgress=true;
+  renderUpdateUI('Preparando atualização…');
   const url=new URL('./index.html',document.baseURI);
-  url.searchParams.set('v',String(latestTestVersion));
+  url.searchParams.set('v',String(version));
   url.searchParams.set('ts',String(Date.now()));
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),8000);
   try{
-   const response=await fetch(url.href,{cache:'no-store'});
-   if(!response.ok)throw new Error('HTML indisponível');
+   const response=await fetch(url.href,{cache:'no-store',signal:controller.signal});
+   if(!response.ok)throw Error('HTML indisponível');
    const source=await response.text();
    const match=source.match(/const GPT_TEST_VERSION\s*=\s*(\d+)\s*;/);
-   if(!match||Number(match[1])<latestTestVersion)throw new Error('Publicação em andamento');
-   // Cache the whole new version only after the user accepts the update.
+   if(!match||Number(match[1])!==version)throw Error('Publicação em andamento');
+   if(automatic&&!startupIsIdle())return;
    if(navigator.serviceWorker?.controller){
-    const prepared=await communicateWithOfflineWorker('PREPARE_UPDATE',
-     {version:latestTestVersion},60000);
-    if(!prepared.ready||prepared.version!==latestTestVersion)
-     throw Error('Atualização offline incompleta');
-   }
+    const state=await communicateWithOfflineWorker('STATUS',{},6000);
+    if(state.stagingProtocol===2){
+     const downloaded=await communicateWithOfflineWorker('DOWNLOAD_UPDATE',{version},60000);
+     if(!downloaded.ready||downloaded.version!==version)throw Error('Atualização offline incompleta');
+     // The previous release remains active until the download is complete
+     // and we know nobody has started using the application.
+     if(automatic&&!startupIsIdle())return;
+     const activated=await communicateWithOfflineWorker('ACTIVATE_UPDATE',{version},12000);
+     if(!activated.ready||activated.version!==version)throw Error('Atualização offline incompleta');
+    }else{
+     // Older SWs support only an inseparable download+activation. Do not
+     // perform that operation automatically during a possibly active session.
+     if(automatic)return;
+     const prepared=await communicateWithOfflineWorker('PREPARE_UPDATE',{version},60000);
+     if(!prepared.ready||prepared.version!==version)throw Error('Atualização offline incompleta');
+    }
+   }else if(automatic&&!startupIsIdle())return;
    location.replace(url.href);
   }catch(error){
    testUpdateInProgress=false;
-   recentAnimals.textContent='Atualização indisponível, tente novamente';
-   setTimeout(()=>renderAvailableTestUpdate(latestTestVersion),2200);
+   renderUpdateUI('Atualização indisponível, tente novamente');
+   return;
+  }finally{
+   clearTimeout(timer);
+   if(testUpdateInProgress){
+    testUpdateInProgress=false;
+    renderUpdateUI();
+   }
   }
  }
- // Keep the update indicator proactive, rather than discovering releases
- // only after the user opens the sidebar. The badge and sidebar share
- // renderAvailableTestUpdate as their single source of truth.
- $('top-menu').addEventListener('click',()=>checkForTestUpdate());
- window.addEventListener('pageshow',()=>checkForTestUpdate());
- window.addEventListener('focus',()=>checkForTestUpdate());
- window.addEventListener('online',()=>checkForTestUpdate());
- document.addEventListener('visibilitychange',()=>{
-  if(document.visibilityState==='visible')checkForTestUpdate();
- });
- // iOS PWAs can stay foregrounded for a long time without pageshow or
- // visibilitychange; poll the tiny version manifest only while visible.
- const UPDATE_CHECK_POLL_MS=60000;
- setInterval(()=>{
-  if(document.visibilityState==='visible'&&navigator.onLine!==false)
-   checkForTestUpdate();
- },UPDATE_CHECK_POLL_MS);
- // A newly opened PWA may have fired pageshow before listeners were attached.
- checkForTestUpdate();
+ $('checkUpdatesBtn').addEventListener('click',()=>checkForTestUpdate(false));
+ $('updateAppBtn').addEventListener('click',()=>applyAvailableTestUpdate(false));
  // Opening the sidebar with a left-edge swipe is intentionally disabled
  // Vertical drawer scrolling must not accidentally dismiss the menu at its ends
  let drawerSwipe=null;
@@ -4672,6 +4706,8 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   },900);
  }
  startOfflineSupport();
+ // Only a real initial page load, never resume or a periodic timer.
+ checkForTestUpdate(true);
 })();
 </script>
 </body>
