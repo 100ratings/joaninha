@@ -46,8 +46,8 @@ test('startup checks once, no periodic or resume update handlers, versioned asse
  const manifest=JSON.parse(fs.readFileSync(path.join(root,'manifest.webmanifest'),'utf8'));
  for(const icon of manifest.icons)assert.equal(new URL(icon.src,'https://example.test').searchParams.get('v'),String(version));
  assert.doesNotMatch(html,/Deseja atualizar o app|update-attention/);
- assert.match(html,/selectSettingsTab\('activation'\);/);
- assert.match(html,/id="peekTabActivationButton"[^>]+aria-selected="true"/);
+ assert.match(html,/function openPeekPanel\(\)\{[^]*?selectSettingsTab\('updates'\);\s*diag.event\('peek-panel-open'\)/);
+ assert.match(html,/id="peekTabUpdatesButton"[^>]+aria-selected="true"/);
 });
 test('same version, invalid marker and offline failure never reload',async()=>{
  const p=fakePage();await p.check(true);assert.equal(p.nodes.get('updateStatus').textContent,'Atualizado');

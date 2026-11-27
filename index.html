@@ -7,8 +7,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ChatGPT">
-<link rel="manifest" href="./manifest.webmanifest?v=153">
-<link rel="apple-touch-icon" href="./icon-192.png?v=153">
+<link rel="manifest" href="./manifest.webmanifest?v=154">
+<link rel="apple-touch-icon" href="./icon-192.png?v=154">
 <title>ChatGPT</title>
 <script>
 /* Restore the chosen appearance before the first paint. */
@@ -953,10 +953,10 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   <section id="peekPanel" role="dialog" aria-modal="true" aria-hidden="true" aria-labelledby="peekTitle">
    <div class="peek-head"><strong id="peekTitle">Ajustes da Joaninha</strong><button id="peekClose" type="button" aria-label="Fechar ajustes">×</button></div>
    <div class="peek-tabs" role="tablist" aria-label="Tipo de ajuste">
-    <button id="peekTabActivationButton" type="button" class="selected" role="tab" aria-controls="peekTabActivation" aria-selected="true">Ativação</button>
+    <button id="peekTabActivationButton" type="button" role="tab" aria-controls="peekTabActivation" aria-selected="false">Ativação</button>
     <button id="peekTabPeekButton" type="button" role="tab" aria-controls="peekTabPeek" aria-selected="false">Peek</button>
     <button id="peekTabFontsButton" type="button" role="tab" aria-controls="peekTabFonts" aria-selected="false">Fontes</button>
-    <button id="peekTabUpdatesButton" type="button" role="tab" aria-controls="peekTabUpdates" aria-selected="false">Atualizações</button>
+    <button id="peekTabUpdatesButton" type="button" class="selected" role="tab" aria-controls="peekTabUpdates" aria-selected="true">Atualizações</button>
    </div>
    <div id="peekTabPeek" role="tabpanel" aria-labelledby="peekTabPeekButton" hidden>
    <p class="peek-hint">Prévia 23 no campo de mensagem, ajustes salvos automaticamente</p>
@@ -1009,7 +1009,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
     <div class="peek-label">Espaçamento <output id="listSpacingLabel">0 px</output></div>
     <div class="peek-adjust"><button type="button" data-list-spacing-delta="-1" aria-label="Diminuir espaçamento entre itens">−</button><input id="listSpacingRange" type="range" min="-6" max="24" step="1" value="0" aria-label="Espaçamento vertical entre itens da lista"><button type="button" data-list-spacing-delta="1" aria-label="Aumentar espaçamento entre itens">+</button></div>
    </div>
-   <div id="peekTabActivation" role="tabpanel" aria-labelledby="peekTabActivationButton">
+   <div id="peekTabActivation" role="tabpanel" aria-labelledby="peekTabActivationButton" hidden>
     <p class="activation-help">Veja diretamente na barra onde começa o modo secreto, ajuste a posição com precisão</p>
     <div class="activation-modes" role="group" aria-label="Estado do teclado">
      <button type="button" data-activation-keyboard="closed" aria-pressed="true">Teclado fechado</button>
@@ -1028,9 +1028,9 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
     </div>
     <p class="activation-note">Arraste a régua ou use os botões, ajustes independentes para vertical e horizontal, aberto e fechado, salvos automaticamente</p>
    </div>
-   <div id="peekTabUpdates" role="tabpanel" aria-labelledby="peekTabUpdatesButton" hidden>
+   <div id="peekTabUpdates" role="tabpanel" aria-labelledby="peekTabUpdatesButton">
     <div class="peek-hint">Versão instalada</div>
-    <div id="updateVersionText" class="update-version">V153</div>
+    <div id="updateVersionText" class="update-version">V154</div>
     <div id="updateStatus" class="update-status" role="status" aria-live="polite">Verificando…</div>
     <div class="update-buttons">
      <button id="checkUpdatesBtn" type="button">Verificar</button>
@@ -1053,10 +1053,10 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   </section>
  </main>
 </div>
-<script src="./chat-test-gpt-2-diag.js?v=153"></script>
-<script src="./joaninha-list-manager.js?v=153"></script>
-<script src="./joaninha-work-config.js?v=153"></script>
-<script src="./joaninha-palavras.js?v=153"></script>
+<script src="./chat-test-gpt-2-diag.js?v=154"></script>
+<script src="./joaninha-list-manager.js?v=154"></script>
+<script src="./joaninha-work-config.js?v=154"></script>
+<script src="./joaninha-palavras.js?v=154"></script>
 <script>
 (function(){
  'use strict';
@@ -1177,7 +1177,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   if(navigator.onLine===false&&!navigator.serviceWorker?.controller)
    throw Error('lista offline indisponível');
   const offlineHint=navigator.onLine===false?'&offline=1':'';
-  const response=await fetch('chat-test-gpt-2-listas/'+encodeURIComponent(category)+'.txt?v=153&ts='+Date.now()+offlineHint,{cache:'no-store'});
+  const response=await fetch('chat-test-gpt-2-listas/'+encodeURIComponent(category)+'.txt?v=154&ts='+Date.now()+offlineHint,{cache:'no-store'});
   if(!response.ok)throw Error('lista nao disponivel');
   const raw=await response.text();
   return raw.replace(/^\uFEFF/,'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
@@ -1496,7 +1496,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   if(out.some(item=>item===undefined))throw Error('lista preparada incompleta');
   return {ordered:out,reservedPosition:position};
  }
- const GPT_TEST_VERSION=153;
+ const GPT_TEST_VERSION=154;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // The number grid owns its own input state, independent of secret keyboard typing.
  let numberGridVisible=false,gridDigits='',gridGesture=null;
@@ -1678,7 +1678,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
    wordCorpusPromise=(async()=>{
     if(navigator.onLine===false&&!navigator.serviceWorker?.controller)
      throw Error('Vocabulário offline indisponível');
-    const response=await fetch('./joaninha-palavras-ptbr.txt?v=153');
+    const response=await fetch('./joaninha-palavras-ptbr.txt?v=154');
     if(!response.ok)throw Error('Vocabulário indisponível');
     return JoaninhaWords.cleanWords(await response.text());
    })().catch(error=>{wordCorpusPromise=null;throw error;});
@@ -2100,7 +2100,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   const n=Number(value);
   return Number.isFinite(n)?Math.max(75,Math.min(150,Math.round(n))):109;
  };
- let fontScale=109,fontStoreOK=true,activeSettingsTab='activation';
+ let fontScale=109,fontStoreOK=true,activeSettingsTab='updates';
  const cleanListSpacing=value=>bounded(value,-6,24,0);
  let listSpacing=0,listSpacingStoreOK=true;
  try{
@@ -2178,7 +2178,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   diag.event('font-adjust',{scale:fontScale,question:fonts.question,answer:fonts.answer});
  }
  function selectSettingsTab(value){
-  activeSettingsTab=['activation','peek','fonts','updates'].includes(value)?value:'activation';
+  activeSettingsTab=['activation','peek','fonts','updates'].includes(value)?value:'updates';
   const isPeek=activeSettingsTab==='peek',isActivation=activeSettingsTab==='activation',isUpdates=activeSettingsTab==='updates';
   for(const [name,panel,button] of [
    ['peek','peekTabPeek','peekTabPeekButton'],
@@ -2263,7 +2263,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   clearSecretPeek();
   app.classList.add('peek-panel-on');
   $('peekPanel').setAttribute('aria-hidden','false');
-  selectSettingsTab('activation');
+  selectSettingsTab('updates');
   diag.event('peek-panel-open');
  }
  function closePeekPanel(){
