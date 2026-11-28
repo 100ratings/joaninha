@@ -7,8 +7,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ChatGPT">
-<link rel="manifest" href="./manifest.webmanifest?v=159">
-<link rel="apple-touch-icon" href="./icon-192.png?v=159">
+<link rel="manifest" href="./manifest.webmanifest?v=160">
+<link rel="apple-touch-icon" href="./icon-192.png?v=160">
 <title>ChatGPT</title>
 <script>
 /* Restore the chosen appearance before the first paint. */
@@ -203,9 +203,10 @@ border-radius:10px;background:rgba(29,29,32,.84);color:#a9a9af;font-size:10.5px}
 .words-double-buffer{display:grid;grid-template-columns:minmax(0,1fr);align-items:start}
 .words-double-buffer>.words-content,.words-double-buffer>.words-buffer{grid-area:1/1;min-width:0}
 .words-buffer{visibility:hidden;pointer-events:none;user-select:none;-webkit-user-select:none}
-/* V147: restore the third dot when the final pause is complete. */
-#more circle:first-child{opacity:1;transition: opacity 2s ease-in-out;}
+/* V160: only opacity changes; the middle dot and all geometry stay fixed. */
+#more circle:first-child,#more circle:last-child{opacity:1;transition: opacity 2s ease-in-out;}
 #more[data-word-list-state="force"] circle:first-child{opacity:0}
+#more[data-word-list-state="final"] circle:last-child{opacity:0}
 #app.word-list-mode #numberGridOverlay{display:none!important}
 #actions,.archived-actions{display:none;align-items:center;gap:13px;margin-top:12px;padding-bottom:8px}
 .archived-actions{display:flex;pointer-events:none}
@@ -1028,7 +1029,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
    </div>
    <div id="peekTabUpdates" role="tabpanel" aria-labelledby="peekTabUpdatesButton">
     <div class="peek-hint">Versão instalada</div>
-    <div id="updateVersionText" class="update-version">V159</div>
+    <div id="updateVersionText" class="update-version">V160</div>
     <div id="updateStatus" class="update-status" role="status" aria-live="polite">Verificando…</div>
     <div class="update-buttons">
      <button id="checkUpdatesBtn" type="button">Verificar</button>
@@ -1051,10 +1052,10 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   </section>
  </main>
 </div>
-<script src="./chat-test-gpt-2-diag.js?v=159"></script>
-<script src="./joaninha-list-manager.js?v=159"></script>
-<script src="./joaninha-work-config.js?v=159"></script>
-<script src="./joaninha-palavras.js?v=159"></script>
+<script src="./chat-test-gpt-2-diag.js?v=160"></script>
+<script src="./joaninha-list-manager.js?v=160"></script>
+<script src="./joaninha-work-config.js?v=160"></script>
+<script src="./joaninha-palavras.js?v=160"></script>
 <script>
 (function(){
  'use strict';
@@ -1175,7 +1176,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   if(navigator.onLine===false&&!navigator.serviceWorker?.controller)
    throw Error('lista offline indisponível');
   const offlineHint=navigator.onLine===false?'&offline=1':'';
-  const response=await fetch('chat-test-gpt-2-listas/'+encodeURIComponent(category)+'.txt?v=159&ts='+Date.now()+offlineHint,{cache:'no-store'});
+  const response=await fetch('chat-test-gpt-2-listas/'+encodeURIComponent(category)+'.txt?v=160&ts='+Date.now()+offlineHint,{cache:'no-store'});
   if(!response.ok)throw Error('lista nao disponivel');
   const raw=await response.text();
   return raw.replace(/^\uFEFF/,'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
@@ -1515,7 +1516,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   if(out.some(item=>item===undefined))throw Error('lista preparada incompleta');
   return {ordered:out,reservedPosition:position};
  }
- const GPT_TEST_VERSION=159;
+ const GPT_TEST_VERSION=160;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // The number grid owns its own input state, independent of secret keyboard typing.
  let numberGridVisible=false,gridDigits='',gridGesture=null;
@@ -1682,9 +1683,32 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
  let replyToken=0,activeGridList=null,activeWordList=null,openingWordList=null,wordCorpusPromise=null;
  function setWordListIndicator(state,readyForRandom=false){
   const more=$('more');
-  if(state==='armed'||state==='running'||(state==='ready'&&!readyForRandom)){
-   if(more.dataset.wordListState!=='force')more.dataset.wordListState='force';
-  }else delete more.dataset.wordListState;
+  const next=state==='armed'||state==='running'?'force':
+   state==='ready'&&readyForRandom?'final':'';
+  const previous=more.dataset.wordListState||'';
+  if(previous===next)return;
+  // A rapid swipe can reverse an unfinished CSS transition. Normally the
+  // browser shortens reversed transitions, making the dot fill too early.
+  // Freeze only the interrupted dot at its current opacity, then give the
+  // new fade its full two seconds. No rendered frame jumps or moves.
+  const dots=more.querySelectorAll('circle'),interrupted=[];
+  for(const [dot,hiddenState] of [[dots[0],'force'],[dots[2],'final']]){
+   const before=previous===hiddenState?0:1,after=next===hiddenState?0:1;
+   if(before===after)continue;
+   const opacity=getComputedStyle(dot).opacity;
+   if(Number(opacity)!==before){
+    dot.style.transition='none';
+    dot.style.opacity=opacity;
+    interrupted.push(dot);
+   }
+  }
+  for(const dot of interrupted)getComputedStyle(dot).opacity;
+  if(next)more.dataset.wordListState=next;
+  else delete more.dataset.wordListState;
+  for(const dot of interrupted){
+   dot.style.removeProperty('transition');
+   dot.style.removeProperty('opacity');
+  }
  }
  function disposeWordList(clean=true){
   if(openingWordList){openingWordList.dispose();openingWordList=null;}
@@ -1697,7 +1721,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
    wordCorpusPromise=(async()=>{
     if(navigator.onLine===false&&!navigator.serviceWorker?.controller)
      throw Error('Vocabulário offline indisponível');
-    const response=await fetch('./joaninha-palavras-ptbr.txt?v=159');
+    const response=await fetch('./joaninha-palavras-ptbr.txt?v=160');
     if(!response.ok)throw Error('Vocabulário indisponível');
     return JoaninhaWords.cleanWords(await response.text());
    })().catch(error=>{wordCorpusPromise=null;throw error;});
@@ -1820,7 +1844,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
      openingWordList=null;
      if(token!==replyToken)return;
      activeWordList=JoaninhaWords.mount({prepared:result.prepared,scroller,target:list,
-      initialGesture,openingText,onStateChange:setWordListIndicator,allowed:()=>token===replyToken&&scene==='end'&&
+      initialGesture,openingText,onStateChange:setWordListIndicator,onPauseProgress:setWordListIndicator,allowed:()=>token===replyToken&&scene==='end'&&
        !keyboard&&!drawer&&!document.hidden&&!peekPanelOpen&&themePicker.hidden&&
        !document.body.classList.contains('jlm-open')});
      if(result.manualVersion!==null&&pendingManualInject?.version===result.manualVersion)

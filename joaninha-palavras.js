@@ -1,7 +1,7 @@
 /* Joaninha V142: independent local word-list routine. No network integrations here. */
 (function(root){
  'use strict';
- const COUNT=10000, PAUSE_MS=3000, MIN_POOL=40, MAX_POSITION=9, MAX_SECRET=32;
+ const COUNT=10000, PAUSE_MS=3000, INDICATOR_FADE_MS=2000, MIN_POOL=40, MAX_POSITION=9, MAX_SECRET=32;
  const normalize=value=>String(value).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
  const wordPattern=/^[a-zàáâãéêíóôõúüç]{3,16}$/u;
  // Optional V151 pool/family metadata is packaged with the same vocabulary.
@@ -204,7 +204,7 @@
   timer=setTimeout(emit,250);
   return {dispose(){close(false);}};
  }
- function mount({prepared,scroller,target,initialGesture={},openingText=null,allowed=()=>true,pauseMs=PAUSE_MS,onComplete=()=>{},onStateChange=()=>{}}){
+ function mount({prepared,scroller,target,initialGesture={},openingText=null,allowed=()=>true,pauseMs=PAUSE_MS,onComplete=()=>{},onStateChange=()=>{},onPauseProgress=()=>{}}){
   const reuse=!!(initialGesture.gesture&&openingText&&target.contains(openingText));
   let text=reuse?openingText:document.createElement('div');
   text.className='words-content';
@@ -218,7 +218,17 @@
   let disposed=false,timer=null,stageTimer=null,cleanupTimer=null,motionFrame=null,lastTop=scroller.scrollTop;
   let contact=!!initialGesture.contact,scrollUntil=initialGesture.gesture?performance.now()+1600:0,
    hasMoved=!!initialGesture.moved;
-  const stopTimer=()=>{if(timer!==null)clearTimeout(timer);timer=null;};
+  let indicatorTimer=null,indicatorStarted=false;
+  const stopIndicator=(restore=true)=>{
+   if(indicatorTimer!==null)clearTimeout(indicatorTimer);
+   indicatorTimer=null;
+   if(indicatorStarted&&restore)onPauseProgress('running',false);
+   indicatorStarted=false;
+  };
+  const stopTimer=(restore=true)=>{
+   if(timer!==null)clearTimeout(timer);
+   timer=null;stopIndicator(restore);
+  };
   const stopStage=()=>{if(stageTimer!==null)clearTimeout(stageTimer);stageTimer=null;};
   const stopCleanup=()=>{if(cleanupTimer!==null)clearTimeout(cleanupTimer);cleanupTimer=null;};
   const stopMotionFrame=()=>{
@@ -285,9 +295,19 @@
     stageTimer=null;
     if(permitted()&&!contact&&['preview','running'].includes(machine.state))stage(nextValue());
    },Math.min(160,Math.max(0,pauseMs-1)));
+   // While a forced letter is displayed, start the visual fade early enough
+   // to finish at the existing pause deadline. Only the indicator changes;
+   // actual readiness and the following word switch still use the old timer.
+   if(machine.state==='running')indicatorTimer=setTimeout(()=>{
+    indicatorTimer=null;
+    if(!permitted()||contact||machine.state!=='running')return;
+    indicatorStarted=true;
+    onPauseProgress('ready',machine.index===prepared.phases.length-1);
+   },Math.max(0,pauseMs-INDICATOR_FADE_MS));
    timer=setTimeout(()=>{
     timer=null;
-    if(!permitted()||contact)return;
+    if(!permitted()||contact){stopIndicator();return;}
+    stopIndicator(false);
     // The first qualified pause arms the effect without changing any words.
     const changed=machine.state==='preview'?machine.arm():machine.pause();
     if(changed){
@@ -353,7 +373,7 @@
    get state(){return machine.state;},
    dispose(clean=true){
     if(disposed)return;
-    disposed=true;stopTimer();stopStage();stopCleanup();stopMotionFrame();
+    disposed=true;stopTimer(false);stopStage();stopCleanup();stopMotionFrame();
     bindings.forEach(([el,type,handler])=>el.removeEventListener(type,handler));
     if(clean&&target.contains(text)&&machine.state!=='complete')render(prepared.original);
     removeStandby();

@@ -333,3 +333,55 @@ test('opening reveals line by line but all words are already present, then scrol
   for(const list of scroller.handlers.values())assert.equal(list.length,0);
  }finally{Object.assign(global,saved);}
 });
+
+test('V160 progress begins one second after the last real movement, completes at three, and never advances words itself',()=>{
+ const saved={document:global.document,performance:global.performance,setTimeout:global.setTimeout,clearTimeout:global.clearTimeout};
+ let now=0,seq=0;const tasks=new Map();
+ const tick=ms=>{const end=now+ms;while(tasks.size){const [id,t]=[...tasks.entries()].sort((a,b)=>a[1].at-b[1].at)[0];if(t.at>end)break;now=t.at;tasks.delete(id);t.fn();}now=end;};
+ try{
+  global.document={createElement:()=>new Element(),createTextNode:data=>({data})};
+  global.performance={now:()=>now};global.setTimeout=(fn,ms)=>{tasks.set(++seq,{fn,at:now+ms});return seq;};global.clearTimeout=id=>tasks.delete(id);
+  const scroller=new Element(),target=new Element(),events=[];
+  const prepared={original:'random',phases:['letter 1','letter 2'],clean:'restored'};
+  let allowed=true;
+  const mount=p=>W.mount({prepared:p,scroller,target,allowed:()=>allowed,
+   onStateChange:(s,f)=>events.push([now,'state',s,!!f]),
+   onPauseProgress:(s,f)=>events.push([now,'visual',s,!!f])});
+  const wheel=delta=>{scroller.emit('wheel');scroller.scrollTop+=delta;scroller.emit('scroll');};
+  const text=()=>target.children.find(n=>n.className==='words-content').children[0].data;
+  const start=()=>scroller.emit('touchstart',{touches:[{}]});
+  const end=()=>scroller.emit('touchend',{touches:[]});
+  const mounted=mount(prepared);
+  wheel(5);tick(2999);assert.equal(events.length,1);assert.equal(text(),'random');
+  tick(1);assert.deepEqual(events.at(-1),[3000,'state','armed',false]);
+  wheel(-5);assert.equal(text(),'letter 1');assert.equal(mounted.state,'running');
+  tick(999);assert.deepEqual(events.at(-1),[3000,'state','running',false]);
+  tick(1);assert.deepEqual(events.at(-1),[4000,'visual','ready',false]);
+  // Restart while the first fade-in is underway: only the indicator reverses.
+  tick(500);wheel(5);assert.deepEqual(events.at(-1),[4500,'visual','running',false]);
+  assert.equal(text(),'letter 1');
+  tick(1000);assert.deepEqual(events.at(-1),[5500,'visual','ready',false]);
+  tick(1999);assert.equal(mounted.state,'running');assert.equal(text(),'letter 1');
+  tick(1);assert.deepEqual(events.at(-1),[7500,'state','ready',false]);
+  assert.equal(text(),'letter 1');wheel(5);assert.equal(text(),'letter 2');
+  tick(1000);assert.deepEqual(events.at(-1),[8500,'visual','ready',true]);
+  // A finger held down cancels final anticipation but does not advance.
+  start();assert.deepEqual(events.at(-1),[8500,'visual','running',false]);
+  tick(5000);assert.equal(mounted.state,'running');assert.equal(text(),'letter 2');
+  end();tick(1000);assert.deepEqual(events.at(-1),[14500,'visual','ready',true]);
+  tick(2000);assert.deepEqual(events.at(-1),[16500,'state','ready',true]);
+  assert.equal(text(),'letter 2');wheel(-5);assert.equal(text(),'restored');
+  assert.deepEqual(events.at(-1),[16500,'state','complete',false]);
+  tick(5000);mounted.dispose();assert.equal(tasks.size,0);
+  // Single-letter routine and blocked pause must also restore/reset correctly.
+  const one=mount({...prepared,phases:['only']});
+  wheel(5);tick(3000);wheel(5);tick(1000);
+  assert.deepEqual(events.at(-1),[now,'visual','ready',true]);
+  allowed=false;tick(2000);assert.deepEqual(events.at(-1),[now,'visual','running',false]);
+  assert.equal(one.state,'running');allowed=true;
+  wheel(5);tick(1000);assert.deepEqual(events.at(-1),[now,'visual','ready',true]);
+  one.dispose();assert.equal(events.at(-1)[2],'preview');assert.equal(tasks.size,0);
+  const n=events.length;const plain=mount({...prepared,phases:[]});wheel(5);tick(10000);
+  assert.equal(events.length,n+1);plain.dispose();assert.equal(tasks.size,0);
+ }finally{Object.assign(global,saved);}
+});
