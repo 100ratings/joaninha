@@ -7,8 +7,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ChatGPT">
-<link rel="manifest" href="./manifest.webmanifest?v=154">
-<link rel="apple-touch-icon" href="./icon-192.png?v=154">
+<link rel="manifest" href="./manifest.webmanifest?v=155">
+<link rel="apple-touch-icon" href="./icon-192.png?v=155">
 <title>ChatGPT</title>
 <script>
 /* Restore the chosen appearance before the first paint. */
@@ -1030,7 +1030,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
    </div>
    <div id="peekTabUpdates" role="tabpanel" aria-labelledby="peekTabUpdatesButton">
     <div class="peek-hint">Versão instalada</div>
-    <div id="updateVersionText" class="update-version">V154</div>
+    <div id="updateVersionText" class="update-version">V155</div>
     <div id="updateStatus" class="update-status" role="status" aria-live="polite">Verificando…</div>
     <div class="update-buttons">
      <button id="checkUpdatesBtn" type="button">Verificar</button>
@@ -1053,10 +1053,10 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   </section>
  </main>
 </div>
-<script src="./chat-test-gpt-2-diag.js?v=154"></script>
-<script src="./joaninha-list-manager.js?v=154"></script>
-<script src="./joaninha-work-config.js?v=154"></script>
-<script src="./joaninha-palavras.js?v=154"></script>
+<script src="./chat-test-gpt-2-diag.js?v=155"></script>
+<script src="./joaninha-list-manager.js?v=155"></script>
+<script src="./joaninha-work-config.js?v=155"></script>
+<script src="./joaninha-palavras.js?v=155"></script>
 <script>
 (function(){
  'use strict';
@@ -1177,7 +1177,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   if(navigator.onLine===false&&!navigator.serviceWorker?.controller)
    throw Error('lista offline indisponível');
   const offlineHint=navigator.onLine===false?'&offline=1':'';
-  const response=await fetch('chat-test-gpt-2-listas/'+encodeURIComponent(category)+'.txt?v=154&ts='+Date.now()+offlineHint,{cache:'no-store'});
+  const response=await fetch('chat-test-gpt-2-listas/'+encodeURIComponent(category)+'.txt?v=155&ts='+Date.now()+offlineHint,{cache:'no-store'});
   if(!response.ok)throw Error('lista nao disponivel');
   const raw=await response.text();
   return raw.replace(/^\uFEFF/,'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
@@ -1264,14 +1264,31 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   return items.map(item=>item.includes('$$$')?
    item.replace(/\$\$\$/g,()=>value):item);
  }
+ // A 101-line marker list has 100 presentation rows and one reserve.
+ // Replace only an ordinary duplicate of the filled marker, keeping row 0
+ // untouched so that all existing force and shuffle routines keep their meaning.
+ function applyMarkerReserve(sourceItems,filledItems){
+  if(sourceItems.length!==101||filledItems.length!==101||
+     !sourceItems[0].includes('$$$')||
+     sourceItems.slice(1).some(item=>item.includes('$$$')))return filledItems;
+  const items=filledItems.slice(0,100);
+  const reserve=filledItems[100];
+  const key=value=>normalise(value).trim().replace(/\s+/g,' ');
+  const target=key(items[0]);
+  const duplicate=items.findIndex((item,index)=>index>0&&key(item)===target);
+  // Bad custom reserves must never introduce a second duplicate.
+  if(duplicate>0&&!items.some(item=>key(item)===key(reserve)))
+   items[duplicate]=reserve;
+  return items;
+ }
  async function resolveList(request){
   if(!request)throw Error('pedido invalido');
   const candidate=request.candidates[0];
   const sourceItems=await fetchListFile(candidate.file);
   const manualSnapshot=pendingManualInject;
   const usesManual=manualSnapshot!==null&&sourceItems.some(item=>item.includes('$$$'));
-  const items=withSelectedForceFirst(
-   await replaceInjectMarkers(sourceItems,candidate.file,manualSnapshot),candidate.file);
+  const filledItems=await replaceInjectMarkers(sourceItems,candidate.file,manualSnapshot);
+  const items=withSelectedForceFirst(applyMarkerReserve(sourceItems,filledItems),candidate.file);
   const special=JoaninhaLists.hasCustomItems(candidate.file)?undefined:SPECIAL_LENGTHS[candidate.file];
   if(special!==undefined&&items.length!==special)throw Error('lista especial inconsistente');
   const quantity=special??(request.quantity??items.length);
@@ -1496,7 +1513,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   if(out.some(item=>item===undefined))throw Error('lista preparada incompleta');
   return {ordered:out,reservedPosition:position};
  }
- const GPT_TEST_VERSION=154;
+ const GPT_TEST_VERSION=155;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // The number grid owns its own input state, independent of secret keyboard typing.
  let numberGridVisible=false,gridDigits='',gridGesture=null;
@@ -1678,7 +1695,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
    wordCorpusPromise=(async()=>{
     if(navigator.onLine===false&&!navigator.serviceWorker?.controller)
      throw Error('Vocabulário offline indisponível');
-    const response=await fetch('./joaninha-palavras-ptbr.txt?v=154');
+    const response=await fetch('./joaninha-palavras-ptbr.txt?v=155');
     if(!response.ok)throw Error('Vocabulário indisponível');
     return JoaninhaWords.cleanWords(await response.text());
    })().catch(error=>{wordCorpusPromise=null;throw error;});

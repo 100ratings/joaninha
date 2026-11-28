@@ -1,100 +1,101 @@
-Nuvem no céu parecendo $$$.
-Marca na grama parecendo garrafa.
-Mancha na parede parecendo cavalo.
-Sombra na parede lembrando unicórnio.
-Nó na madeira parecendo olho.
-Rocha parecendo tartaruga.
-Neve parecendo coelho.
-Pão parecendo rosto sorridente.
-Casca de árvore parecendo rosto humano.
-Mancha de café parecendo coração.
-Rachadura no vidro parecendo raio.
-Pilha de folhas parecendo peixe.
-Mancha no teto lembrando anjo.
-Espuma do mar formando silhueta de golfinho.
-Reflexo na janela parecendo fantasma.
-Sombra de árvore parecendo leão.
-Formação de musgo parecendo mapa.
-Arranhão na mesa parecendo pássaro.
-Pedra parecendo sapo.
-Buraco na parede lembrando portal.
-Mancha de tinta parecendo dinossauro.
-Reflexo no espelho parecendo rosto triste.
-Marca de sujeira parecendo gato.
-Sombra de cadeira parecendo cavaleiro.
-Formação de nuvens parecendo castelo.
-Marca no asfalto parecendo carro.
-Formação de areia parecendo camelo.
-Rachadura no solo lembrando rio.
-Padrão de ladrilho parecendo robô.
-Gota de água parecendo estrela.
-Reflexo na água parecendo dragão.
-Formação de raízes parecendo mão.
-Sombra de poste parecendo guerreiro.
-Marca no cimento parecendo águia.
-Mancha de óleo parecendo urso.
-Formação de pedras parecendo elefante.
-Rachadura na parede parecendo relâmpago.
-Sombra de arbusto parecendo cisne.
-Ferrugem parecendo cavalo-marinho.
-Reflexo na lagoa parecendo sereia.
-Rachadura no gelo parecendo dragão.
-Padrão no tapete parecendo flor.
-Sombra na grama parecendo lobo.
-Marca de tinta parecendo borboleta.
-Formação de raízes parecendo coração.
-Reflexo no metal parecendo rosto sorridente.
-Sombra de árvore parecendo pássaro.
-Marca na parede parecendo estrela.
-Formação de nuvens parecendo rosto.
-Sombra de cadeira parecendo urso.
-Rachadura no cimento parecendo peixe.
-Marca de tinta parecendo cachorro.
-Reflexo na janela parecendo gato.
-Sombra na calçada parecendo cobra.
-Marca na areia parecendo golfinho.
-Formação de folhas parecendo borboleta.
-Rachadura na parede parecendo trovão.
-Mancha de água parecendo elefante.
-Reflexo no espelho parecendo monstro.
-Marca de café parecendo árvore.
-Sombra na grama parecendo dinossauro.
-Marca no asfalto parecendo estrela.
-Formação de nuvens parecendo baleia.
-Sombra de arbusto parecendo dragão.
-Marca de ferrugem parecendo cavalo.
-Reflexo na água parecendo pássaro.
-Rachadura no solo parecendo coração.
-Raízes parecendo cabeça de dragão.
-Sombra de árvore parecendo anjo.
-Marca de tinta parecendo peixe.
-Reflexo no metal parecendo águia.
-Sombra de poste parecendo pessoa.
-Marca no cimento parecendo borboleta.
-Mancha de óleo parecendo estrela.
-Formação de pedras parecendo rosto.
-Rachadura na parede parecendo relâmpago.
-Sombra de arbusto parecendo leão.
-Marca de ferrugem parecendo flor.
-Reflexo na lagoa parecendo barco.
-Rachadura no gelo parecendo lobo.
-Padrão no tapete parecendo pássaro.
-Sombra na grama parecendo cavaleiro.
-Marca de tinta parecendo cavalo-marinho.
-Formação de raízes parecendo rosto humano.
-Reflexo no metal parecendo borboleta.
-Sombra de árvore parecendo coelho.
-Marca na parede parecendo unicórnio.
-Formação de nuvens parecendo dragão.
-Sombra de cadeira parecendo peixe.
-Rachadura no cimento parecendo pássaro.
-Marca de tinta parecendo urso.
-Reflexo na janela parecendo golfinho.
-Sombra na calçada parecendo elefante.
-Marca na areia parecendo leão.
-Formação de folhas parecendo estrela.
-Rachadura na parede parecendo rosto.
-Mancha de água parecendo borboleta.
-Reflexo no espelho parecendo coração.
-Marca de café parecendo cavalo.
-Sombra na grama como cavalo-marinho.
+Nuvem no céu parecendo $$$
+Marca na grama parecendo garrafa
+Mancha na parede parecendo cavalo
+Sombra na parede lembrando unicórnio
+Nó na madeira parecendo olho
+Rocha parecendo tartaruga
+Neve parecendo coelho
+Pão parecendo rosto sorridente
+Casca de árvore parecendo rosto humano
+Mancha de café parecendo coração
+Rachadura no vidro parecendo raio
+Pilha de folhas parecendo peixe
+Mancha no teto lembrando anjo
+Espuma do mar formando silhueta de golfinho
+Reflexo na janela parecendo fantasma
+Sombra de árvore parecendo leão
+Formação de musgo parecendo mapa
+Arranhão na mesa parecendo pássaro
+Pedra parecendo sapo
+Buraco na parede lembrando portal
+Mancha de tinta parecendo dinossauro
+Reflexo no espelho parecendo rosto triste
+Marca de sujeira parecendo gato
+Sombra de cadeira parecendo cavaleiro
+Formação de nuvens parecendo castelo
+Marca no asfalto parecendo carro
+Formação de areia parecendo camelo
+Rachadura no solo lembrando rio
+Padrão de ladrilho parecendo robô
+Gota de água parecendo estrela
+Reflexo na água parecendo dragão
+Formação de raízes parecendo mão
+Sombra de poste parecendo guerreiro
+Marca no cimento parecendo águia
+Mancha de óleo parecendo urso
+Formação de pedras parecendo elefante
+Rachadura na parede parecendo relâmpago
+Sombra de arbusto parecendo cisne
+Ferrugem parecendo cavalo-marinho
+Reflexo na lagoa parecendo sereia
+Rachadura no gelo parecendo dragão
+Padrão no tapete parecendo flor
+Sombra na grama parecendo lobo
+Marca de tinta parecendo borboleta
+Formação de raízes parecendo coração
+Reflexo no metal parecendo rosto sorridente
+Sombra de árvore parecendo pássaro
+Marca na parede parecendo estrela
+Formação de nuvens parecendo rosto
+Sombra de cadeira parecendo urso
+Rachadura no cimento parecendo peixe
+Marca de tinta parecendo cachorro
+Reflexo na janela parecendo gato
+Sombra na calçada parecendo cobra
+Marca na areia parecendo golfinho
+Formação de folhas parecendo borboleta
+Rachadura na parede parecendo trovão
+Mancha de água parecendo elefante
+Reflexo no espelho parecendo monstro
+Marca de café parecendo árvore
+Sombra na grama parecendo dinossauro
+Marca no asfalto parecendo estrela
+Formação de nuvens parecendo baleia
+Sombra de arbusto parecendo dragão
+Marca de ferrugem parecendo cavalo
+Reflexo na água parecendo pássaro
+Rachadura no solo parecendo coração
+Raízes parecendo cabeça de dragão
+Sombra de árvore parecendo anjo
+Marca de tinta parecendo peixe
+Reflexo no metal parecendo águia
+Sombra de poste parecendo pessoa
+Marca no cimento parecendo borboleta
+Mancha de óleo parecendo estrela
+Formação de pedras parecendo rosto
+Poça de água parecendo guitarra
+Sombra de arbusto parecendo leão
+Marca de ferrugem parecendo flor
+Reflexo na lagoa parecendo barco
+Rachadura no gelo parecendo lobo
+Padrão no tapete parecendo pássaro
+Sombra na grama parecendo cavaleiro
+Marca de tinta parecendo cavalo-marinho
+Formação de raízes parecendo rosto humano
+Reflexo no metal parecendo borboleta
+Sombra de árvore parecendo coelho
+Marca na parede parecendo unicórnio
+Formação de nuvens parecendo dragão
+Sombra de cadeira parecendo peixe
+Rachadura no cimento parecendo pássaro
+Marca de tinta parecendo urso
+Reflexo na janela parecendo golfinho
+Sombra na calçada parecendo elefante
+Marca na areia parecendo leão
+Formação de folhas parecendo estrela
+Rachadura na parede parecendo rosto
+Mancha de água parecendo borboleta
+Reflexo no espelho parecendo coração
+Marca de café parecendo cavalo
+Sombra na grama como cavalo-marinho
+Batata parecendo pato
