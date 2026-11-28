@@ -7,8 +7,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ChatGPT">
-<link rel="manifest" href="./manifest.webmanifest?v=156">
-<link rel="apple-touch-icon" href="./icon-192.png?v=156">
+<link rel="manifest" href="./manifest.webmanifest?v=157">
+<link rel="apple-touch-icon" href="./icon-192.png?v=157">
 <title>ChatGPT</title>
 <script>
 /* Restore the chosen appearance before the first paint. */
@@ -1030,7 +1030,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
    </div>
    <div id="peekTabUpdates" role="tabpanel" aria-labelledby="peekTabUpdatesButton">
     <div class="peek-hint">Versão instalada</div>
-    <div id="updateVersionText" class="update-version">V156</div>
+    <div id="updateVersionText" class="update-version">V157</div>
     <div id="updateStatus" class="update-status" role="status" aria-live="polite">Verificando…</div>
     <div class="update-buttons">
      <button id="checkUpdatesBtn" type="button">Verificar</button>
@@ -1053,10 +1053,10 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   </section>
  </main>
 </div>
-<script src="./chat-test-gpt-2-diag.js?v=156"></script>
-<script src="./joaninha-list-manager.js?v=156"></script>
-<script src="./joaninha-work-config.js?v=156"></script>
-<script src="./joaninha-palavras.js?v=156"></script>
+<script src="./chat-test-gpt-2-diag.js?v=157"></script>
+<script src="./joaninha-list-manager.js?v=157"></script>
+<script src="./joaninha-work-config.js?v=157"></script>
+<script src="./joaninha-palavras.js?v=157"></script>
 <script>
 (function(){
  'use strict';
@@ -1177,7 +1177,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   if(navigator.onLine===false&&!navigator.serviceWorker?.controller)
    throw Error('lista offline indisponível');
   const offlineHint=navigator.onLine===false?'&offline=1':'';
-  const response=await fetch('chat-test-gpt-2-listas/'+encodeURIComponent(category)+'.txt?v=156&ts='+Date.now()+offlineHint,{cache:'no-store'});
+  const response=await fetch('chat-test-gpt-2-listas/'+encodeURIComponent(category)+'.txt?v=157&ts='+Date.now()+offlineHint,{cache:'no-store'});
   if(!response.ok)throw Error('lista nao disponivel');
   const raw=await response.text();
   return raw.replace(/^\uFEFF/,'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
@@ -1517,7 +1517,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   if(out.some(item=>item===undefined))throw Error('lista preparada incompleta');
   return {ordered:out,reservedPosition:position};
  }
- const GPT_TEST_VERSION=156;
+ const GPT_TEST_VERSION=157;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // The number grid owns its own input state, independent of secret keyboard typing.
  let numberGridVisible=false,gridDigits='',gridGesture=null;
@@ -1699,7 +1699,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
    wordCorpusPromise=(async()=>{
     if(navigator.onLine===false&&!navigator.serviceWorker?.controller)
      throw Error('Vocabulário offline indisponível');
-    const response=await fetch('./joaninha-palavras-ptbr.txt?v=156');
+    const response=await fetch('./joaninha-palavras-ptbr.txt?v=157');
     if(!response.ok)throw Error('Vocabulário indisponível');
     return JoaninhaWords.cleanWords(await response.text());
    })().catch(error=>{wordCorpusPromise=null;throw error;});
@@ -4000,6 +4000,20 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
  }
  $('jump').addEventListener('click',()=>{scroller.scrollTo({top:scroller.scrollHeight,behavior:'smooth'});});
  scroller.addEventListener('scroll',refreshJump,{passive:true});
+ // In an installed iOS web app, Safari can claim a right-edge touch as
+ // forward navigation before a touchmove reveals its direction. Protect only
+ // the last 20 CSS pixels of noninteractive conversation content. Elsewhere
+ // native vertical scrolling and the words engine keep their original events.
+ function protectConversationRightEdge(event){
+  if(scene==='home'||drawer||!event.cancelable||event.touches.length!==1||
+     event.changedTouches.length!==1)return;
+  const x=event.touches[0].clientX;
+  const width=document.documentElement.clientWidth;
+  if(!Number.isFinite(x)||!Number.isFinite(width)||width<=20||x<width-20||x>width)return;
+  if(event.target?.closest?.('button,a,input,textarea,select,[contenteditable],[role="button"],[role="menuitem"]'))return;
+  event.preventDefault();
+ }
+ if(isIOS&&standalone)scroller.addEventListener('touchstart',protectConversationRightEdge,{capture:true,passive:false});
  // A tap on any part of the conversation hides the mock keyboard,
  // while dragging to scroll does not count as a tap
  let conversationTap=null;
