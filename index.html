@@ -7,8 +7,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ChatGPT">
-<link rel="manifest" href="./manifest.webmanifest?v=155">
-<link rel="apple-touch-icon" href="./icon-192.png?v=155">
+<link rel="manifest" href="./manifest.webmanifest?v=156">
+<link rel="apple-touch-icon" href="./icon-192.png?v=156">
 <title>ChatGPT</title>
 <script>
 /* Restore the chosen appearance before the first paint. */
@@ -1030,7 +1030,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
    </div>
    <div id="peekTabUpdates" role="tabpanel" aria-labelledby="peekTabUpdatesButton">
     <div class="peek-hint">Versão instalada</div>
-    <div id="updateVersionText" class="update-version">V155</div>
+    <div id="updateVersionText" class="update-version">V156</div>
     <div id="updateStatus" class="update-status" role="status" aria-live="polite">Verificando…</div>
     <div class="update-buttons">
      <button id="checkUpdatesBtn" type="button">Verificar</button>
@@ -1053,10 +1053,10 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   </section>
  </main>
 </div>
-<script src="./chat-test-gpt-2-diag.js?v=155"></script>
-<script src="./joaninha-list-manager.js?v=155"></script>
-<script src="./joaninha-work-config.js?v=155"></script>
-<script src="./joaninha-palavras.js?v=155"></script>
+<script src="./chat-test-gpt-2-diag.js?v=156"></script>
+<script src="./joaninha-list-manager.js?v=156"></script>
+<script src="./joaninha-work-config.js?v=156"></script>
+<script src="./joaninha-palavras.js?v=156"></script>
 <script>
 (function(){
  'use strict';
@@ -1177,7 +1177,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   if(navigator.onLine===false&&!navigator.serviceWorker?.controller)
    throw Error('lista offline indisponível');
   const offlineHint=navigator.onLine===false?'&offline=1':'';
-  const response=await fetch('chat-test-gpt-2-listas/'+encodeURIComponent(category)+'.txt?v=155&ts='+Date.now()+offlineHint,{cache:'no-store'});
+  const response=await fetch('chat-test-gpt-2-listas/'+encodeURIComponent(category)+'.txt?v=156&ts='+Date.now()+offlineHint,{cache:'no-store'});
   if(!response.ok)throw Error('lista nao disponivel');
   const raw=await response.text();
   return raw.replace(/^\uFEFF/,'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
@@ -1227,7 +1227,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   }
   return reordered;
  }
- // Use the same Brazilian Portuguese title case for every Inject marker.
+ // Brazilian Portuguese title case for standalone markers from either input.
  // Keep accents unchanged; lowercase Portuguese particles except at the start.
  function titleCasePtBR(text){
   const particles=new Set([
@@ -1245,24 +1245,28 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
    return lower.charAt(0).toLocaleUpperCase('pt-BR')+lower.slice(1);
   });
  }
- // Local manual replacement, preserved literally for one successfully prepared list.
+ // Format only the inserted value, according to the original row template.
+ function fillMarkerText(items,value){
+  return items.map(item=>{
+   if(!item.includes('$$$'))return item;
+   const formatted=item.trim()==='$$$'?titleCasePtBR(value):value.trim().toLocaleLowerCase('pt-BR');
+   return item.replace(/\$\$\$/g,()=>formatted);
+  });
+ }
+ // Local manual replacement for one successfully prepared list.
  let pendingManualInject=null,manualInjectSequence=0;
  // Inject remains idle until a requested list contains the $$$ marker.
  // One read per list request, no polling, no count comparison and no stored value.
  async function replaceInjectMarkers(items,category,manualSnapshot=pendingManualInject){
   if(!items.some(item=>item.includes('$$$')))return items;
-  if(manualSnapshot!==null)
-   return items.map(item=>item.includes('$$$')?
-    item.replace(/\$\$\$/g,()=>manualSnapshot.text):item);
+  if(manualSnapshot!==null)return fillMarkerText(items,manualSnapshot.text);
   if(navigator.onLine===false)throw Error('Inject indisponível offline');
   const response=await fetch('https://11z.co/_w/5156/selection',{cache:'no-store'});
   if(!response.ok)throw Error('Inject indisponível');
   const selection=await response.json();
   if(typeof selection?.value!=='string'||!selection.value.trim())
    throw Error('Value do Inject inválido');
-  const value=titleCasePtBR(selection.value);
-  return items.map(item=>item.includes('$$$')?
-   item.replace(/\$\$\$/g,()=>value):item);
+  return fillMarkerText(items,selection.value);
  }
  // A 101-line marker list has 100 presentation rows and one reserve.
  // Replace only an ordinary duplicate of the filled marker, keeping row 0
@@ -1513,7 +1517,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   if(out.some(item=>item===undefined))throw Error('lista preparada incompleta');
   return {ordered:out,reservedPosition:position};
  }
- const GPT_TEST_VERSION=155;
+ const GPT_TEST_VERSION=156;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // The number grid owns its own input state, independent of secret keyboard typing.
  let numberGridVisible=false,gridDigits='',gridGesture=null;
@@ -1695,7 +1699,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
    wordCorpusPromise=(async()=>{
     if(navigator.onLine===false&&!navigator.serviceWorker?.controller)
      throw Error('Vocabulário offline indisponível');
-    const response=await fetch('./joaninha-palavras-ptbr.txt?v=155');
+    const response=await fetch('./joaninha-palavras-ptbr.txt?v=156');
     if(!response.ok)throw Error('Vocabulário indisponível');
     return JoaninhaWords.cleanWords(await response.text());
    })().catch(error=>{wordCorpusPromise=null;throw error;});
