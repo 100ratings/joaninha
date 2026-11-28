@@ -33,7 +33,7 @@ function fakePage({remote=version,currentURL='',worker=true}={}){
    return {ready:true,version:payload.version};
   }
  });
- const a=html.indexOf(' function renderRecentEntry(){'),b=html.indexOf(' // Opening the sidebar',a);
+ const a=html.indexOf(' function renderRecentEntry(){'),b=html.indexOf(' // V161: restore the sidebar swipe',a);
  vm.runInContext(html.slice(a,b),context);
  return {context,nodes,messages,requests,reloads,state,check:auto=>context.checkForTestUpdate(auto),apply:()=>context.applyAvailableTestUpdate(false)};
 }

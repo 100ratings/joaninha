@@ -7,8 +7,8 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="ChatGPT">
-<link rel="manifest" href="./manifest.webmanifest?v=160">
-<link rel="apple-touch-icon" href="./icon-192.png?v=160">
+<link rel="manifest" href="./manifest.webmanifest?v=161">
+<link rel="apple-touch-icon" href="./icon-192.png?v=161">
 <title>ChatGPT</title>
 <script>
 /* Restore the chosen appearance before the first paint. */
@@ -1029,7 +1029,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
    </div>
    <div id="peekTabUpdates" role="tabpanel" aria-labelledby="peekTabUpdatesButton">
     <div class="peek-hint">Versão instalada</div>
-    <div id="updateVersionText" class="update-version">V160</div>
+    <div id="updateVersionText" class="update-version">V161</div>
     <div id="updateStatus" class="update-status" role="status" aria-live="polite">Verificando…</div>
     <div class="update-buttons">
      <button id="checkUpdatesBtn" type="button">Verificar</button>
@@ -1052,10 +1052,10 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   </section>
  </main>
 </div>
-<script src="./chat-test-gpt-2-diag.js?v=160"></script>
-<script src="./joaninha-list-manager.js?v=160"></script>
-<script src="./joaninha-work-config.js?v=160"></script>
-<script src="./joaninha-palavras.js?v=160"></script>
+<script src="./chat-test-gpt-2-diag.js?v=161"></script>
+<script src="./joaninha-list-manager.js?v=161"></script>
+<script src="./joaninha-work-config.js?v=161"></script>
+<script src="./joaninha-palavras.js?v=161"></script>
 <script>
 (function(){
  'use strict';
@@ -1176,7 +1176,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   if(navigator.onLine===false&&!navigator.serviceWorker?.controller)
    throw Error('lista offline indisponível');
   const offlineHint=navigator.onLine===false?'&offline=1':'';
-  const response=await fetch('chat-test-gpt-2-listas/'+encodeURIComponent(category)+'.txt?v=160&ts='+Date.now()+offlineHint,{cache:'no-store'});
+  const response=await fetch('chat-test-gpt-2-listas/'+encodeURIComponent(category)+'.txt?v=161&ts='+Date.now()+offlineHint,{cache:'no-store'});
   if(!response.ok)throw Error('lista nao disponivel');
   const raw=await response.text();
   return raw.replace(/^\uFEFF/,'').split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
@@ -1516,7 +1516,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
   if(out.some(item=>item===undefined))throw Error('lista preparada incompleta');
   return {ordered:out,reservedPosition:position};
  }
- const GPT_TEST_VERSION=160;
+ const GPT_TEST_VERSION=161;
  let scene='home', keyboard=false, draft='', drawer=false, generating=false, timer=null, longTimer=null, wasLong=false;
  // The number grid owns its own input state, independent of secret keyboard typing.
  let numberGridVisible=false,gridDigits='',gridGesture=null;
@@ -1721,7 +1721,7 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
    wordCorpusPromise=(async()=>{
     if(navigator.onLine===false&&!navigator.serviceWorker?.controller)
      throw Error('Vocabulário offline indisponível');
-    const response=await fetch('./joaninha-palavras-ptbr.txt?v=160');
+    const response=await fetch('./joaninha-palavras-ptbr.txt?v=161');
     if(!response.ok)throw Error('Vocabulário indisponível');
     return JoaninhaWords.cleanWords(await response.text());
    })().catch(error=>{wordCorpusPromise=null;throw error;});
@@ -4642,7 +4642,85 @@ html[data-theme="light"] .activation-modes button[aria-pressed="true"]{backgroun
  }
  $('checkUpdatesBtn').addEventListener('click',()=>checkForTestUpdate(false));
  $('updateAppBtn').addEventListener('click',()=>applyAvailableTestUpdate(false));
- // Opening the sidebar with a left-edge swipe is intentionally disabled
+ // V161: restore the sidebar swipe ONLY on the empty, idle home background.
+ // The gesture must not compete with a list, keyboard, secret input or panel.
+ function homeSwipeAvailable(){
+  return scene==='home'&&!drawer&&!keyboard&&!draft&&!generating&&
+   !secretMode&&!numberGridVisible&&!probingStartupKeyboard&&
+   !manualInjectOpen&&!peekPanelOpen&&!gridSettingsOpen&&!testUpdateInProgress&&themePicker.hidden&&
+   !workPicker.classList.contains('visible')&&!app.classList.contains('jd-open')&&
+   !document.body.classList.contains('jlm-open')&&!document.hidden;
+ }
+ function homeSwipePoint(x,y){
+  return Number.isFinite(x)&&Number.isFinite(y)&&x>=0&&
+   x<=document.documentElement.clientWidth&&
+   y>$('header').getBoundingClientRect().bottom&&
+   y<composer.getBoundingClientRect().top;
+ }
+ function startHomeSwipe(target,id,x,y){
+  if(target!==page||!homeSwipeAvailable()||!homeSwipePoint(x,y)||
+     x>document.documentElement.clientWidth/2)return null;
+  return {id,x,y};
+ }
+ function finishHomeSwipe(gesture,x,y){
+  if(!gesture||!homeSwipeAvailable()||!homeSwipePoint(x,y))return false;
+  const dx=x-gesture.x,dy=y-gesture.y;
+  return dx>105&&Math.abs(dy)<40&&dx>Math.abs(dy)*2.5;
+ }
+ function openHomeDrawerBySwipe(){
+  if(!homeSwipeAvailable())return;
+  diag.event('drawer-intentional-home-open',{direction:'right'});
+  setDrawer(true);
+ }
+ let homeTouchSwipe=null,homeMouseSwipe=null;
+ page.addEventListener('touchstart',e=>{
+  homeTouchSwipe=null;
+  if(e.touches.length!==1||e.changedTouches.length!==1)return;
+  const t=e.changedTouches[0];
+  homeTouchSwipe=startHomeSwipe(e.target,t.identifier,t.clientX,t.clientY);
+  // On installed iOS only, reserve the extreme left edge of this safe
+  // background before WebKit can interpret it as history navigation.
+  if(homeTouchSwipe&&isIOS&&standalone&&t.clientX<=20){
+   if(e.cancelable)e.preventDefault();
+   else homeTouchSwipe=null;
+  }
+ },{capture:true,passive:false});
+ page.addEventListener('touchmove',e=>{
+  if(!homeTouchSwipe)return;
+  const t=e.touches.length===1?e.touches[0]:null;
+  if(!t||t.identifier!==homeTouchSwipe.id||!homeSwipeAvailable()||
+     Math.abs(t.clientY-homeTouchSwipe.y)>=40)homeTouchSwipe=null;
+ },{passive:true});
+ page.addEventListener('touchcancel',()=>{homeTouchSwipe=null;},{passive:true});
+ page.addEventListener('touchend',e=>{
+  const gesture=homeTouchSwipe;homeTouchSwipe=null;
+  if(!gesture||e.touches.length||e.changedTouches.length!==1)return;
+  const t=e.changedTouches[0];
+  if(t.identifier!==gesture.id||!e.cancelable||!finishHomeSwipe(gesture,t.clientX,t.clientY))return;
+  e.preventDefault(); // no synthetic tap to close the just-opened drawer
+  openHomeDrawerBySwipe();
+ },{passive:false});
+ // Desktop preview can exercise the same intentional drag with a mouse.
+ // Touch pointers use only the touch path above, never both paths.
+ page.addEventListener('pointerdown',e=>{
+  if(e.pointerType!=='mouse')return;
+  homeMouseSwipe=e.isPrimary&&e.button===0?
+   startHomeSwipe(e.target,e.pointerId,e.clientX,e.clientY):null;
+ },{passive:true});
+ page.addEventListener('pointermove',e=>{
+  if(homeMouseSwipe&&e.pointerId===homeMouseSwipe.id&&
+     (!homeSwipeAvailable()||Math.abs(e.clientY-homeMouseSwipe.y)>=40))
+   homeMouseSwipe=null;
+ },{passive:true});
+ page.addEventListener('pointerup',e=>{
+  if(e.pointerType!=='mouse')return;
+  const gesture=homeMouseSwipe;homeMouseSwipe=null;
+  if(gesture?.id!==e.pointerId||!finishHomeSwipe(gesture,e.clientX,e.clientY))return;
+  // Complete the browser's drag/click sequence before opening the drawer.
+  setTimeout(openHomeDrawerBySwipe,0);
+ },{passive:true});
+ for(const type of ['pointercancel','pointerleave'])page.addEventListener(type,()=>{homeMouseSwipe=null;},{passive:true});
+ window.addEventListener('blur',()=>{homeTouchSwipe=null;homeMouseSwipe=null;});
  // Vertical drawer scrolling must not accidentally dismiss the menu at its ends
  let drawerSwipe=null;
  $('drawer').addEventListener('touchstart',e=>{
